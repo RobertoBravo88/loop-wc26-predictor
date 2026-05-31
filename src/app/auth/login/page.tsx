@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Trophy, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const schema = z.object({
@@ -38,48 +38,88 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8] px-4">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: '#f7f4ef' }}
+    >
       <div className="w-full max-w-md">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#ff5c35] mb-4">
-            <Trophy className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Loop WC26 Predictor</h1>
-          <p className="text-gray-500 mt-1 text-sm">Sign in to make your predictions</p>
+        {/* Masthead */}
+        <div className="text-center mb-10">
+          <h1
+            className="text-4xl mb-1"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
+          >
+            Loop WC26
+          </h1>
+          <p className="text-xs uppercase tracking-widest" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+            Sign in to make your predictions
+          </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        {/* Form card */}
+        <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label
+                className="block text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
+              >
+                Email
+              </label>
               <input
                 {...register('email')}
                 type="email"
                 autoComplete="email"
                 placeholder="you@loopearplugs.com"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5c35] focus:border-transparent"
+                className="w-full px-4 py-2.5 text-sm focus:outline-none"
+                style={{
+                  border: '1px solid #e0dbd3',
+                  background: '#ffffff',
+                  color: '#141414',
+                  fontFamily: 'Inter, sans-serif'
+                }}
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs mt-1" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label
+                className="block text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
+              >
+                Password
+              </label>
               <input
                 {...register('password')}
                 type="password"
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5c35] focus:border-transparent"
+                className="w-full px-4 py-2.5 text-sm focus:outline-none"
+                style={{
+                  border: '1px solid #e0dbd3',
+                  background: '#ffffff',
+                  color: '#141414',
+                  fontFamily: 'Inter, sans-serif'
+                }}
               />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs mt-1" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">
+              <div
+                className="text-sm px-4 py-3"
+                style={{ background: '#fff5f5', color: '#dc2626', border: '1px solid #fecaca', fontFamily: 'Inter, sans-serif' }}
+              >
                 {error}
               </div>
             )}
@@ -87,19 +127,24 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#ff5c35] hover:bg-[#e04a26] text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              className="w-full text-white font-semibold py-2.5 transition-colors flex items-center justify-center gap-2 text-sm"
+              style={{
+                background: isSubmitting ? '#e04a26' : '#ff5c35',
+                fontFamily: 'Inter, sans-serif',
+                opacity: isSubmitting ? 0.8 : 1
+              }}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Sign in
             </button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between text-sm">
-            <Link href="/auth/reset" className="text-gray-500 hover:text-[#ff5c35] transition-colors">
+          <div className="mt-6 flex items-center justify-between text-xs" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <Link href="/auth/reset" className="hover:underline" style={{ color: '#6b6b6b' }}>
               Forgot password?
             </Link>
-            <Link href="/auth/signup" className="text-[#ff5c35] font-medium hover:underline">
-              Create account →
+            <Link href="/auth/signup" className="font-semibold hover:underline" style={{ color: '#ff5c35' }}>
+              Create account
             </Link>
           </div>
         </div>

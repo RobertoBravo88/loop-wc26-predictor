@@ -1,11 +1,7 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import { createClient } from '@/lib/supabase/server'
-
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
-const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Loop WC26 Predictor',
@@ -28,12 +24,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-white antialiased">
+    <html lang="en" className="h-full">
+      <body className="min-h-full flex flex-col antialiased" style={{ background: '#f7f4ef', color: '#141414' }}>
         <Navbar profile={profile} />
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-          Loop WC26 Predictor · {new Date().getFullYear()} · Built with ❤️ for the team
+        <footer className="border-t py-6 text-center text-xs" style={{ borderColor: '#e0dbd3', color: '#6b6b6b' }}>
+          Loop WC26 Predictor &middot; {new Date().getFullYear()} &middot; Built for the team
         </footer>
       </body>
     </html>

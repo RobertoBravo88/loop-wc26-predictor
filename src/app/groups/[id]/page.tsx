@@ -67,42 +67,58 @@ function computePredictedStandings(matches: Match[], teams: Team[], predictions:
 
 function StandingsTable({ standings, label }: { standings: GroupStanding[]; label: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+    <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+      <div
+        className="px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+        style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+      >
         {label}
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-xs text-gray-400 border-b border-gray-50">
-            <th className="text-left px-4 py-2 font-medium">Team</th>
-            <th className="px-2 py-2 font-medium">P</th>
-            <th className="px-2 py-2 font-medium">W</th>
-            <th className="px-2 py-2 font-medium">D</th>
-            <th className="px-2 py-2 font-medium">L</th>
-            <th className="px-2 py-2 font-medium">GD</th>
-            <th className="px-4 py-2 font-medium text-right">Pts</th>
+          <tr style={{ borderBottom: '1px solid #e0dbd3' }}>
+            <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Team</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>P</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>W</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>D</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>L</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>GD</th>
+            <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Pts</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((row, i) => (
-            <tr key={row.team.id} className={`border-b border-gray-50 last:border-0 ${i < 2 ? 'bg-green-50/40' : ''}`}>
+            <tr
+              key={row.team.id}
+              style={{
+                borderBottom: '1px solid #e0dbd3',
+                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                borderLeft: i < 2 ? '3px solid #22c55e' : '3px solid transparent'
+              }}
+            >
               <td className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 w-4">{i + 1}</span>
-                  {row.team.flag_url && <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-cover rounded-sm" />}
-                  <span className="font-medium text-gray-800">{row.team.name}</span>
+                  <span className="text-xs w-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
+                  {row.team.flag_url && <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-cover flex-shrink-0" />}
+                  <span className="font-medium text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{row.team.name}</span>
                 </div>
               </td>
-              <td className="px-2 py-2.5 text-center text-gray-500">{row.played}</td>
-              <td className="px-2 py-2.5 text-center text-gray-500">{row.won}</td>
-              <td className="px-2 py-2.5 text-center text-gray-500">{row.drawn}</td>
-              <td className="px-2 py-2.5 text-center text-gray-500">{row.lost}</td>
-              <td className="px-2 py-2.5 text-center text-gray-500">{row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}</td>
-              <td className="px-4 py-2.5 text-right font-bold text-gray-800">{row.points}</td>
+              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.played}</td>
+              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.won}</td>
+              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.drawn}</td>
+              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.lost}</td>
+              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
+              </td>
+              <td className="px-4 py-2.5 text-right text-sm font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{row.points}</td>
             </tr>
           ))}
           {!standings.length && (
-            <tr><td colSpan={7} className="px-4 py-6 text-center text-xs text-gray-400">No data yet</td></tr>
+            <tr>
+              <td colSpan={7} className="px-4 py-6 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                No data yet
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -146,47 +162,94 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="w-10 h-10 rounded-full bg-[#ff5c35] text-white flex items-center justify-center font-bold text-lg">
-          {groupLetter}
-        </span>
-        <h1 className="text-2xl font-bold text-gray-900">Group {groupLetter}</h1>
+
+      {/* Page header */}
+      <div className="mb-8 pb-4" style={{ borderBottom: '2px solid #141414' }}>
+        <div className="flex items-center gap-3">
+          <span
+            className="w-10 h-10 flex items-center justify-center text-lg text-white"
+            style={{ background: '#141414', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
+          >
+            {groupLetter}
+          </span>
+          <h1
+            className="text-3xl"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
+          >
+            Group {groupLetter}
+          </h1>
+        </div>
       </div>
 
       {/* Standings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <StandingsTable standings={realStandings} label="Current standings" />
         {user && predictedStandings.length > 0 && (
           <StandingsTable standings={predictedStandings} label="Your predicted standings" />
         )}
       </div>
 
-      {/* Matches */}
-      <h2 className="text-base font-bold text-gray-700 mb-3">Fixtures & Results</h2>
-      <div className="space-y-3">
-        {castedMatches.map(match => (
-          <div key={match.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4">
+      {/* Fixtures & Results */}
+      <h2
+        className="text-xl mb-4 pb-3"
+        style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontWeight: 700,
+          color: '#141414',
+          borderBottom: '1px solid #e0dbd3'
+        }}
+      >
+        Fixtures &amp; Results
+      </h2>
+      <div style={{ border: '1px solid #e0dbd3' }}>
+        {castedMatches.map((match, idx) => (
+          <div
+            key={match.id}
+            className="px-5 py-4"
+            style={{
+              background: idx % 2 === 0 ? '#ffffff' : '#faf9f6',
+              borderBottom: idx < castedMatches.length - 1 ? '1px solid #e0dbd3' : 'none'
+            }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400">{formatKickoff(match.kickoff_at)}</span>
+              <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                {formatKickoff(match.kickoff_at)}
+              </span>
               {match.status === 'finished' && (
-                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">FT</span>
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 uppercase tracking-wider"
+                  style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+                >
+                  FT
+                </span>
               )}
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 flex-1 justify-end">
-                <span className="text-sm font-semibold">{match.home_team?.name}</span>
-                {match.home_team?.flag_url && <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover rounded-sm" />}
+                <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                  {match.home_team?.name}
+                </span>
+                {match.home_team?.flag_url && (
+                  <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                )}
               </div>
-              <div className="text-sm font-bold text-gray-800 px-3 py-1 bg-gray-900 text-white rounded-xl min-w-[60px] text-center">
+              <div
+                className="text-sm font-bold px-3 py-1 min-w-[60px] text-center text-white"
+                style={{ background: '#141414', fontFamily: 'Inter, sans-serif' }}
+              >
                 {match.home_score !== null ? `${match.home_score} – ${match.away_score}` : 'vs'}
               </div>
               <div className="flex items-center gap-2 flex-1">
-                {match.away_team?.flag_url && <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover rounded-sm" />}
-                <span className="text-sm font-semibold">{match.away_team?.name}</span>
+                {match.away_team?.flag_url && (
+                  <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                )}
+                <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                  {match.away_team?.name}
+                </span>
               </div>
             </div>
             {user && predictionMap.has(match.id) && (
-              <p className="text-xs text-gray-400 text-center mt-1.5">
+              <p className="text-xs text-center mt-1.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                 Your pick: {predictionMap.get(match.id)!.h} – {predictionMap.get(match.id)!.a}
               </p>
             )}

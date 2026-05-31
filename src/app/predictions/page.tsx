@@ -38,8 +38,19 @@ export default async function PredictionsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">My Predictions</h1>
-      <p className="text-sm text-gray-500 mb-8">Predictions lock at kick-off. Exact score = 100pts · Correct outcome = 50pts.</p>
+
+      {/* Page header */}
+      <div className="mb-6 pb-3" style={{ borderBottom: '2px solid #141414' }}>
+        <h1
+          className="text-4xl mb-1"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
+        >
+          My Predictions
+        </h1>
+        <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          Predictions lock at kick-off &middot; Exact score = 100pts &middot; Correct outcome = 50pts
+        </p>
+      </div>
 
       {STAGE_ORDER.map(stage => {
         const stageMatches = byStage.get(stage)
@@ -55,12 +66,25 @@ export default async function PredictionsPage() {
           }
           return Array.from(byGroup.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([group, groupMatches]) => (
             <section key={group} className="mb-8">
-              <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-[#ff5c35] text-white flex items-center justify-center text-xs font-bold">{group}</span>
+              <h2
+                className="text-lg mb-3 pb-2 flex items-center gap-2"
+                style={{
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                  fontWeight: 700,
+                  color: '#141414',
+                  borderBottom: '1px solid #e0dbd3'
+                }}
+              >
+                <span
+                  className="w-6 h-6 flex items-center justify-center text-xs font-bold text-white"
+                  style={{ background: '#141414', fontFamily: 'Inter, sans-serif' }}
+                >
+                  {group}
+                </span>
                 Group {group}
               </h2>
-              <div className="space-y-3">
-                {groupMatches.map(match => (
+              <div style={{ border: '1px solid #e0dbd3' }}>
+                {groupMatches.map((match, idx) => (
                   <PredictionCard
                     key={match.id}
                     match={match}
@@ -75,8 +99,18 @@ export default async function PredictionsPage() {
 
         return (
           <section key={stage} className="mb-8">
-            <h2 className="text-base font-bold text-gray-700 mb-3">{stageName(stage)}</h2>
-            <div className="space-y-3">
+            <h2
+              className="text-lg mb-3 pb-2"
+              style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: 700,
+                color: '#141414',
+                borderBottom: '1px solid #e0dbd3'
+              }}
+            >
+              {stageName(stage)}
+            </h2>
+            <div style={{ border: '1px solid #e0dbd3' }}>
               {stageMatches.map(match => (
                 <PredictionCard
                   key={match.id}
@@ -91,7 +125,7 @@ export default async function PredictionsPage() {
       })}
 
       {!matches?.length && (
-        <div className="text-center py-16 text-gray-400 text-sm">
+        <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           Fixtures haven&apos;t been loaded yet. Check back soon!
         </div>
       )}

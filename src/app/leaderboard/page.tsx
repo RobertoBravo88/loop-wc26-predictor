@@ -17,11 +17,24 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Leaderboard</h1>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {/* Header row */}
-        <div className="grid grid-cols-12 px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+      {/* Page header */}
+      <div className="mb-8 pb-3" style={{ borderBottom: '2px solid #141414' }}>
+        <h1
+          className="text-4xl"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
+        >
+          Leaderboard
+        </h1>
+      </div>
+
+      {/* Newspaper-style rankings table */}
+      <div style={{ border: '1px solid #e0dbd3' }}>
+        {/* Header */}
+        <div
+          className="grid grid-cols-12 px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+          style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
+        >
           <span className="col-span-1 text-center">#</span>
           <span className="col-span-5">Player</span>
           <span className="col-span-2 text-center">Predicted</span>
@@ -34,24 +47,43 @@ export default async function LeaderboardPage() {
           const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
 
           return (
-            <Link key={entry.id} href={`/profile/${entry.id}`}
-              className={`grid grid-cols-12 px-4 py-3 items-center border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors ${isMe ? 'bg-[#ff5c35]/5' : ''}`}>
-
+            <Link
+              key={entry.id}
+              href={`/profile/${entry.id}`}
+              className="grid grid-cols-12 px-4 py-3 items-center transition-colors hover:opacity-80"
+              style={{
+                background: isMe
+                  ? 'rgba(255, 92, 53, 0.04)'
+                  : i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                borderBottom: '1px solid #e0dbd3',
+                borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent'
+              }}
+            >
               {/* Rank */}
-              <span className="col-span-1 text-center text-sm font-bold text-gray-400">
+              <span
+                className="col-span-1 text-center text-sm font-bold"
+                style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
+              >
                 {medal ?? entry.rank}
               </span>
 
               {/* Player */}
               <div className="col-span-5 flex items-center gap-2 min-w-0">
                 {entry.favourite_team_flag ? (
-                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-cover rounded-sm flex-shrink-0" />
+                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-6 h-4 bg-gray-100 rounded-sm flex-shrink-0" />
+                  <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
                 )}
-                <span className={`text-sm font-medium truncate ${isMe ? 'text-[#ff5c35]' : 'text-gray-800'}`}>
+                <span
+                  className="text-sm truncate"
+                  style={{
+                    fontFamily: 'Inter, sans-serif',
+                    color: isMe ? '#ff5c35' : '#141414',
+                    fontWeight: isMe ? 600 : 400
+                  }}
+                >
                   {entry.display_name}
-                  {isMe && <span className="ml-1 text-xs">(you)</span>}
+                  {isMe && <span className="ml-1 text-xs" style={{ color: '#6b6b6b' }}>(you)</span>}
                 </span>
                 {entry.current_streak >= 3 && (
                   <span className="streak-badge text-xs flex-shrink-0">🔥{entry.current_streak}</span>
@@ -59,13 +91,26 @@ export default async function LeaderboardPage() {
               </div>
 
               {/* Predicted */}
-              <span className="col-span-2 text-center text-sm text-gray-500">{entry.matches_predicted}</span>
+              <span
+                className="col-span-2 text-center text-sm"
+                style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
+              >
+                {entry.matches_predicted}
+              </span>
 
               {/* Exact */}
-              <span className="col-span-2 text-center text-sm text-gray-500">{entry.exact_scores}</span>
+              <span
+                className="col-span-2 text-center text-sm"
+                style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
+              >
+                {entry.exact_scores}
+              </span>
 
               {/* Points */}
-              <span className={`col-span-2 text-right text-sm font-bold ${isMe ? 'text-[#ff5c35]' : 'text-gray-800'}`}>
+              <span
+                className="col-span-2 text-right text-sm font-bold"
+                style={{ fontFamily: 'Inter, sans-serif', color: '#ff5c35' }}
+              >
                 {entry.total_points}
               </span>
             </Link>
@@ -73,7 +118,7 @@ export default async function LeaderboardPage() {
         })}
 
         {!leaderboard.length && (
-          <div className="px-4 py-12 text-center text-sm text-gray-400">
+          <div className="px-4 py-12 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}>
             The competition hasn&apos;t started yet. Get your predictions in!
           </div>
         )}

@@ -11,22 +11,49 @@ function MatchNode({ match, userPick }: { match: Match; userPick?: { h: number; 
   const hasTeams = match.home_team && match.away_team
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-3 min-w-[160px] text-xs shadow-sm">
+    <div
+      className="min-w-[160px] text-xs"
+      style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
+    >
       {/* Home */}
-      <div className={`flex items-center gap-1.5 mb-1 ${finished && match.home_score! > match.away_score! ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
-        {match.home_team?.flag_url && <img src={match.home_team.flag_url} alt="" className="w-4 h-3 object-cover rounded-sm flex-shrink-0" />}
-        <span className="truncate">{match.home_team?.name ?? 'TBD'}</span>
-        {finished && <span className="ml-auto font-bold">{match.home_score}</span>}
+      <div
+        className="flex items-center gap-1.5 px-3 py-2"
+        style={{
+          borderBottom: '1px solid #e0dbd3',
+          fontFamily: 'Inter, sans-serif',
+          color: finished && match.home_score! > match.away_score! ? '#141414' : '#6b6b6b',
+          fontWeight: finished && match.home_score! > match.away_score! ? 600 : 400
+        }}
+      >
+        {match.home_team?.flag_url && (
+          <img src={match.home_team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />
+        )}
+        <span className="truncate flex-1">{match.home_team?.name ?? 'TBD'}</span>
+        {finished && (
+          <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{match.home_score}</span>
+        )}
       </div>
       {/* Away */}
-      <div className={`flex items-center gap-1.5 ${finished && match.away_score! > match.home_score! ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
-        {match.away_team?.flag_url && <img src={match.away_team.flag_url} alt="" className="w-4 h-3 object-cover rounded-sm flex-shrink-0" />}
-        <span className="truncate">{match.away_team?.name ?? 'TBD'}</span>
-        {finished && <span className="ml-auto font-bold">{match.away_score}</span>}
+      <div
+        className="flex items-center gap-1.5 px-3 py-2"
+        style={{
+          fontFamily: 'Inter, sans-serif',
+          color: finished && match.away_score! > match.home_score! ? '#141414' : '#6b6b6b',
+          fontWeight: finished && match.away_score! > match.home_score! ? 600 : 400,
+          borderBottom: userPick && hasTeams ? '1px solid #e0dbd3' : 'none'
+        }}
+      >
+        {match.away_team?.flag_url && (
+          <img src={match.away_team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />
+        )}
+        <span className="truncate flex-1">{match.away_team?.name ?? 'TBD'}</span>
+        {finished && (
+          <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{match.away_score}</span>
+        )}
       </div>
       {/* User pick */}
       {userPick && hasTeams && (
-        <div className="mt-1.5 pt-1.5 border-t border-gray-50 text-gray-400">
+        <div className="px-3 py-1.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           Your pick: {userPick.h}–{userPick.a}
         </div>
       )}
@@ -63,23 +90,40 @@ export default async function BracketPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Tournament Bracket</h1>
-      <p className="text-sm text-gray-500 mb-8">Knockout stage — your picks vs. reality.</p>
+
+      {/* Page header */}
+      <div className="mb-8 pb-3" style={{ borderBottom: '2px solid #141414' }}>
+        <h1
+          className="text-4xl mb-1"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
+        >
+          Tournament Bracket
+        </h1>
+        <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          Knockout stage &mdash; your picks vs. reality
+        </p>
+      </div>
 
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-8 min-w-max">
+        <div className="flex gap-6 min-w-max">
           {KNOCKOUT_STAGES.map(stage => {
             const stageMatches = byStage.get(stage) ?? []
             return (
               <div key={stage} className="flex flex-col">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 text-center">
+                <h2
+                  className="text-xs font-bold uppercase tracking-wider mb-3 text-center pb-2"
+                  style={{ color: '#141414', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
+                >
                   {stageName(stage)}
                 </h2>
                 <div className="flex flex-col gap-3 justify-around flex-1">
                   {stageMatches.length > 0 ? stageMatches.map(match => (
                     <MatchNode key={match.id} match={match} userPick={predMap.get(match.id)} />
                   )) : (
-                    <div className="text-center text-xs text-gray-300 px-4 py-8">
+                    <div
+                      className="text-center text-xs px-4 py-8"
+                      style={{ color: '#e0dbd3', fontFamily: 'Inter, sans-serif' }}
+                    >
                       Fixtures TBD
                     </div>
                   )}
@@ -91,7 +135,10 @@ export default async function BracketPage() {
       </div>
 
       {!matches?.length && (
-        <div className="text-center py-16 text-gray-400 text-sm">
+        <div
+          className="text-center py-16 text-sm"
+          style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+        >
           The knockout bracket will appear once the group stage is complete.
         </div>
       )}
