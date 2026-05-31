@@ -6,19 +6,19 @@ export const revalidate = 300
 export default async function StatsPage() {
   const supabase = await createClient()
 
-  const { data: leaderboard } = await supabase
-    .from('leaderboard')
-    .select('*')
-    .order('rank', { ascending: true })
-
-  const { data: allPredictions } = await supabase
-    .from('predictions')
-    .select('user_id, predicted_home, predicted_away, is_exact, is_correct_outcome, points_total')
-    .not('processed_at', 'is', null)
-
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, display_name, current_streak, max_streak, favourite_team:teams(name, flag_url)')
+  const [
+    { data: leaderboard },
+    { data: allPredictions },
+    { data: profiles },
+    { data: finalistPicks },
+    { data: scorerPicks },
+  ] = await Promise.all([
+    supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
+    supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, is_correct_outcome, points_total').not('processed_at', 'is', null),
+    supabase.from('profiles').select('id, display_name, current_streak, max_streak, favourite_team:teams(name, flag_url)'),
+    supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(name, flag_url), second_team:teams!second_team_id(name, flag_url), third_team:teams!third_team_id(name, flag_url)').not('locked_at', 'is', null),
+    supabase.from('scorer_picks').select('player_id, player:players(name, team:teams(name, flag_url))'),
+  ])
 
   // Compute fun stats
   const userStats = new Map<string, {
@@ -66,6 +66,54 @@ export default async function StatsPage() {
   const totalGoalsPredicted = (allPredictions ?? []).reduce((s, p) => s + (p.predicted_home ?? 0) + (p.predicted_away ?? 0), 0)
   const totalExact = (allPredictions ?? []).filter(p => p.is_exact).length
   const totalPredictions = (allPredictions ?? []).length
+
+  // --- Top supported teams (favourite team counts) ---
+  const teamSupportMap = new Map<string, { name: string; flag: string | null; count: number }>()
+  for (const p of profiles ?? []) {
+    const team = (p.favourite_team as any)
+    if (!team) continue
+    const existing = teamSupportMap.get(team.name)
+    if (existing) existing.count++
+    else teamSupportMap.set(team.name, { name: team.name, flag: team.flag_url, count: 1 })
+  }
+  const topSupportedTeams = Array.from(teamSupportMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
+  // --- Highest rated teams (finalist picks: 1st=3, 2nd=2, 3rd=1) ---
+  const teamRatingMap = new Map<string, { name: string; flag: string | null; score: number }>()
+  function addTeamRating(team: any, pts: number) {
+    if (!team) return
+    const existing = teamRatingMap.get(team.name)
+    if (existing) existing.score += pts
+    else teamRatingMap.set(team.name, { name: team.name, flag: team.flag_url, score: pts })
+  }
+  for (const pick of finalistPicks ?? []) {
+    addTeamRating((pick as any).first_team, 3)
+    addTeamRating((pick as any).second_team, 2)
+    addTeamRating((pick as any).third_team, 1)
+  }
+  const topRatedTeams = Array.from(teamRatingMap.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+
+  // --- Highest rated top scorers (scorer picks: each pick = 1) ---
+  const playerPickMap = new Map<string, { name: string; teamName: string | null; flag: string | null; count: number }>()
+  for (const pick of scorerPicks ?? []) {
+    const player = (pick as any).player
+    if (!player) continue
+    const existing = playerPickMap.get(player.name)
+    if (existing) existing.count++
+    else playerPickMap.set(player.name, {
+      name: player.name,
+      teamName: player.team?.name ?? null,
+      flag: player.team?.flag_url ?? null,
+      count: 1,
+    })
+  }
+  const topRatedScorers = Array.from(playerPickMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -207,6 +255,155 @@ export default async function StatsPage() {
           </Link>
         </div>
       )}
+
+      {/* Community Picks */}
+      <h2
+        className="text-2xl mt-10 mb-4 pb-3"
+        style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontWeight: 700,
+          color: '#141414',
+          borderBottom: '1px solid #e0dbd3'
+        }}
+      >
+        Community Picks
+      </h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+        {/* Top Supported Teams */}
+        <div style={{ border: '1px solid #e0dbd3' }}>
+          <div
+            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            🏴 Top Supported Teams
+          </div>
+          {topSupportedTeams.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              No data yet
+            </p>
+          ) : topSupportedTeams.map((team, i) => (
+            <div
+              key={team.name}
+              className="flex items-center gap-3 px-4 py-2.5"
+              style={{
+                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none',
+              }}
+            >
+              <span
+                className="w-4 text-xs font-bold text-center flex-shrink-0"
+                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+              >
+                {i + 1}
+              </span>
+              {team.flag && (
+                <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+              )}
+              <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {team.name}
+              </span>
+              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                {team.count} {team.count === 1 ? 'fan' : 'fans'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Highest Rated Teams */}
+        <div style={{ border: '1px solid #e0dbd3' }}>
+          <div
+            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            🏆 Highest Rated Teams
+          </div>
+          <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+              Winner=3 pts · Runner-up=2 pts · 3rd=1 pt
+            </p>
+          </div>
+          {topRatedTeams.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              No picks locked in yet
+            </p>
+          ) : topRatedTeams.map((team, i) => (
+            <div
+              key={team.name}
+              className="flex items-center gap-3 px-4 py-2.5"
+              style={{
+                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                borderBottom: i < topRatedTeams.length - 1 ? '1px solid #e0dbd3' : 'none',
+              }}
+            >
+              <span
+                className="w-4 text-xs font-bold text-center flex-shrink-0"
+                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+              >
+                {i + 1}
+              </span>
+              {team.flag && (
+                <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+              )}
+              <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {team.name}
+              </span>
+              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                {team.score} pts
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Highest Rated Top Scorers */}
+        <div style={{ border: '1px solid #e0dbd3' }}>
+          <div
+            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            ⚽ Most Picked Scorers
+          </div>
+          {topRatedScorers.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              No picks yet
+            </p>
+          ) : topRatedScorers.map((player, i) => (
+            <div
+              key={player.name}
+              className="flex items-center gap-3 px-4 py-2.5"
+              style={{
+                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                borderBottom: i < topRatedScorers.length - 1 ? '1px solid #e0dbd3' : 'none',
+              }}
+            >
+              <span
+                className="w-4 text-xs font-bold text-center flex-shrink-0"
+                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+              >
+                {i + 1}
+              </span>
+              {player.flag && (
+                <img src={player.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                  {player.name}
+                </span>
+                {player.teamName && (
+                  <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                    {player.teamName}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                {player.count} {player.count === 1 ? 'pick' : 'picks'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </div>
   )
 }
