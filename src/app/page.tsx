@@ -14,7 +14,18 @@ export default async function HomePage() {
     .from('matches')
     .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
     .eq('status', 'scheduled')
+    .not('home_team_id', 'is', null)
+    .not('away_team_id', 'is', null)
     .order('kickoff_at', { ascending: true })
+    .limit(5)
+
+  const { data: recentMatches } = await supabase
+    .from('matches')
+    .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+    .eq('status', 'finished')
+    .not('home_team_id', 'is', null)
+    .not('away_team_id', 'is', null)
+    .order('kickoff_at', { ascending: false })
     .limit(5)
 
   const { data: leaders } = await supabase
@@ -30,7 +41,7 @@ export default async function HomePage() {
     .order('published_at', { ascending: false })
     .limit(3)
 
-  const matchIds = (upcomingMatches ?? []).map(m => m.id)
+  const matchIds = [...(recentMatches ?? []), ...(upcomingMatches ?? [])].map(m => m.id)
   let predictionMap = new Map<string, { predicted_home: number; predicted_away: number }>()
   if (user && matchIds.length > 0) {
     const { data: preds } = await supabase
@@ -225,7 +236,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* Leaderboard + Upcoming matches grid */}
+      {/* Leaderboard + Matches grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Leaderboard preview */}
@@ -283,90 +294,164 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Upcoming matches */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-            <h2
-              className="text-xl"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-            >
-              Upcoming Matches
-            </h2>
-            <Link
-              href="/predictions"
-              className="text-xs flex items-center gap-1 uppercase tracking-wider hover:opacity-70 transition-opacity"
-              style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-            >
-              All predictions <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div style={{ border: '1px solid #e0dbd3' }}>
-            {(upcomingMatches as Match[] ?? []).map((match, idx) => (
-              <div
-                key={match.id}
-                className="px-5 py-4"
-                style={{
-                  background: idx % 2 === 0 ? '#ffffff' : '#faf9f6',
-                  borderBottom: '1px solid #e0dbd3'
-                }}
+        {/* Recent Results + Upcoming Matches stacked */}
+        <div className="lg:col-span-2 space-y-8">
+
+          {/* Recent Results — only shown once there are finished matches */}
+          {recentMatches && recentMatches.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
+                <h2
+                  className="text-xl"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
+                >
+                  Recent Results
+                </h2>
+              </div>
+              <div style={{ border: '1px solid #e0dbd3' }}>
+                {(recentMatches as Match[]).map((match, idx) => {
+                  const pred = predictionMap.get(match.id)
+                  return (
+                    <div
+                      key={match.id}
+                      className="px-5 py-4"
+                      style={{
+                        background: idx % 2 === 0 ? '#ffffff' : '#faf9f6',
+                        borderBottom: '1px solid #e0dbd3'
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                          {match.group_letter ? `Group ${match.group_letter}` : match.stage.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                          {formatKickoff(match.kickoff_at)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1 justify-end">
+                          <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                            {match.home_team?.name ?? '—'}
+                          </span>
+                          {match.home_team?.flag_url && (
+                            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                          )}
+                        </div>
+                        <span
+                          className="text-xs font-bold px-2 py-1"
+                          style={{ color: '#ffffff', background: '#141414', fontFamily: 'Inter, sans-serif', minWidth: '48px', textAlign: 'center' }}
+                        >
+                          {match.home_score ?? 0} – {match.away_score ?? 0}
+                        </span>
+                        <div className="flex items-center gap-2 flex-1">
+                          {match.away_team?.flag_url && (
+                            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                          )}
+                          <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                            {match.away_team?.name ?? '—'}
+                          </span>
+                        </div>
+                      </div>
+                      {user && pred && (
+                        <div className="mt-2">
+                          <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                            Your pick: {pred.predicted_home} – {pred.predicted_away}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Matches */}
+          <div>
+            <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
+              <h2
+                className="text-xl"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                    {match.group_letter ? `Group ${match.group_letter}` : match.stage.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                    {formatKickoff(match.kickoff_at)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 flex-1 justify-end">
-                    <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                      {match.home_team?.name ?? '—'}
+                Upcoming Matches
+              </h2>
+              <Link
+                href="/predictions"
+                className="text-xs flex items-center gap-1 uppercase tracking-wider hover:opacity-70 transition-opacity"
+                style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
+              >
+                All predictions <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div style={{ border: '1px solid #e0dbd3' }}>
+              {(upcomingMatches as Match[] ?? []).map((match, idx) => (
+                <div
+                  key={match.id}
+                  className="px-5 py-4"
+                  style={{
+                    background: idx % 2 === 0 ? '#ffffff' : '#faf9f6',
+                    borderBottom: '1px solid #e0dbd3'
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      {match.group_letter ? `Group ${match.group_letter}` : match.stage.replace(/_/g, ' ')}
                     </span>
-                    {match.home_team?.flag_url && (
-                      <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
-                    )}
-                  </div>
-                  <span
-                    className="text-xs font-bold px-2 py-1"
-                    style={{ color: '#6b6b6b', background: '#f7f4ef', fontFamily: 'Inter, sans-serif' }}
-                  >
-                    vs
-                  </span>
-                  <div className="flex items-center gap-2 flex-1">
-                    {match.away_team?.flag_url && (
-                      <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
-                    )}
-                    <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                      {match.away_team?.name ?? '—'}
+                    <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      {formatKickoff(match.kickoff_at)}
                     </span>
                   </div>
-                </div>
-                {user && (
-                  <div className="mt-2">
-                    {predictionMap.has(match.id) ? (
-                      <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                        Your pick: {predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 justify-end">
+                      <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                        {match.home_team?.name ?? '—'}
                       </span>
-                    ) : (
-                      <Link
-                        href="/predictions"
-                        className="text-xs hover:opacity-70 transition-opacity"
-                        style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-                      >
-                        ⚡ No prediction yet
-                      </Link>
-                    )}
+                      {match.home_team?.flag_url && (
+                        <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                      )}
+                    </div>
+                    <span
+                      className="text-xs font-bold px-2 py-1"
+                      style={{ color: '#6b6b6b', background: '#f7f4ef', fontFamily: 'Inter, sans-serif' }}
+                    >
+                      vs
+                    </span>
+                    <div className="flex items-center gap-2 flex-1">
+                      {match.away_team?.flag_url && (
+                        <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                        {match.away_team?.name ?? '—'}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-            {!upcomingMatches?.length && (
-              <div className="px-5 py-8 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}>
-                Fixtures will appear here once loaded.
-              </div>
-            )}
+                  {user && (
+                    <div className="mt-2">
+                      {predictionMap.has(match.id) ? (
+                        <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                          Your pick: {predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
+                        </span>
+                      ) : (
+                        <Link
+                          href="/predictions"
+                          className="text-xs hover:opacity-70 transition-opacity"
+                          style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
+                        >
+                          ⚡ No prediction yet
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!upcomingMatches?.length && (
+                <div className="px-5 py-8 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}>
+                  Fixtures will appear here once loaded.
+                </div>
+              )}
+            </div>
           </div>
+
         </div>
       </div>
 

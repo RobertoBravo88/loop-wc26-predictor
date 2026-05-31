@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Lock, Check, Loader2, Trophy } from 'lucide-react'
+import { Lock, Check, Loader2, Trophy, X } from 'lucide-react'
 import type { Team, Player, FinalistPick, ScorerPick } from '@/types'
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   locked: boolean
 }
 
+type ScorerPickItem = { teamId: string; playerId: string }
+
 export default function TournamentPicksClient({ userId, teams, players, finalistPick, scorerPicks, locked }: Props) {
   const [first, setFirst] = useState(finalistPick?.first_team_id ?? '')
   const [second, setSecond] = useState(finalistPick?.second_team_id ?? '')
@@ -22,11 +24,14 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
-  // Scorer picks state — keyed by team_id
-  const [scorerMap, setScorerMap] = useState<Map<string, string>>(
-    new Map(scorerPicks.map(sp => [sp.team_id, sp.player_id]))
+  // Scorer picks — array of up to 5 items
+  const [picks, setPicks] = useState<ScorerPickItem[]>(
+    scorerPicks.slice(0, 5).map(sp => ({ teamId: sp.team_id, playerId: sp.player_id }))
   )
-  const [savingScorer, setSavingScorer] = useState<string | null>(null)
+  const [addingTeam, setAddingTeam] = useState('')
+  const [addingPlayer, setAddingPlayer] = useState('')
+  const [savingScorer, setSavingScorer] = useState(false)
+  const [removingTeam, setRemovingTeam] = useState<string | null>(null)
 
   async function saveFinalists() {
     if (locked || !first || !second || !third) return
@@ -40,18 +45,51 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
     setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
-  async function saveScorerPick(teamId: string, playerId: string) {
-    if (locked) return
-    setSavingScorer(teamId)
+  async function addScorerPick(teamId: string, playerId: string) {
+    if (locked || picks.length >= 5) return
+    setSavingScorer(true)
     const supabase = createClient()
     await supabase.from('scorer_picks').upsert({
       user_id: userId, team_id: teamId, player_id: playerId
     }, { onConflict: 'user_id,team_id' })
-    setScorerMap(prev => new Map(prev).set(teamId, playerId))
-    setSavingScorer(null)
+    setPicks(prev => [...prev, { teamId, playerId }])
+    setAddingTeam('')
+    setAddingPlayer('')
+    setSavingScorer(false)
+  }
+
+  async function removeScorerPick(teamId: string) {
+    if (locked) return
+    setRemovingTeam(teamId)
+    const supabase = createClient()
+    await supabase.from('scorer_picks').delete().eq('user_id', userId).eq('team_id', teamId)
+    setPicks(prev => prev.filter(p => p.teamId !== teamId))
+    setRemovingTeam(null)
+    // If the user was in the middle of adding a pick from this team, reset that too
+    if (addingTeam === teamId) {
+      setAddingTeam('')
+      setAddingPlayer('')
+    }
   }
 
   const teamOptions = teams.map(t => ({ value: t.id, label: t.name, flag: t.flag_url }))
+
+  // Teams not yet in picks (for the add-a-pick dropdown)
+  const pickedTeamIds = new Set(picks.map(p => p.teamId))
+  const availableTeams = teams.filter(t => !pickedTeamIds.has(t.id))
+
+  // Players for the currently selected team in the add flow
+  const addingTeamPlayers = players.filter(p => p.team_id === addingTeam)
+
+  // Helper: get team info from teams array
+  function getTeam(teamId: string) {
+    return teams.find(t => t.id === teamId)
+  }
+
+  // Helper: get player name from players array
+  function getPlayerName(playerId: string) {
+    return players.find(p => p.id === playerId)?.name ?? playerId
+  }
 
   const selectStyle = {
     fontFamily: 'Inter, sans-serif',
@@ -169,78 +207,209 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
 
       {/* Goal scorer picks */}
       <section>
-        <h2
-          className="text-xl mb-1 pb-2"
-          style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontWeight: 700,
-            color: '#141414',
-            borderBottom: '1px solid #e0dbd3',
-          }}
-        >
-          Goal scorer picks
-        </h2>
+        {/* Section header with counter badge */}
+        <div className="flex items-center justify-between mb-1 pb-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <h2
+            className="text-xl"
+            style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
+              color: '#141414',
+            }}
+          >
+            Your 5 Goal Scorers
+          </h2>
+          <span
+            className="text-xs font-semibold uppercase tracking-wider px-3 py-1"
+            style={{
+              fontFamily: 'Inter, sans-serif',
+              background: picks.length === 5 ? '#141414' : '#faf9f7',
+              color: picks.length === 5 ? '#ffffff' : '#6b6b6b',
+              border: '1px solid #e0dbd3',
+            }}
+          >
+            {picks.length} / 5 picks
+          </span>
+        </div>
         <p
-          className="text-xs uppercase tracking-wider mt-3 mb-4"
+          className="text-xs uppercase tracking-wider mt-3 mb-5"
           style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
         >
-          Pick one player per team &middot; +10 pts every time they score
+          Pick up to 5 players &middot; one per country max &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
         </p>
 
-        <div style={{ border: '1px solid #e0dbd3' }}>
-          {teams.map((team, idx) => {
-            const teamPlayers = players.filter(p => p.team_id === team.id)
-            const currentPick = scorerMap.get(team.id) ?? ''
-            const isSaving = savingScorer === team.id
+        {/* 5 numbered pick slots */}
+        <div className="space-y-2 mb-5">
+          {Array.from({ length: 5 }).map((_, idx) => {
+            const pick = picks[idx]
+            const team = pick ? getTeam(pick.teamId) : undefined
+            const isRemoving = pick ? removingTeam === pick.teamId : false
 
             return (
               <div
-                key={team.id}
+                key={idx}
                 className="flex items-center gap-3 px-4 py-3"
                 style={{
-                  borderBottom: idx < teams.length - 1 ? '1px solid #e0dbd3' : 'none',
-                  background: '#ffffff',
+                  border: pick ? '1px solid #e0dbd3' : '1px dashed #e0dbd3',
+                  background: pick ? '#ffffff' : '#faf9f7',
+                  minHeight: '52px',
                 }}
               >
-                {team.flag_url && (
-                  <img src={team.flag_url} alt="" className="w-7 h-5 object-cover flex-shrink-0" />
-                )}
+                {/* Slot number */}
                 <span
-                  className="w-32 flex-shrink-0 truncate"
-                  style={{ fontSize: '13px', fontWeight: 500, color: '#141414', fontFamily: 'Inter, sans-serif' }}
+                  className="w-5 text-center flex-shrink-0 font-semibold"
+                  style={{ fontSize: '11px', color: pick ? '#141414' : '#c4bfb8', fontFamily: 'Inter, sans-serif' }}
                 >
-                  {team.name}
+                  {idx + 1}
                 </span>
-                <select
-                  value={currentPick}
-                  onChange={e => saveScorerPick(team.id, e.target.value)}
-                  disabled={locked || isSaving || teamPlayers.length === 0}
-                  style={{
-                    ...selectStyle,
-                    flex: 1,
-                    opacity: locked || teamPlayers.length === 0 ? 0.5 : 1,
-                    cursor: locked || teamPlayers.length === 0 ? 'not-allowed' : 'default',
-                  }}
-                >
-                  <option value="">{teamPlayers.length === 0 ? 'Squad not loaded' : 'Pick a player…'}</option>
-                  {teamPlayers.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}{p.position ? ` · ${p.position}` : ''}</option>
-                  ))}
-                </select>
-                {isSaving && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: '#ff5c35' }} />}
-                {!isSaving && currentPick && <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#2d7a2d' }} />}
+
+                {pick ? (
+                  <>
+                    {/* Flag */}
+                    {team?.flag_url && (
+                      <img src={team.flag_url} alt="" className="w-7 h-5 object-cover flex-shrink-0" />
+                    )}
+                    {/* Player name + team */}
+                    <div className="flex-1 min-w-0">
+                      <span
+                        className="block truncate"
+                        style={{ fontSize: '13px', fontWeight: 500, color: '#141414', fontFamily: 'Inter, sans-serif' }}
+                      >
+                        {getPlayerName(pick.playerId)}
+                      </span>
+                      <span
+                        className="block truncate"
+                        style={{ fontSize: '11px', color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+                      >
+                        {team?.name ?? ''}
+                      </span>
+                    </div>
+                    {/* Remove button */}
+                    {!locked && (
+                      <button
+                        onClick={() => removeScorerPick(pick.teamId)}
+                        disabled={isRemoving}
+                        className="flex-shrink-0 flex items-center justify-center w-6 h-6 transition-colors"
+                        style={{
+                          color: '#6b6b6b',
+                          cursor: isRemoving ? 'not-allowed' : 'pointer',
+                        }}
+                        aria-label="Remove pick"
+                      >
+                        {isRemoving
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <X className="w-3.5 h-3.5" />
+                        }
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <span
+                    style={{ fontSize: '12px', color: '#c4bfb8', fontFamily: 'Inter, sans-serif' }}
+                  >
+                    Empty slot
+                  </span>
+                )}
               </div>
             )
           })}
-          {!teams.length && (
-            <p
-              className="text-center py-8 text-xs uppercase tracking-wider"
-              style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-            >
-              Teams will appear here once loaded.
-            </p>
-          )}
         </div>
+
+        {/* Add a pick */}
+        {!locked && picks.length < 5 && (
+          <div
+            className="px-4 py-4"
+            style={{ border: '1px solid #e0dbd3', background: '#faf9f7' }}
+          >
+            <p
+              className="text-xs uppercase tracking-wider mb-3"
+              style={{ fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+            >
+              Add a pick
+            </p>
+
+            {/* Step 1: pick a team */}
+            <div className="mb-3">
+              <label
+                className="block mb-1.5 uppercase tracking-wider"
+                style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+              >
+                Country
+              </label>
+              <select
+                value={addingTeam}
+                onChange={e => { setAddingTeam(e.target.value); setAddingPlayer('') }}
+                style={selectStyle}
+              >
+                <option value="">Select a country…</option>
+                {availableTeams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Step 2: pick a player (shown once a team is selected) */}
+            {addingTeam && (
+              <div>
+                <label
+                  className="block mb-1.5 uppercase tracking-wider"
+                  style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+                >
+                  Player
+                </label>
+                {addingTeamPlayers.length === 0 ? (
+                  <p
+                    className="text-xs uppercase tracking-wider py-2"
+                    style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+                  >
+                    Squads not loaded yet
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={addingPlayer}
+                      onChange={e => setAddingPlayer(e.target.value)}
+                      style={{ ...selectStyle, flex: 1 }}
+                    >
+                      <option value="">Pick a player…</option>
+                      {addingTeamPlayers.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{p.position ? ` · ${p.position}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => { if (addingTeam && addingPlayer) addScorerPick(addingTeam, addingPlayer) }}
+                      disabled={!addingPlayer || savingScorer}
+                      className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-4 py-2 flex-shrink-0 transition-colors"
+                      style={{
+                        background: !addingPlayer || savingScorer ? '#e0dbd3' : '#141414',
+                        color: !addingPlayer || savingScorer ? '#6b6b6b' : '#ffffff',
+                        fontFamily: 'Inter, sans-serif',
+                        borderRadius: 0,
+                        cursor: !addingPlayer || savingScorer ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingScorer
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : 'Add'
+                      }
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {locked && picks.length === 0 && (
+          <p
+            className="text-xs uppercase tracking-wider py-2"
+            style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+          >
+            No scorer picks were saved before the tournament started.
+          </p>
+        )}
       </section>
     </div>
   )
