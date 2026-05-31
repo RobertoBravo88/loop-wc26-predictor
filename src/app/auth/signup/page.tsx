@@ -15,7 +15,7 @@ const schema = z.object({
   email:              z.string().email().endsWith('@loopearplugs.com', 'Must be a @loopearplugs.com email'),
   password:           z.string().min(8, 'Password must be at least 8 characters'),
   favourite_team_id:  z.string().min(1, 'Please pick your favourite team'),
-  favourite_player_id: z.string().min(1, 'Please pick your favourite player'),
+  favourite_player_id: z.string().optional(),
 })
 type Form = z.infer<typeof schema>
 
@@ -149,7 +149,7 @@ export default function SignupPage() {
 
               {/* Favourite player */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Favourite player</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Favourite player <span className="text-gray-400 font-normal">(optional — squads added soon)</span></label>
                 <select {...register('favourite_player_id')}
                   disabled={!selectedTeamId || loadingPlayers}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5c35] bg-white disabled:opacity-50">
