@@ -269,7 +269,7 @@ export default async function HomePage() {
                       {user && pred && (
                         <div className="mt-2">
                           <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                            Your pick: {pred.predicted_home} – {pred.predicted_away}
+                            Your call:{pred.predicted_home} – {pred.predicted_away}
                           </span>
                         </div>
                       )}
@@ -343,7 +343,7 @@ export default async function HomePage() {
                     <div className="mt-2">
                       {predictionMap.has(match.id) ? (
                         <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                          Your pick: {predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
+                          Your call:{predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
                         </span>
                       ) : (
                         <Link

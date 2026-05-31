@@ -154,7 +154,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           }}
         >
           <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-          The tournament has started — picks are locked.
+          The dressing room is closed. Picks are locked.
         </div>
       )}
 
@@ -174,7 +174,10 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             🔮 Loop Crystal Ball
           </span>
         </h2>
-        <p className="text-xs uppercase tracking-wider mt-3 mb-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+        <p className="text-xs uppercase tracking-wider mt-1 mb-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          Who lifts the trophy in July?
+        </p>
+        <p className="text-xs mb-4" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
           Pick the winner, runner-up, and third place. Locks when the tournament starts.
         </p>
 
@@ -261,7 +264,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           className="text-xs uppercase tracking-wider mt-3 mb-5"
           style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
         >
-          Pick up to 5 players &middot; one per country max &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
+          Five strikers. One country each. Every goal counts. &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
         </p>
 
         {/* 5 numbered pick slots */}
@@ -449,7 +452,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           </h2>
         </div>
         <p className="text-xs uppercase tracking-wider mt-3 mb-5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Hidden from everyone until the tournament starts &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
+          Your dirty little secret. Revealed at kick-off. &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">

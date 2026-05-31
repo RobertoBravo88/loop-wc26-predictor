@@ -218,7 +218,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
       {/* Your prediction vs actual (if finished) */}
       {finished && prediction && match.home_score !== null && (
         <div className="mt-2 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Your pick: <span className="font-semibold">{prediction.predicted_home}–{prediction.predicted_away}</span>
+          Your call:<span className="font-semibold">{prediction.predicted_home}–{prediction.predicted_away}</span>
           {prediction.points_streak_bonus > 0 && (
             <span className="ml-2 font-semibold" style={{ color: '#ff5c35' }}>+{prediction.points_streak_bonus} streak 🔥</span>
           )}

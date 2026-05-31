@@ -275,7 +275,7 @@ function MatchNode({ match, userPick, homeSlot, awaySlot }: {
       </div>
       {userPick && hasTeams && (
         <div className="px-3 py-1.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Your pick: {userPick.h}–{userPick.a}
+          Your call: {userPick.h}–{userPick.a}
         </div>
       )}
     </div>

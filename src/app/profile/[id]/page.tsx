@@ -127,7 +127,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
             { label: 'Predicted', value: stats.predicted },
             { label: 'Exact scores', value: stats.exact },
             { label: 'Correct outcomes', value: stats.outcomes },
-            { label: 'Best streak', value: stats.maxStreak > 0 ? `🔥${stats.maxStreak}` : '—' },
+            { label: 'Peak Form', value: stats.maxStreak > 0 ? `🔥${stats.maxStreak}` : '—' },
           ].map(s => (
             <div key={s.label} className="text-center">
               <div
