@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Users, RefreshCw, FileText, Trophy, Settings } from 'lucide-react'
 import AdminSyncButton from '@/components/admin/AdminSyncButton'
 import AdminUserTable from '@/components/admin/AdminUserTable'
-import AdminNewsForm from '@/components/admin/AdminNewsForm'
+import AdminNewsSection from '@/components/admin/AdminNewsSection'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -21,9 +21,9 @@ export default async function AdminPage() {
 
   const { data: recentPosts } = await supabase
     .from('news_posts')
-    .select('id, title, is_published, published_at, slug')
+    .select('id, title, excerpt, body, image_url, is_published, published_at, slug')
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(20)
 
   const { data: matchStats } = await supabase
     .from('matches')
@@ -82,25 +82,14 @@ export default async function AdminPage() {
 
       {/* News management */}
       <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-gray-400" />
-            <h2 className="font-bold text-gray-900">News posts</h2>
-          </div>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-gray-400" />
+          <h2 className="font-bold text-gray-900">News posts</h2>
         </div>
-        <div className="p-6">
-          <AdminNewsForm authorId={user.id} />
-          <div className="mt-6 space-y-2">
-            {(recentPosts ?? []).map((post: any) => (
-              <div key={post.id} className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${post.is_published ? 'bg-green-400' : 'bg-gray-300'}`} />
-                <span className="flex-1 text-gray-700 font-medium truncate">{post.title}</span>
-                <span className="text-gray-400 text-xs flex-shrink-0">{post.is_published ? 'Published' : 'Draft'}</span>
-                <Link href={`/news/${post.slug}`} className="text-[#ff5c35] text-xs hover:underline flex-shrink-0">View</Link>
-              </div>
-            ))}
-          </div>
-        </div>
+        <AdminNewsSection
+          authorId={user.id}
+          posts={(recentPosts ?? []) as any}
+        />
       </section>
     </div>
   )

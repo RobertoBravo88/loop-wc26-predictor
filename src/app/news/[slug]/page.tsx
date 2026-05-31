@@ -37,9 +37,25 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
 
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{post.title}</h1>
 
-      <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-        {post.body}
-      </div>
+      <style>{`
+        .article-body p        { margin: 0 0 1em 0; line-height: 1.75; }
+        .article-body p:last-child { margin-bottom: 0; }
+        .article-body strong   { font-weight: 700; color: #141414; }
+        .article-body em       { font-style: italic; }
+        .article-body a        { color: #ff5c35; text-decoration: underline; }
+        .article-body a:hover  { color: #e04a26; }
+        .article-body img {
+          display: block;
+          max-width: 100%;
+          height: auto;
+          margin: 1.5rem 0;
+        }
+      `}</style>
+      <div
+        className="article-body text-sm leading-relaxed"
+        style={{ color: '#3a3a3a', fontFamily: 'Inter, sans-serif' }}
+        dangerouslySetInnerHTML={{ __html: post.body }}
+      />
     </div>
   )
 }
