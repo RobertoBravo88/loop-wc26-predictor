@@ -188,24 +188,24 @@ const KNOCKOUT_FIXTURES = [
   { stage: 'round_of_32', kickoff: '2026-07-03T04:00:00Z', venue: 'Estadio BBVA, Monterrey' },
   { stage: 'round_of_32', kickoff: '2026-07-03T17:00:00Z', venue: "Levi's Stadium, San Francisco" },
   { stage: 'round_of_32', kickoff: '2026-07-03T20:00:00Z', venue: 'Estadio Akron, Guadalajara' },
-  // Round of 16
-  { stage: 'quarter_final', kickoff: '2026-07-04T20:00:00Z', venue: 'MetLife Stadium, New York' },
-  { stage: 'quarter_final', kickoff: '2026-07-05T19:00:00Z', venue: 'AT&T Stadium, Dallas' },
-  { stage: 'quarter_final', kickoff: '2026-07-05T22:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
-  { stage: 'quarter_final', kickoff: '2026-07-06T19:00:00Z', venue: 'Hard Rock Stadium, Miami' },
-  { stage: 'quarter_final', kickoff: '2026-07-06T22:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta' },
-  { stage: 'quarter_final', kickoff: '2026-07-07T19:00:00Z', venue: 'BC Place, Vancouver' },
-  { stage: 'quarter_final', kickoff: '2026-07-07T22:00:00Z', venue: 'Lumen Field, Seattle' },
-  { stage: 'quarter_final', kickoff: '2026-07-04T23:00:00Z', venue: 'Gillette Stadium, Boston' },
-  // Quarter-finals
-  { stage: 'semi_final', kickoff: '2026-07-09T20:00:00Z', venue: 'AT&T Stadium, Dallas' },
-  { stage: 'semi_final', kickoff: '2026-07-10T20:00:00Z', venue: 'MetLife Stadium, New York' },
-  { stage: 'semi_final', kickoff: '2026-07-11T19:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
-  { stage: 'semi_final', kickoff: '2026-07-11T22:00:00Z', venue: 'Hard Rock Stadium, Miami' },
-  // Semi-finals
-  { stage: 'final', kickoff: '2026-07-14T20:00:00Z', venue: 'AT&T Stadium, Dallas' },
-  { stage: 'final', kickoff: '2026-07-15T20:00:00Z', venue: 'MetLife Stadium, New York' },
-  // 3rd place & Final
+  // Round of 16 (match numbers 89–96)
+  { stage: 'round_of_16', kickoff: '2026-07-04T20:00:00Z', venue: 'MetLife Stadium, New York' },
+  { stage: 'round_of_16', kickoff: '2026-07-04T23:00:00Z', venue: 'Gillette Stadium, Boston' },
+  { stage: 'round_of_16', kickoff: '2026-07-05T19:00:00Z', venue: 'AT&T Stadium, Dallas' },
+  { stage: 'round_of_16', kickoff: '2026-07-05T22:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
+  { stage: 'round_of_16', kickoff: '2026-07-06T19:00:00Z', venue: 'Hard Rock Stadium, Miami' },
+  { stage: 'round_of_16', kickoff: '2026-07-06T22:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta' },
+  { stage: 'round_of_16', kickoff: '2026-07-07T19:00:00Z', venue: 'BC Place, Vancouver' },
+  { stage: 'round_of_16', kickoff: '2026-07-07T22:00:00Z', venue: 'Lumen Field, Seattle' },
+  // Quarter-finals (match numbers 97–100)
+  { stage: 'quarter_final', kickoff: '2026-07-09T20:00:00Z', venue: 'AT&T Stadium, Dallas' },
+  { stage: 'quarter_final', kickoff: '2026-07-10T20:00:00Z', venue: 'MetLife Stadium, New York' },
+  { stage: 'quarter_final', kickoff: '2026-07-11T19:00:00Z', venue: 'SoFi Stadium, Los Angeles' },
+  { stage: 'quarter_final', kickoff: '2026-07-11T22:00:00Z', venue: 'Hard Rock Stadium, Miami' },
+  // Semi-finals (match numbers 101–102)
+  { stage: 'semi_final', kickoff: '2026-07-14T20:00:00Z', venue: 'AT&T Stadium, Dallas' },
+  { stage: 'semi_final', kickoff: '2026-07-15T20:00:00Z', venue: 'MetLife Stadium, New York' },
+  // 3rd place & Final (match numbers 103–104)
   { stage: 'third_place', kickoff: '2026-07-18T20:00:00Z', venue: 'Hard Rock Stadium, Miami' },
   { stage: 'final',       kickoff: '2026-07-19T20:00:00Z', venue: 'MetLife Stadium, New York' },
 ]
