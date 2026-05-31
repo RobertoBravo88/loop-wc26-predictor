@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { stageName } from '@/lib/utils'
+import { format } from 'date-fns'
 import type { Match, Team, GroupStanding, MatchStage } from '@/types'
 
 export const revalidate = 60
@@ -163,7 +164,7 @@ function StandingsTable({ standings, predictedStandings }: {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs w-4 flex-shrink-0 text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{actualRank}</span>
                     {row.team.flag_url && (
-                      <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-cover flex-shrink-0" />
+                      <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
                     )}
                     <span className="font-medium text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                       {row.team.name}
@@ -234,7 +235,7 @@ function TeamRow({ match, side, slot, finished }: {
   if (team) {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', color: won ? '#141414' : '#6b6b6b', fontWeight: won ? 600 : 400 }}>
-        {team.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />}
+        {team.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-contain flex-shrink-0" />}
         <span className="truncate flex-1">{team.name}</span>
         {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{score}</span>}
       </div>
@@ -285,18 +286,19 @@ export default async function GroupsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: teams } = await supabase.from('teams').select('*').order('name')
-  const { data: matches } = await supabase
-    .from('matches')
-    .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-    .eq('stage', 'group')
-    .order('kickoff_at')
+  const [
+    { data: teams },
+    { data: matches },
+    { data: knockoutMatches },
+    { data: lastSyncRow },
+  ] = await Promise.all([
+    supabase.from('teams').select('*').order('name'),
+    supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').eq('stage', 'group').order('kickoff_at'),
+    supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
+    supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
+  ])
 
-  const { data: knockoutMatches } = await supabase
-    .from('matches')
-    .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-    .in('stage', KNOCKOUT_STAGES)
-    .order('kickoff_at')
+  const lastSynced = lastSyncRow?.result_fetched_at ?? null
 
   const predictionMap = new Map<string, { h: number; a: number }>()
   if (user) {
@@ -357,6 +359,9 @@ export default async function GroupsPage() {
         </h1>
         <p className="text-xs uppercase tracking-wider mt-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           Group standings &amp; knockout bracket
+          {lastSynced && (
+            <span style={{ color: '#c4bfb8' }}> &middot; Last updated {format(new Date(lastSynced), 'd MMM · HH:mm')}</span>
+          )}
         </p>
       </div>
 

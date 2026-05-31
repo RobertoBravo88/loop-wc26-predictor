@@ -37,6 +37,7 @@ export default async function PredictionsPage({
     userPredIdsRes,
     finalistCountRes,
     scorerCountRes,
+    lastSyncRes,
   ] = await Promise.all([
     supabase.from('matches').select('id, kickoff_at').eq('stage', 'group').order('kickoff_at'),
     supabase.from('matches').select('id, kickoff_at').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
@@ -46,7 +47,10 @@ export default async function PredictionsPage({
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase.from('scorer_picks').select('id').eq('user_id', user.id),
+    supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
   ])
+
+  const lastSynced = lastSyncRes.data?.result_fetched_at ?? null
 
   const allGroupMatches   = groupMatchesRes.data   ?? []
   const allKnockoutMatches = knockoutMatchesRes.data ?? []
@@ -204,6 +208,9 @@ export default async function PredictionsPage({
         </h1>
         <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           Predictions lock at kick-off &middot; Exact score = 100pts &middot; Correct outcome = 50pts
+          {lastSynced && (
+            <span style={{ color: '#c4bfb8' }}> &middot; Last updated {format(new Date(lastSynced), 'd MMM · HH:mm')}</span>
+          )}
         </p>
       </div>
 

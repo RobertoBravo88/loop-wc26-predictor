@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatKickoff, isTournamentStarted } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import type { Match, LeaderboardEntry, NewsPost } from '@/types'
+import NewsCarousel from '@/components/home/NewsCarousel'
 
 export const revalidate = 60
 
@@ -39,7 +40,7 @@ export default async function HomePage() {
     .select('*, author:profiles(display_name)')
     .eq('is_published', true)
     .order('published_at', { ascending: false })
-    .limit(3)
+    .limit(10)
 
   const matchIds = [...(recentMatches ?? []), ...(upcomingMatches ?? [])].map(m => m.id)
   let predictionMap = new Map<string, { predicted_home: number; predicted_away: number }>()
@@ -55,9 +56,6 @@ export default async function HomePage() {
   }
 
   const tournamentStarted = isTournamentStarted()
-
-  const featuredPost = posts && posts.length > 0 ? (posts as any[])[0] : null
-  const remainingPosts = posts && posts.length > 1 ? (posts as any[]).slice(1) : []
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
@@ -132,92 +130,8 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {featuredPost ? (
-          <div className="space-y-0" style={{ border: '1px solid #e0dbd3' }}>
-            {/* Featured large card */}
-            <Link
-              href={`/news/${featuredPost.slug}`}
-              className="flex flex-col sm:flex-row group transition-colors hover:opacity-90"
-              style={{ background: '#ffffff', borderBottom: remainingPosts.length > 0 ? '1px solid #e0dbd3' : 'none' }}
-            >
-              {featuredPost.image_url ? (
-                <div className="sm:w-1/2 flex-shrink-0">
-                  <img
-                    src={featuredPost.image_url}
-                    alt={featuredPost.title}
-                    className="w-full h-48 sm:h-full object-cover"
-                    style={{ minHeight: '200px' }}
-                  />
-                </div>
-              ) : (
-                <div
-                  className="sm:w-1/2 flex-shrink-0 h-48"
-                  style={{ background: '#f7f4ef', minHeight: '200px' }}
-                />
-              )}
-              <div className="flex flex-col justify-center p-6 sm:p-8">
-                <span
-                  className="text-xs uppercase tracking-widest mb-3"
-                  style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-                >
-                  Featured
-                </span>
-                <h3
-                  className="text-2xl sm:text-3xl leading-tight mb-3"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-                >
-                  {featuredPost.title}
-                </h3>
-                {featuredPost.excerpt && (
-                  <p className="text-sm line-clamp-3" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                    {featuredPost.excerpt}
-                  </p>
-                )}
-                {featuredPost.author?.display_name && (
-                  <p className="text-xs mt-4" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                    By {featuredPost.author.display_name}
-                  </p>
-                )}
-              </div>
-            </Link>
-
-            {/* Remaining smaller cards */}
-            {remainingPosts.length > 0 && (
-              <div className="grid" style={{ gridTemplateColumns: `repeat(${remainingPosts.length}, 1fr)` }}>
-                {remainingPosts.map((post: any, idx: number) => (
-                  <Link
-                    key={post.id}
-                    href={`/news/${post.slug}`}
-                    className="p-5 transition-colors hover:opacity-80 group"
-                    style={{
-                      background: '#faf9f6',
-                      borderRight: idx < remainingPosts.length - 1 ? '1px solid #e0dbd3' : 'none'
-                    }}
-                  >
-                    {post.image_url && (
-                      <img src={post.image_url} alt={post.title} className="w-full h-24 object-cover mb-3" />
-                    )}
-                    <h3
-                      className="text-sm leading-snug mb-1"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-                    >
-                      {post.title}
-                    </h3>
-                    {post.excerpt && (
-                      <p className="text-xs line-clamp-2" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                        {post.excerpt}
-                      </p>
-                    )}
-                    {post.author?.display_name && (
-                      <p className="text-xs mt-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                        By {post.author.display_name}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+        {posts && posts.length > 0 ? (
+          <NewsCarousel posts={posts as any[]} />
         ) : (
           <div
             className="px-8 py-12 text-center"
@@ -270,8 +184,8 @@ export default async function HomePage() {
                 >
                   {entry.rank}
                 </span>
-                {entry.favourite_team_flag ? (
-                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                {tournamentStarted && entry.favourite_team_flag ? (
+                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
                   <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
                 )}
@@ -334,7 +248,7 @@ export default async function HomePage() {
                             {match.home_team?.name ?? '—'}
                           </span>
                           {match.home_team?.flag_url && (
-                            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                           )}
                         </div>
                         <span
@@ -345,7 +259,7 @@ export default async function HomePage() {
                         </span>
                         <div className="flex items-center gap-2 flex-1">
                           {match.away_team?.flag_url && (
-                            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                           )}
                           <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                             {match.away_team?.name ?? '—'}
@@ -407,7 +321,7 @@ export default async function HomePage() {
                         {match.home_team?.name ?? '—'}
                       </span>
                       {match.home_team?.flag_url && (
-                        <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                        <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                       )}
                     </div>
                     <span
@@ -418,7 +332,7 @@ export default async function HomePage() {
                     </span>
                     <div className="flex items-center gap-2 flex-1">
                       {match.away_team?.flag_url && (
-                        <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                        <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                       )}
                       <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                         {match.away_team?.name ?? '—'}

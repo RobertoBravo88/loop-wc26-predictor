@@ -36,7 +36,7 @@ export default function AdminUserTable({ users }: { users: (Profile & { favourit
               <td className="px-6 py-3">
                 <div className="flex items-center gap-2">
                   {user.favourite_team?.flag_url && (
-                    <img src={user.favourite_team.flag_url} alt="" className="w-5 h-3.5 object-cover rounded-sm" />
+                    <img src={user.favourite_team.flag_url} alt="" className="w-5 h-3.5 object-contain rounded-sm" />
                   )}
                   <Link href={`/profile/${user.id}`} className="font-medium text-gray-800 hover:text-[#ff5c35]">
                     {user.display_name}

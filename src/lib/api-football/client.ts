@@ -89,9 +89,10 @@ export async function fetchStandings(season: number = 2026) {
 // Map API status → our MatchStatus
 // ============================================================
 
-export function mapStatus(apiStatus: string): 'scheduled' | 'in_play' | 'finished' | 'postponed' {
+export function mapStatus(apiStatus: string): 'scheduled' | 'in_play' | 'finished' | 'postponed' | 'cancelled' {
   if (['FT', 'AET', 'PEN', 'AWD', 'WO'].includes(apiStatus)) return 'finished'
   if (['1H', 'HT', '2H', 'ET', 'BT', 'P', 'INT', 'LIVE'].includes(apiStatus)) return 'in_play'
-  if (['PST', 'CANC', 'ABD', 'SUSP'].includes(apiStatus)) return 'postponed'
+  if (['CANC'].includes(apiStatus))              return 'cancelled'
+  if (['PST', 'ABD', 'SUSP'].includes(apiStatus)) return 'postponed'
   return 'scheduled'
 }

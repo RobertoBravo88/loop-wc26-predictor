@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -15,17 +15,15 @@ export async function POST(req: NextRequest) {
     scorer_picks,
   } = body
 
-  const supabase = createServiceClient()
-
-  // 1. Create user via admin API (sends confirmation email if enabled in Supabase project)
-  const {
-    data: { user },
-    error: signUpError,
-  } = await supabase.auth.admin.createUser({
+  // ── Step 1: Sign up via the normal auth flow so Supabase sends the confirmation email ──
+  const authClient = await createClient()
+  const { data: { user }, error: signUpError } = await authClient.auth.signUp({
     email,
     password,
-    email_confirm: false,
-    user_metadata: { display_name },
+    options: {
+      data: { display_name },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`,
+    },
   })
 
   if (signUpError || !user) {
@@ -35,36 +33,39 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 2. Update profile row (the trigger already created it on user creation)
+  // ── Step 2: Use service client for privileged DB writes ──
+  const supabase = createServiceClient()
+
+  // Update profile (created automatically by DB trigger on user insert)
   await supabase
     .from('profiles')
     .update({
       display_name,
-      favourite_team_id: favourite_team_id || null,
+      favourite_team_id:   favourite_team_id   || null,
       favourite_player_id: favourite_player_id || null,
     })
     .eq('id', user.id)
 
-  // 3. Save finalist picks if any were provided
+  // Save finalist picks if provided
   if (first_team_id || second_team_id || third_team_id) {
     await supabase.from('finalist_picks').upsert(
       {
-        user_id: user.id,
-        first_team_id: first_team_id || null,
-        second_team_id: second_team_id || null,
-        third_team_id: third_team_id || null,
+        user_id:         user.id,
+        first_team_id:   first_team_id   || null,
+        second_team_id:  second_team_id  || null,
+        third_team_id:   third_team_id   || null,
       },
       { onConflict: 'user_id' }
     )
   }
 
-  // 4. Save scorer picks (one per team)
+  // Save scorer picks
   if (scorer_picks && Object.keys(scorer_picks).length > 0) {
     const rows = Object.entries(scorer_picks as Record<string, string>)
       .filter(([, playerId]) => !!playerId)
       .map(([teamId, playerId]) => ({
-        user_id: user.id,
-        team_id: teamId,
+        user_id:   user.id,
+        team_id:   teamId,
         player_id: playerId,
       }))
 

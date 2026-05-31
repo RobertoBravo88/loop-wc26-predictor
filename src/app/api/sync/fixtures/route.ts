@@ -40,11 +40,12 @@ export async function POST() {
 
 function mapApiRound(round: string): string {
   if (round.startsWith('Group')) return 'group'
-  if (round.includes('32')) return 'round_of_32'
+  if (round.includes('32'))      return 'round_of_32'
+  if (round.includes('16'))      return 'round_of_16'
   if (round.includes('Quarter')) return 'quarter_final'
-  if (round.includes('Semi')) return 'semi_final'
-  if (round.includes('3rd')) return 'third_place'
-  if (round.includes('Final')) return 'final'
+  if (round.includes('Semi'))    return 'semi_final'
+  if (round.includes('3rd'))     return 'third_place'
+  if (round.includes('Final'))   return 'final'
   return 'group'
 }
 

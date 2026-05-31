@@ -267,7 +267,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                   <>
                     {/* Flag */}
                     {team?.flag_url && (
-                      <img src={team.flag_url} alt="" className="w-7 h-5 object-cover flex-shrink-0" />
+                      <img src={team.flag_url} alt="" className="w-7 h-5 object-contain flex-shrink-0" />
                     )}
                     {/* Player name + team */}
                     <div className="flex-1 min-w-0">

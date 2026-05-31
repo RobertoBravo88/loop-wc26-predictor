@@ -85,7 +85,7 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
                   <img
                     src={profile.favourite_team.flag_url}
                     alt={profile.favourite_team.name}
-                    className="w-6 h-4 object-cover flex-shrink-0"
+                    className="w-6 h-4 object-contain flex-shrink-0"
                   />
                 )}
                 <Link

@@ -17,7 +17,7 @@ export default async function TournamentPicksPage() {
     .from('finalist_picks')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   const { data: scorerPicks } = await supabase
     .from('scorer_picks')

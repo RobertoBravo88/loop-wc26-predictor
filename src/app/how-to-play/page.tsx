@@ -114,14 +114,14 @@ export default function HowToPlayPage() {
               Top Scorer Picks
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
-              Pick one player per team as your top scorer before the tournament starts. Every goal they score during the tournament earns you points — and with 48 teams in the competition, those points can add up fast.
+              Pick up to 5 players as your goal scorers before the tournament starts — one per country maximum. Every goal your chosen players score during the tournament earns you points.
             </p>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               <li>
                 <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 points</span>
-                {' '}per goal scored by your chosen player
+                {' '}per goal scored by each of your chosen players
               </li>
-              <li>48 teams = 48 picks = a potentially huge points haul</li>
+              <li>Pick up to <span style={{ fontWeight: 700 }}>5 players</span> — one per country max</li>
               <li>Like tournament picks, these lock when the tournament starts on <span style={{ fontWeight: 700 }}>June 11, 2026</span>.</li>
             </ul>
           </section>
@@ -191,7 +191,7 @@ export default function HowToPlayPage() {
                     { action: 'Tournament winner pick', points: '300 pts', highlight: false },
                     { action: 'Runner-up pick', points: '200 pts', highlight: true },
                     { action: '3rd place pick', points: '100 pts', highlight: false },
-                    { action: 'Top scorer pick (per goal)', points: '10 pts', highlight: true },
+                    { action: 'Top scorer pick (per goal, up to 5 picks)', points: '10 pts', highlight: true },
                     { action: 'Favourite team goal', points: '10 pts', highlight: false },
                     { action: 'Favourite player goal', points: '10 pts', highlight: true },
                   ].map(({ action, points, highlight }, i) => (

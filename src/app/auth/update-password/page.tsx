@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,7 +9,11 @@ import { Loader2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const schema = z.object({
-  email: z.string().email().endsWith('@loopearplugs.com', 'Must be a @loopearplugs.com email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirm:  z.string(),
+}).refine(d => d.password === d.confirm, {
+  message: 'Passwords do not match',
+  path: ['confirm'],
 })
 type Form = z.infer<typeof schema>
 
@@ -24,18 +28,22 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 }
 
-export default function ResetPage() {
-  const [sent, setSent] = useState(false)
+export default function UpdatePasswordPage() {
+  const router = useRouter()
+  const [done, setDone] = useState(false)
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
   })
 
-  async function onSubmit({ email }: Form) {
+  async function onSubmit({ password }: Form) {
     const supabase = createClient()
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/update-password`,
-    })
-    setSent(true)
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setDone(true)
+    setTimeout(() => router.push('/auth/login'), 2500)
   }
 
   return (
@@ -54,13 +62,13 @@ export default function ResetPage() {
             Loop WC26
           </h1>
           <p className="text-xs uppercase tracking-widest" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            Reset your password
+            Set a new password
           </p>
         </div>
 
         {/* Card */}
         <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-8">
-          {sent ? (
+          {done ? (
             <div className="text-center space-y-4">
               <div
                 className="inline-flex items-center justify-center w-10 h-10 mx-auto"
@@ -72,23 +80,14 @@ export default function ResetPage() {
                 className="font-semibold"
                 style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
               >
-                Reset link sent
+                Password updated!
               </p>
               <p
                 className="text-sm"
                 style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
               >
-                Check your inbox and click the link to set a new password.
+                Redirecting you to login…
               </p>
-              <div style={{ borderTop: '1px solid #e0dbd3', paddingTop: '1rem' }}>
-                <Link
-                  href="/auth/login"
-                  className="text-xs uppercase tracking-wider font-semibold hover:underline"
-                  style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-                >
-                  Back to login
-                </Link>
-              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -97,17 +96,37 @@ export default function ResetPage() {
                   className="block text-xs font-semibold uppercase tracking-wider mb-2"
                   style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
                 >
-                  Work email
+                  New password
                 </label>
                 <input
-                  {...register('email')}
-                  type="email"
-                  placeholder="you@loopearplugs.com"
+                  {...register('password')}
+                  type="password"
+                  placeholder="At least 8 characters"
                   style={inputStyle}
                 />
-                {errors.email && (
+                {errors.password && (
                   <p className="text-xs mt-1" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
-                    {errors.email.message}
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  className="block text-xs font-semibold uppercase tracking-wider mb-2"
+                  style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
+                >
+                  Confirm password
+                </label>
+                <input
+                  {...register('confirm')}
+                  type="password"
+                  placeholder="Repeat your new password"
+                  style={inputStyle}
+                />
+                {errors.confirm && (
+                  <p className="text-xs mt-1" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
+                    {errors.confirm.message}
                   </p>
                 )}
               </div>
@@ -123,18 +142,8 @@ export default function ResetPage() {
                 }}
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Send reset link
+                Update password
               </button>
-
-              <div className="text-center">
-                <Link
-                  href="/auth/login"
-                  className="text-xs uppercase tracking-wider hover:underline"
-                  style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-                >
-                  Back to login
-                </Link>
-              </div>
             </form>
           )}
         </div>

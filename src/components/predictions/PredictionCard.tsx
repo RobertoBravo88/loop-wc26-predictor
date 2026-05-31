@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { formatKickoff, isMatchLocked } from '@/lib/utils'
-import { Lock, Check, Loader2 } from 'lucide-react'
+import { Lock, Check, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { Match, Prediction } from '@/types'
@@ -20,8 +20,9 @@ export default function PredictionCard({ match, prediction, userId, distribution
 
   const [home, setHome] = useState<string>(prediction?.predicted_home?.toString() ?? '')
   const [away, setAway] = useState<string>(prediction?.predicted_away?.toString() ?? '')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -33,16 +34,22 @@ export default function PredictionCard({ match, prediction, userId, distribution
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       setSaving(true)
+      setSaveError(false)
       const supabase = createClient()
-      await supabase.from('predictions').upsert({
+      const { error } = await supabase.from('predictions').upsert({
         user_id: userId,
         match_id: match.id,
         predicted_home: hNum,
         predicted_away: aNum,
       }, { onConflict: 'user_id,match_id' })
       setSaving(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      if (error) {
+        setSaveError(true)
+        setTimeout(() => setSaveError(false), 4000)
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      }
     }, 600)
   }
 
@@ -97,6 +104,11 @@ export default function PredictionCard({ match, prediction, userId, distribution
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Saving…
               </span>
+            ) : saveError ? (
+              <span className="flex items-center gap-1 text-xs" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
+                <AlertCircle className="w-3 h-3" />
+                Save failed — try again
+              </span>
             ) : saved ? (
               <span className="flex items-center gap-1 text-xs" style={{ color: '#15803d', fontFamily: 'Inter, sans-serif' }}>
                 <Check className="w-3 h-3" />
@@ -116,7 +128,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
             {match.home_team?.name ?? '?'}
           </span>
           {match.home_team?.flag_url && (
-            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
           )}
         </div>
 
@@ -177,7 +189,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
         {/* Away team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {match.away_team?.flag_url && (
-            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
           )}
           <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
             {match.away_team?.name ?? '?'}

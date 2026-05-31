@@ -92,14 +92,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               >
                 {profile.display_name}
               </h1>
-              {profile.favourite_team?.flag_url && (
-                <img src={profile.favourite_team.flag_url} alt={profile.favourite_team.name} className="w-7 h-5 object-cover" />
+              {(tournamentStarted || isMe) && profile.favourite_team?.flag_url && (
+                <img src={profile.favourite_team.flag_url} alt={profile.favourite_team.name} className="w-7 h-5 object-contain" />
               )}
               {profile.current_streak >= 3 && (
                 <span className="streak-badge text-sm font-semibold">🔥{profile.current_streak}</span>
               )}
             </div>
-            {profile.favourite_team && (
+            {(tournamentStarted || isMe) && profile.favourite_team && (
               <p className="text-sm mt-0.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                 {profile.favourite_team.name}
               </p>
@@ -165,7 +165,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               </p>
               <div className="flex items-center gap-2">
                 {profile.favourite_team?.flag_url && (
-                  <img src={profile.favourite_team.flag_url} alt="" className="w-6 h-4 object-cover" />
+                  <img src={profile.favourite_team.flag_url} alt="" className="w-6 h-4 object-contain" />
                 )}
                 <span className="font-medium" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                   {profile.favourite_team?.name ?? '—'}
@@ -216,7 +216,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                   {p.label}
                 </div>
                 {p.team?.flag_url && (
-                  <img src={p.team.flag_url} alt="" className="w-8 h-5 object-cover mx-auto mb-1" />
+                  <img src={p.team.flag_url} alt="" className="w-8 h-5 object-contain mx-auto mb-1" />
                 )}
                 <div className="text-xs font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                   {p.team?.name ?? '—'}

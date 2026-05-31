@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { format } from 'date-fns'
+import { isTournamentStarted } from '@/lib/utils'
 import type { LeaderboardEntry } from '@/types'
 
 export const revalidate = 60
@@ -8,12 +10,14 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: entries } = await supabase
-    .from('leaderboard')
-    .select('*')
-    .order('rank', { ascending: true })
+  const [entriesRes, lastSyncRes] = await Promise.all([
+    supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
+    supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
+  ])
 
-  const leaderboard = (entries ?? []) as LeaderboardEntry[]
+  const leaderboard       = (entriesRes.data ?? []) as LeaderboardEntry[]
+  const lastSynced        = lastSyncRes.data?.result_fetched_at ?? null
+  const tournamentStarted = isTournamentStarted()
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -21,11 +25,16 @@ export default async function LeaderboardPage() {
       {/* Page header */}
       <div className="mb-8 pb-3" style={{ borderBottom: '2px solid #141414' }}>
         <h1
-          className="text-4xl"
+          className="text-4xl mb-1"
           style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
         >
           Leaderboard
         </h1>
+        <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          {lastSynced
+            ? `Last updated · ${format(new Date(lastSynced), 'd MMM · HH:mm')}`
+            : 'No results synced yet'}
+        </p>
       </div>
 
       {/* Newspaper-style rankings table */}
@@ -69,8 +78,8 @@ export default async function LeaderboardPage() {
 
               {/* Player */}
               <div className="col-span-5 flex items-center gap-2 min-w-0">
-                {entry.favourite_team_flag ? (
-                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-cover flex-shrink-0" />
+                {(tournamentStarted || isMe) && entry.favourite_team_flag ? (
+                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
                   <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
                 )}

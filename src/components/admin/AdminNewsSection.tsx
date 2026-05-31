@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import AdminNewsForm from './AdminNewsForm'
 
 interface Post {
@@ -26,10 +28,21 @@ export default function AdminNewsSection({ authorId, posts: initialPosts }: Prop
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [mode, setMode] = useState<'idle' | 'create' | 'edit'>('idle')
   const [editingPost, setEditingPost] = useState<Post | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   function openCreate() { setEditingPost(null); setMode('create') }
   function openEdit(post: Post) { setEditingPost(post); setMode('edit') }
   function closeForm() { setMode('idle'); setEditingPost(null) }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this post? This cannot be undone.')) return
+    setDeletingId(id)
+    const supabase = createClient()
+    await supabase.from('news_posts').delete().eq('id', id)
+    setPosts(prev => prev.filter(p => p.id !== id))
+    setDeletingId(null)
+    router.refresh()
+  }
 
   function handleSaved(saved: Post) {
     if (mode === 'edit') {
@@ -110,6 +123,19 @@ export default function AdminNewsSection({ authorId, posts: initialPosts }: Prop
               >
                 View
               </Link>
+
+              {/* Delete */}
+              <button
+                onClick={() => handleDelete(post.id)}
+                disabled={deletingId === post.id}
+                className="text-xs flex-shrink-0 font-medium uppercase tracking-wider hover:underline disabled:opacity-40"
+                style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}
+              >
+                {deletingId === post.id
+                  ? <Loader2 className="w-3 h-3 animate-spin inline" />
+                  : 'Delete'
+                }
+              </button>
             </div>
           ))}
         </div>

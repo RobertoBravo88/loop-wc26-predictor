@@ -53,7 +53,7 @@ async function runSync() {
     const isKnockout = match.stage !== 'group'
 
     // Only fetch if enough time has passed (buffer for full time + stoppages)
-    const minWait = isKnockout ? 105 : 95
+    const minWait = isKnockout ? 145 : 95
     if (minutesSinceKickoff < minWait) continue
 
     try {

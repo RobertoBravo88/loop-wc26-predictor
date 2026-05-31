@@ -157,7 +157,7 @@ export default async function StatsPage() {
                 className="flex items-center gap-2 hover:opacity-70 transition-opacity"
               >
                 {award.player.flag && (
-                  <img src={award.player.flag} alt="" className="w-6 h-4 object-cover" />
+                  <img src={award.player.flag} alt="" className="w-6 h-4 object-contain" />
                 )}
                 <span className="font-semibold text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                   {award.player.name}
@@ -196,7 +196,7 @@ export default async function StatsPage() {
             className="ml-auto flex items-center gap-2 hover:opacity-70 transition-opacity"
           >
             {currentHottest.flag && (
-              <img src={currentHottest.flag} alt="" className="w-7 h-5 object-cover" />
+              <img src={currentHottest.flag} alt="" className="w-7 h-5 object-contain" />
             )}
             <span className="font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
               {currentHottest.name}
