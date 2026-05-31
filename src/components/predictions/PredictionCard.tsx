@@ -11,9 +11,10 @@ interface Props {
   match: Match
   prediction: Prediction | null
   userId: string
+  distribution?: { home: number; draw: number; away: number; total: number }
 }
 
-export default function PredictionCard({ match, prediction, userId }: Props) {
+export default function PredictionCard({ match, prediction, userId, distribution }: Props) {
   const locked = isMatchLocked(match.kickoff_at) || match.status !== 'scheduled'
   const finished = match.status === 'finished'
 
@@ -183,6 +184,24 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
           </span>
         </div>
       </div>
+
+      {/* Prediction distribution — shown once user has submitted their own pick */}
+      {distribution && distribution.total > 0 && prediction && (
+        <div className="mt-3 pt-2" style={{ borderTop: '1px solid #f0ede8' }}>
+          {/* Bar */}
+          <div className="flex h-1.5 w-full overflow-hidden mb-1.5" style={{ background: '#f0ede8' }}>
+            <div style={{ width: `${Math.round(distribution.home / distribution.total * 100)}%`, background: '#141414' }} />
+            <div style={{ width: `${Math.round(distribution.draw / distribution.total * 100)}%`, background: '#d4cfc8' }} />
+            <div style={{ width: `${Math.round(distribution.away / distribution.total * 100)}%`, background: '#ff5c35' }} />
+          </div>
+          {/* Labels */}
+          <div className="flex justify-between text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+            <span><span className="font-semibold" style={{ color: '#141414' }}>{Math.round(distribution.home / distribution.total * 100)}%</span> {match.home_team?.name}</span>
+            <span><span className="font-semibold" style={{ color: '#6b6b6b' }}>{Math.round(distribution.draw / distribution.total * 100)}%</span> Draw</span>
+            <span>{match.away_team?.name} <span className="font-semibold" style={{ color: '#ff5c35' }}>{Math.round(distribution.away / distribution.total * 100)}%</span></span>
+          </div>
+        </div>
+      )}
 
       {/* Your prediction vs actual (if finished) */}
       {finished && prediction && match.home_score !== null && (

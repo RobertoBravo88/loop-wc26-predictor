@@ -34,6 +34,23 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
     (predictions ?? []).map(p => [p.match_id, p])
   )
 
+  // Fetch prediction distribution for all matches (all users)
+  const matchIds = (matches ?? []).map(m => m.id)
+  const { data: allPreds } = await supabase
+    .from('predictions')
+    .select('match_id, predicted_home, predicted_away')
+    .in('match_id', matchIds)
+
+  const distMap = new Map<string, { home: number; draw: number; away: number; total: number }>()
+  for (const p of allPreds ?? []) {
+    const d = distMap.get(p.match_id) ?? { home: 0, draw: 0, away: 0, total: 0 }
+    d.total++
+    if (p.predicted_home > p.predicted_away) d.home++
+    else if (p.predicted_home < p.predicted_away) d.away++
+    else d.draw++
+    distMap.set(p.match_id, d)
+  }
+
   // Group by stage
   const byStage = new Map<MatchStage, Match[]>()
   for (const match of (matches as Match[] ?? [])) {
@@ -145,6 +162,7 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
                         match={match}
                         prediction={predictionMap.get(match.id) ?? null}
                         userId={user.id}
+                        distribution={distMap.get(match.id)}
                       />
                     ))}
                   </div>
@@ -172,6 +190,7 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
                       match={match}
                       prediction={predictionMap.get(match.id) ?? null}
                       userId={user.id}
+                      distribution={distMap.get(match.id)}
                     />
                   ))}
                 </div>
