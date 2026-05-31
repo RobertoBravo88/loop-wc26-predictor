@@ -13,24 +13,21 @@ export default async function TournamentPicksPage() {
   const { data: teams } = await supabase.from('teams').select('*').order('name')
   const { data: players } = await supabase.from('players').select('*, team:teams(name)').order('name')
 
-  const { data: finalistPick } = await supabase
-    .from('finalist_picks')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const { data: scorerPicks } = await supabase
-    .from('scorer_picks')
-    .select('*, player:players(name, position), team:teams(name, flag_url)')
-    .eq('user_id', user.id)
+  const [finalistPickRes, scorerPicksRes, profileRes] = await Promise.all([
+    supabase.from('finalist_picks').select('*').eq('user_id', user.id).maybeSingle(),
+    supabase.from('scorer_picks').select('*, player:players(name, position), team:teams(name, flag_url)').eq('user_id', user.id),
+    supabase.from('profiles').select('favourite_team_id, favourite_player_id').eq('id', user.id).maybeSingle(),
+  ])
 
   return (
     <TournamentPicksClient
       userId={user.id}
       teams={teams ?? []}
       players={players ?? []}
-      finalistPick={finalistPick}
-      scorerPicks={scorerPicks ?? []}
+      finalistPick={finalistPickRes.data}
+      scorerPicks={scorerPicksRes.data ?? []}
+      favTeamId={profileRes.data?.favourite_team_id ?? null}
+      favPlayerId={profileRes.data?.favourite_player_id ?? null}
       locked={tournamentStarted}
     />
   )

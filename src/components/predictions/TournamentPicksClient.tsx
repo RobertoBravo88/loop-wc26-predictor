@@ -11,18 +11,31 @@ interface Props {
   players: (Player & { team?: { name: string } })[]
   finalistPick: FinalistPick | null
   scorerPicks: (ScorerPick & { player?: { name: string; position: string }; team?: { name: string; flag_url: string } })[]
+  favTeamId: string | null
+  favPlayerId: string | null
   locked: boolean
 }
 
 type ScorerPickItem = { teamId: string; playerId: string }
 
-export default function TournamentPicksClient({ userId, teams, players, finalistPick, scorerPicks, locked }: Props) {
+export default function TournamentPicksClient({ userId, teams, players, finalistPick, scorerPicks, favTeamId, favPlayerId, locked }: Props) {
   const [first, setFirst] = useState(finalistPick?.first_team_id ?? '')
   const [second, setSecond] = useState(finalistPick?.second_team_id ?? '')
   const [third, setThird] = useState(finalistPick?.third_team_id ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+
+  // Secret bonus picks
+  const [favTeam, setFavTeam] = useState(favTeamId ?? '')
+  const [favPlayer, setFavPlayer] = useState(favPlayerId ?? '')
+  const [favPlayerTeam, setFavPlayerTeam] = useState<string>(() => {
+    if (!favPlayerId) return ''
+    return players.find(p => p.id === favPlayerId)?.team_id ?? ''
+  })
+  const [savingSecrets, setSavingSecrets] = useState(false)
+  const [savedSecrets, setSavedSecrets] = useState(false)
+  const [secretsError, setSecretsError] = useState('')
 
   // Scorer picks — array of up to 5 items
   const [picks, setPicks] = useState<ScorerPickItem[]>(
@@ -72,6 +85,22 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
     }
   }
 
+  async function saveSecretPicks() {
+    if (locked) return
+    setSavingSecrets(true); setSecretsError('')
+    const supabase = createClient()
+    const { error: e } = await supabase
+      .from('profiles')
+      .update({
+        favourite_team_id: favTeam || null,
+        favourite_player_id: favPlayer || null,
+      })
+      .eq('id', userId)
+    setSavingSecrets(false)
+    if (e) { setSecretsError(e.message); return }
+    setSavedSecrets(true); setTimeout(() => setSavedSecrets(false), 2000)
+  }
+
   const teamOptions = teams.map(t => ({ value: t.id, label: t.name, flag: t.flag_url }))
 
   // Teams not yet in picks (for the add-a-pick dropdown)
@@ -80,6 +109,9 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
 
   // Players for the currently selected team in the add flow
   const addingTeamPlayers = players.filter(p => p.team_id === addingTeam)
+
+  // Players for favourite player team
+  const favPlayerTeamPlayers = players.filter(p => p.team_id === favPlayerTeam)
 
   // Helper: get team info from teams array
   function getTeam(teamId: string) {
@@ -409,6 +441,162 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           >
             No scorer picks were saved before the tournament started.
           </p>
+        )}
+      </section>
+
+      {/* Secret bonus picks */}
+      <section>
+        <div className="flex items-center justify-between mb-1 pb-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <h2
+            className="text-xl"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
+          >
+            🤫 Secret Bonuses
+          </h2>
+        </div>
+        <p className="text-xs uppercase tracking-wider mt-3 mb-5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          Hidden from everyone until the tournament starts &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+
+          {/* Favourite team */}
+          <div>
+            <label
+              className="block mb-1.5 uppercase tracking-wider"
+              style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+            >
+              Favourite team &middot; <span style={{ color: '#ff5c35' }}>+10 pts per team goal</span>
+            </label>
+            <select
+              value={favTeam}
+              onChange={e => { setFavTeam(e.target.value); setSavedSecrets(false) }}
+              disabled={locked}
+              style={{ ...selectStyle, opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
+            >
+              <option value="">Select a team…</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Favourite player — two-step */}
+          <div>
+            <label
+              className="block mb-1.5 uppercase tracking-wider"
+              style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+            >
+              Favourite player &middot; <span style={{ color: '#ff5c35' }}>+10 pts per player goal</span>
+            </label>
+
+            {/* Show current selection if already picked */}
+            {favPlayer && !locked ? (
+              <div
+                className="flex items-center gap-3 px-3 py-2 mb-2"
+                style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
+              >
+                {getTeam(favPlayerTeam || players.find(p => p.id === favPlayer)?.team_id ?? '')?.flag_url && (
+                  <img
+                    src={getTeam(favPlayerTeam || players.find(p => p.id === favPlayer)?.team_id ?? '')!.flag_url!}
+                    alt=""
+                    className="w-6 h-4 object-contain flex-shrink-0"
+                  />
+                )}
+                <span className="flex-1 text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                  {players.find(p => p.id === favPlayer)?.name ?? '—'}
+                </span>
+                <button
+                  onClick={() => { setFavPlayer(''); setFavPlayerTeam(''); setSavedSecrets(false) }}
+                  className="flex-shrink-0"
+                  style={{ color: '#6b6b6b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  aria-label="Clear player"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : null}
+
+            {(!favPlayer || locked) && (
+              <>
+                {/* Step 1: country */}
+                <select
+                  value={favPlayerTeam}
+                  onChange={e => { setFavPlayerTeam(e.target.value); setFavPlayer(''); setSavedSecrets(false) }}
+                  disabled={locked}
+                  style={{ ...selectStyle, marginBottom: '0.5rem', opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
+                >
+                  <option value="">Select a country…</option>
+                  {teams.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+
+                {/* Step 2: player */}
+                {favPlayerTeam && !locked && (
+                  favPlayerTeamPlayers.length === 0 ? (
+                    <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      Squads not loaded yet
+                    </p>
+                  ) : (
+                    <select
+                      value={favPlayer}
+                      onChange={e => { setFavPlayer(e.target.value); setSavedSecrets(false) }}
+                      style={selectStyle}
+                    >
+                      <option value="">Pick a player…</option>
+                      {favPlayerTeamPlayers.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{p.position ? ` · ${p.position}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )
+                )}
+
+                {locked && (
+                  <p className="text-xs uppercase tracking-wider" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                    {favPlayerId ? players.find(p => p.id === favPlayerId)?.name ?? '—' : 'Not set'}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {!locked && (
+          <div className="flex items-center justify-between">
+            {secretsError && (
+              <p className="text-xs" style={{ color: '#e04a26', fontFamily: 'Inter, sans-serif' }}>{secretsError}</p>
+            )}
+            <div className="ml-auto">
+              <button
+                onClick={saveSecretPicks}
+                disabled={savingSecrets}
+                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-5 py-2.5 transition-colors"
+                style={{
+                  background: savingSecrets ? '#e0dbd3' : '#141414',
+                  color: savingSecrets ? '#6b6b6b' : '#ffffff',
+                  fontFamily: 'Inter, sans-serif',
+                  borderRadius: 0,
+                  cursor: savingSecrets ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {savingSecrets && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {savedSecrets && <Check className="w-3.5 h-3.5" />}
+                {savedSecrets ? 'Saved!' : 'Save secret picks'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {locked && (
+          <div
+            className="flex items-center gap-2 mt-2 text-xs uppercase tracking-wider"
+            style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+          >
+            <Lock className="w-3.5 h-3.5" /> Secret picks locked at tournament start
+          </div>
         )}
       </section>
     </div>
