@@ -30,6 +30,19 @@ export default async function HomePage() {
     .order('published_at', { ascending: false })
     .limit(3)
 
+  const matchIds = (upcomingMatches ?? []).map(m => m.id)
+  let predictionMap = new Map<string, { predicted_home: number; predicted_away: number }>()
+  if (user && matchIds.length > 0) {
+    const { data: preds } = await supabase
+      .from('predictions')
+      .select('match_id, predicted_home, predicted_away')
+      .eq('user_id', user.id)
+      .in('match_id', matchIds)
+    for (const p of preds ?? []) {
+      predictionMap.set(p.match_id, { predicted_home: p.predicted_home, predicted_away: p.predicted_away })
+    }
+  }
+
   const tournamentStarted = isTournamentStarted()
 
   return (
@@ -206,6 +219,23 @@ export default async function HomePage() {
                     </span>
                   </div>
                 </div>
+                {user && (
+                  <div className="mt-2">
+                    {predictionMap.has(match.id) ? (
+                      <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                        Your pick: {predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
+                      </span>
+                    ) : (
+                      <Link
+                        href="/predictions"
+                        className="text-xs hover:opacity-70 transition-opacity"
+                        style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
+                      >
+                        ⚡ No prediction yet
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {!upcomingMatches?.length && (
@@ -218,23 +248,23 @@ export default async function HomePage() {
       </div>
 
       {/* News */}
-      {posts && posts.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-            <h2
-              className="text-xl"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-            >
-              Latest News
-            </h2>
-            <Link
-              href="/news"
-              className="text-xs flex items-center gap-1 uppercase tracking-wider hover:opacity-70 transition-opacity"
-              style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-            >
-              All posts <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
+      <section>
+        <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <h2
+            className="text-xl"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
+          >
+            Latest News
+          </h2>
+          <Link
+            href="/news"
+            className="text-xs flex items-center gap-1 uppercase tracking-wider hover:opacity-70 transition-opacity"
+            style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
+          >
+            All posts <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+        {posts && posts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-0" style={{ border: '1px solid #e0dbd3' }}>
             {(posts as any[]).map((post, idx) => (
               <Link
@@ -263,8 +293,12 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <div className="px-5 py-8 text-center text-sm" style={{ background: '#ffffff', border: '1px solid #e0dbd3', color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+            No posts yet — check back soon.
+          </div>
+        )}
+      </section>
     </div>
   )
 }

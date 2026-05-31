@@ -9,14 +9,14 @@ import { cn } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 const NAV_LINKS = [
-  { href: '/',                  label: 'Home'        },
-  { href: '/predictions',       label: 'Predictions' },
-  { href: '/leaderboard',       label: 'Leaderboard' },
-  { href: '/groups',            label: 'Groups'      },
-  { href: '/bracket',           label: 'Bracket'     },
-  { href: '/tournament-picks',  label: 'My Picks'    },
-  { href: '/news',              label: 'News'        },
-  { href: '/stats',             label: 'Stats'       },
+  { href: '/',             label: 'Home'        },
+  { href: '/predictions',  label: 'Predictions' },
+  { href: '/leaderboard',  label: 'Leaderboard' },
+  { href: '/groups',       label: 'Groups'      },
+  { href: '/bracket',      label: 'Bracket'     },
+  { href: '/news',         label: 'News'        },
+  { href: '/stats',        label: 'Stats'       },
+  { href: '/how-to-play',  label: 'How to Play' },
 ]
 
 export default function Navbar({ profile }: { profile: Profile | null }) {
