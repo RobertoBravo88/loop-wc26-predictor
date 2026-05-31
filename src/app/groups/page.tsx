@@ -103,57 +103,111 @@ function computePredictedStandings(matches: Match[], teams: Team[], predictions:
   )
 }
 
-function StandingsTable({ standings, label }: { standings: GroupStanding[]; label: string }) {
+function StandingsTable({ standings, predictedStandings }: {
+  standings: GroupStanding[]
+  predictedStandings?: GroupStanding[]
+}) {
+  const hasPred = !!predictedStandings && predictedStandings.length > 0
+
+  // Build lookup maps from predicted standings
+  const predRankMap = new Map<string, number>()   // teamId → predicted rank (1-based)
+  const predPtsMap  = new Map<string, number>()   // teamId → predicted points
+  if (hasPred) {
+    predictedStandings!.forEach((row, i) => {
+      predRankMap.set(row.team.id, i + 1)
+      predPtsMap.set(row.team.id, row.points)
+    })
+  }
+
+  const thStyle = { color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }
+
   return (
     <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
-      <div
-        className="px-4 py-2 text-xs font-semibold uppercase tracking-wider"
-        style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-      >
-        {label}
-      </div>
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ borderBottom: '1px solid #e0dbd3' }}>
-            <th className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Team</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>P</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>W</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>D</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>L</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>GD</th>
-            <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Pts</th>
+          <tr style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={thStyle}>Team</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>P</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>W</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>D</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>L</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>GD</th>
+            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>Pts</th>
+            {hasPred && (
+              <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ ...thStyle, color: '#ff5c35' }}>
+                My pts
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
-          {standings.map((row, i) => (
-            <tr
-              key={row.team.id}
-              style={{
-                borderBottom: '1px solid #e0dbd3',
-                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderLeft: i < 2 ? '3px solid #22c55e' : '3px solid transparent'
-              }}
-            >
-              <td className="px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs w-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
-                  {row.team.flag_url && <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-cover flex-shrink-0" />}
-                  <span className="font-medium text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{row.team.name}</span>
-                </div>
-              </td>
-              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.played}</td>
-              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.won}</td>
-              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.drawn}</td>
-              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.lost}</td>
-              <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
-              </td>
-              <td className="px-4 py-2.5 text-right text-sm font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{row.points}</td>
-            </tr>
-          ))}
+          {standings.map((row, i) => {
+            const actualRank = i + 1
+            const predRank   = predRankMap.get(row.team.id)
+            const predPts    = predPtsMap.get(row.team.id)
+            // positive delta → team is doing BETTER than you predicted (↑ green)
+            // negative delta → team is doing WORSE than you predicted (↓ red)
+            const delta = predRank != null ? predRank - actualRank : null
+
+            return (
+              <tr
+                key={row.team.id}
+                style={{
+                  borderBottom: '1px solid #e0dbd3',
+                  background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                  borderLeft: i < 2 ? '3px solid #22c55e' : '3px solid transparent',
+                }}
+              >
+                {/* Team name + flag + rank delta */}
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs w-4 flex-shrink-0 text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{actualRank}</span>
+                    {row.team.flag_url && (
+                      <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-cover flex-shrink-0" />
+                    )}
+                    <span className="font-medium text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                      {row.team.name}
+                    </span>
+                    {/* Rank delta badge — only shown when predictions exist */}
+                    {delta !== null && delta !== 0 && (
+                      <span
+                        className="flex-shrink-0 text-xs font-bold"
+                        style={{ color: delta > 0 ? '#16a34a' : '#dc2626', fontFamily: 'Inter, sans-serif' }}
+                      >
+                        {delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`}
+                      </span>
+                    )}
+                    {delta === 0 && (
+                      <span className="flex-shrink-0 text-xs" style={{ color: '#22c55e', fontFamily: 'Inter, sans-serif' }}>✓</span>
+                    )}
+                  </div>
+                </td>
+
+                <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.played}</td>
+                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.won}</td>
+                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.drawn}</td>
+                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.lost}</td>
+                <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                  {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
+                </td>
+
+                {/* Actual points */}
+                <td className="px-2 py-2.5 text-center text-sm font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                  {row.points}
+                </td>
+
+                {/* Predicted points */}
+                {hasPred && (
+                  <td className="px-2 py-2.5 text-center text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                    {predPts ?? '–'}
+                  </td>
+                )}
+              </tr>
+            )
+          })}
           {!standings.length && (
             <tr>
-              <td colSpan={7} className="px-4 py-6 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              <td colSpan={hasPred ? 8 : 7} className="px-4 py-6 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                 No data yet
               </td>
             </tr>
@@ -342,13 +396,11 @@ export default async function GroupsPage() {
                 </h2>
               </div>
 
-              {/* Standings tables */}
-              <div className={`grid gap-4 ${user && hasPredictions ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                <StandingsTable standings={realStandings} label="Current Standings" />
-                {user && hasPredictions && (
-                  <StandingsTable standings={predictedStandings} label="Your Predicted Standings" />
-                )}
-              </div>
+              {/* Single combined standings table */}
+              <StandingsTable
+                standings={realStandings}
+                predictedStandings={user && hasPredictions ? predictedStandings : undefined}
+              />
             </div>
           )
         })}
