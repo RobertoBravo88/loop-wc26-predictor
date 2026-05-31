@@ -116,15 +116,19 @@ export default async function PredictionsPage({
 
   // Tournament tab
   let teams = null, players = null, finalistPick = null, scorerPicks = null
+  let favTeamId: string | null = null, favPlayerId: string | null = null
   if (activeTab === 'tournament') {
-    const [teamsRes, playersRes, finalistRes, scorerRes] = await Promise.all([
+    const [teamsRes, playersRes, finalistRes, scorerRes, profileRes] = await Promise.all([
       supabase.from('teams').select('*').order('name'),
       supabase.from('players').select('*, team:teams(name)').order('name'),
       supabase.from('finalist_picks').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('scorer_picks').select('*, player:players(name, position), team:teams(name, flag_url)').eq('user_id', user.id),
+      supabase.from('profiles').select('favourite_team_id, favourite_player_id').eq('id', user.id).maybeSingle(),
     ])
     teams = teamsRes.data; players = playersRes.data
     finalistPick = finalistRes.data; scorerPicks = scorerRes.data
+    favTeamId   = profileRes.data?.favourite_team_id   ?? null
+    favPlayerId = profileRes.data?.favourite_player_id ?? null
   }
 
   // Finals tab
@@ -323,6 +327,8 @@ export default async function PredictionsPage({
           players={players ?? []}
           finalistPick={finalistPick ?? null}
           scorerPicks={scorerPicks ?? []}
+          favTeamId={favTeamId}
+          favPlayerId={favPlayerId}
           locked={tournamentStarted}
         />
       )}

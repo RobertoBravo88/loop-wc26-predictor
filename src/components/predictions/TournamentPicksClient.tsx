@@ -490,9 +490,9 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                 className="flex items-center gap-3 px-3 py-2 mb-2"
                 style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
               >
-                {getTeam(favPlayerTeam || players.find(p => p.id === favPlayer)?.team_id ?? '')?.flag_url && (
+                {getTeam(favPlayerTeam || (players.find(p => p.id === favPlayer)?.team_id ?? ''))?.flag_url && (
                   <img
-                    src={getTeam(favPlayerTeam || players.find(p => p.id === favPlayer)?.team_id ?? '')!.flag_url!}
+                    src={getTeam(favPlayerTeam || (players.find(p => p.id === favPlayer)?.team_id ?? ''))!.flag_url!}
                     alt=""
                     className="w-6 h-4 object-contain flex-shrink-0"
                   />
@@ -516,7 +516,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                 {/* Step 1: country */}
                 <select
                   value={favPlayerTeam}
-                  onChange={e => { setFavPlayerTeam(e.target.value); setFavPlayer(''); setSavedSecrets(false) }}
+                  onChange={e => { setFavPlayerTeam(e.target.value); setFavPlayer('') }}
                   disabled={locked}
                   style={{ ...selectStyle, marginBottom: '0.5rem', opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
                 >
