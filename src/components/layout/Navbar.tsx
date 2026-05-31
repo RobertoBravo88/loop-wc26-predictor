@@ -136,8 +136,15 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
             </Link>
           ))}
           {profile?.role === 'admin' && (
-            <Link href="/admin" onClick={() => setMenuOpen(false)}
-              className="block px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-400 hover:text-white">
+            <Link
+              href="/admin"
+              onClick={() => setMenuOpen(false)}
+              className={cn(
+                'block px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors',
+                pathname.startsWith('/admin') ? 'text-white' : 'text-gray-400 hover:text-white'
+              )}
+              style={pathname.startsWith('/admin') ? { borderLeft: '2px solid #ff5c35', paddingLeft: '10px' } : {}}
+            >
               Admin
             </Link>
           )}

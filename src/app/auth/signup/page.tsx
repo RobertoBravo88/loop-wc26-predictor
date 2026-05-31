@@ -299,11 +299,10 @@ function Step1({
     if (!trimmed || trimmed.split(/\s+/).length < 2) {
       e.display_name = 'Please enter your first and last name'
     }
-    if (!formData.email.endsWith('@loopearplugs.com')) {
-      e.email = 'Must be a @loopearplugs.com email'
-    }
     if (!formData.email.includes('@') || formData.email.length < 6) {
       e.email = 'Please enter a valid email address'
+    } else if (!formData.email.endsWith('@loopearplugs.com')) {
+      e.email = 'Must be a @loopearplugs.com email'
     }
     if (formData.password.length < 8) {
       e.password = 'Password must be at least 8 characters'

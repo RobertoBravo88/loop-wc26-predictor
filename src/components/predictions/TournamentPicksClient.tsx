@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Lock, Check, Loader2, Trophy, X } from 'lucide-react'
+import { Lock, Check, Loader2, Trophy, X, AlertCircle } from 'lucide-react'
 import type { Team, Player, FinalistPick, ScorerPick } from '@/types'
 
 interface Props {
@@ -22,9 +22,10 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const [first, setFirst] = useState(finalistPick?.first_team_id ?? '')
   const [second, setSecond] = useState(finalistPick?.second_team_id ?? '')
   const [third, setThird] = useState(finalistPick?.third_team_id ?? '')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  const [finalistSaving, setFinalistSaving] = useState(false)
+  const [finalistSaved,  setFinalistSaved]  = useState(false)
+  const [finalistError,  setFinalistError]  = useState(false)
+  const finalistDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Secret bonus picks
   const [favTeam, setFavTeam] = useState(favTeamId ?? '')
@@ -33,9 +34,10 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
     if (!favPlayerId) return ''
     return players.find(p => p.id === favPlayerId)?.team_id ?? ''
   })
-  const [savingSecrets, setSavingSecrets] = useState(false)
-  const [savedSecrets, setSavedSecrets] = useState(false)
-  const [secretsError, setSecretsError] = useState('')
+  const [secretsSaving, setSecretsSaving] = useState(false)
+  const [secretsSaved,  setSecretsSaved]  = useState(false)
+  const [secretsError,  setSecretsError]  = useState(false)
+  const secretsDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Scorer picks — array of up to 5 items
   const [picks, setPicks] = useState<ScorerPickItem[]>(
@@ -46,16 +48,19 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const [savingScorer, setSavingScorer] = useState(false)
   const [removingTeam, setRemovingTeam] = useState<string | null>(null)
 
-  async function saveFinalists() {
-    if (locked || !first || !second || !third) return
-    setSaving(true); setError('')
-    const supabase = createClient()
-    const { error: e } = await supabase.from('finalist_picks').upsert({
-      user_id: userId, first_team_id: first, second_team_id: second, third_team_id: third
-    }, { onConflict: 'user_id' })
-    setSaving(false)
-    if (e) { setError(e.message); return }
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
+  function triggerFinalistSave(f: string, s: string, t: string) {
+    if (locked || !f || !s || !t) return
+    if (finalistDebounce.current) clearTimeout(finalistDebounce.current)
+    finalistDebounce.current = setTimeout(async () => {
+      setFinalistSaving(true); setFinalistError(false)
+      const supabase = createClient()
+      const { error: e } = await supabase.from('finalist_picks').upsert({
+        user_id: userId, first_team_id: f, second_team_id: s, third_team_id: t
+      }, { onConflict: 'user_id' })
+      setFinalistSaving(false)
+      if (e) { setFinalistError(true); setTimeout(() => setFinalistError(false), 4000) }
+      else    { setFinalistSaved(true);  setTimeout(() => setFinalistSaved(false),  2000) }
+    }, 600)
   }
 
   async function addScorerPick(teamId: string, playerId: string) {
@@ -85,20 +90,20 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
     }
   }
 
-  async function saveSecretPicks() {
+  function triggerSecretsSave(team: string, player: string) {
     if (locked) return
-    setSavingSecrets(true); setSecretsError('')
-    const supabase = createClient()
-    const { error: e } = await supabase
-      .from('profiles')
-      .update({
-        favourite_team_id: favTeam || null,
-        favourite_player_id: favPlayer || null,
-      })
-      .eq('id', userId)
-    setSavingSecrets(false)
-    if (e) { setSecretsError(e.message); return }
-    setSavedSecrets(true); setTimeout(() => setSavedSecrets(false), 2000)
+    if (secretsDebounce.current) clearTimeout(secretsDebounce.current)
+    secretsDebounce.current = setTimeout(async () => {
+      setSecretsSaving(true); setSecretsError(false)
+      const supabase = createClient()
+      const { error: e } = await supabase
+        .from('profiles')
+        .update({ favourite_team_id: team || null, favourite_player_id: player || null })
+        .eq('id', userId)
+      setSecretsSaving(false)
+      if (e) { setSecretsError(true); setTimeout(() => setSecretsError(false), 4000) }
+      else   { setSecretsSaved(true);  setTimeout(() => setSecretsSaved(false),  2000) }
+    }, 600)
   }
 
   const teamOptions = teams.map(t => ({ value: t.id, label: t.name, flag: t.flag_url }))
@@ -173,11 +178,11 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           Pick the winner, runner-up, and third place. Locks when the tournament starts.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
           {[
-            { label: 'Winner', value: first, set: setFirst, pts: 300 },
-            { label: 'Runner-up', value: second, set: setSecond, pts: 200 },
-            { label: '3rd place', value: third, set: setThird, pts: 100 },
+            { label: 'Winner',    value: first,  set: (v: string) => { setFirst(v);  triggerFinalistSave(v, second, third)  }, pts: 300 },
+            { label: 'Runner-up', value: second, set: (v: string) => { setSecond(v); triggerFinalistSave(first, v, third)   }, pts: 200 },
+            { label: '3rd place', value: third,  set: (v: string) => { setThird(v);  triggerFinalistSave(first, second, v)  }, pts: 100 },
           ].map(pick => (
             <div key={pick.label}>
               <label
@@ -188,7 +193,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
               </label>
               <select
                 value={pick.value}
-                onChange={e => { pick.set(e.target.value); setSaved(false) }}
+                onChange={e => pick.set(e.target.value)}
                 disabled={locked}
                 style={{ ...selectStyle, opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
               >
@@ -201,29 +206,18 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           ))}
         </div>
 
+        {/* Auto-save status */}
         {!locked && (
-          <div className="flex items-center justify-between">
-            {error && (
-              <p className="text-xs" style={{ color: '#e04a26', fontFamily: 'Inter, sans-serif' }}>{error}</p>
+          <div className="flex items-center gap-1.5 h-5">
+            {finalistSaving && <><Loader2 className="w-3 h-3 animate-spin" style={{ color: '#6b6b6b' }} /><span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Saving…</span></>}
+            {finalistSaved  && !finalistSaving && <><Check className="w-3 h-3" style={{ color: '#15803d' }} /><span className="text-xs" style={{ color: '#15803d', fontFamily: 'Inter, sans-serif' }}>Saved</span></>}
+            {finalistError  && <><AlertCircle className="w-3 h-3" style={{ color: '#dc2626' }} /><span className="text-xs" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>Save failed — try again</span></>}
+            {!finalistSaving && !finalistSaved && !finalistError && first && second && third && (
+              <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Auto-saves when all 3 are selected</span>
             )}
-            <div className="ml-auto">
-              <button
-                onClick={saveFinalists}
-                disabled={saving || !first || !second || !third}
-                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-5 py-2.5 transition-colors"
-                style={{
-                  background: saving || !first || !second || !third ? '#e0dbd3' : '#141414',
-                  color: saving || !first || !second || !third ? '#6b6b6b' : '#ffffff',
-                  fontFamily: 'Inter, sans-serif',
-                  borderRadius: 0,
-                  cursor: saving || !first || !second || !third ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {saved && <Check className="w-3.5 h-3.5" />}
-                {saved ? 'Saved!' : 'Save picks'}
-              </button>
-            </div>
+            {!finalistSaving && !finalistSaved && !finalistError && (!first || !second || !third) && (
+              <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Select all 3 to save</span>
+            )}
           </div>
         )}
 
@@ -470,7 +464,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             </label>
             <select
               value={favTeam}
-              onChange={e => { setFavTeam(e.target.value); setSavedSecrets(false) }}
+              onChange={e => { const v = e.target.value; setFavTeam(v); triggerSecretsSave(v, favPlayer) }}
               disabled={locked}
               style={{ ...selectStyle, opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
             >
@@ -507,7 +501,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                   {players.find(p => p.id === favPlayer)?.name ?? '—'}
                 </span>
                 <button
-                  onClick={() => { setFavPlayer(''); setFavPlayerTeam(''); setSavedSecrets(false) }}
+                  onClick={() => { setFavPlayer(''); setFavPlayerTeam(''); triggerSecretsSave(favTeam, '') }}
                   className="flex-shrink-0"
                   style={{ color: '#6b6b6b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   aria-label="Clear player"
@@ -541,7 +535,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                   ) : (
                     <select
                       value={favPlayer}
-                      onChange={e => { setFavPlayer(e.target.value); setSavedSecrets(false) }}
+                      onChange={e => { const v = e.target.value; setFavPlayer(v); triggerSecretsSave(favTeam, v) }}
                       style={selectStyle}
                     >
                       <option value="">Pick a player…</option>
@@ -564,29 +558,12 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           </div>
         </div>
 
+        {/* Auto-save status */}
         {!locked && (
-          <div className="flex items-center justify-between">
-            {secretsError && (
-              <p className="text-xs" style={{ color: '#e04a26', fontFamily: 'Inter, sans-serif' }}>{secretsError}</p>
-            )}
-            <div className="ml-auto">
-              <button
-                onClick={saveSecretPicks}
-                disabled={savingSecrets}
-                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-5 py-2.5 transition-colors"
-                style={{
-                  background: savingSecrets ? '#e0dbd3' : '#141414',
-                  color: savingSecrets ? '#6b6b6b' : '#ffffff',
-                  fontFamily: 'Inter, sans-serif',
-                  borderRadius: 0,
-                  cursor: savingSecrets ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {savingSecrets && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {savedSecrets && <Check className="w-3.5 h-3.5" />}
-                {savedSecrets ? 'Saved!' : 'Save secret picks'}
-              </button>
-            </div>
+          <div className="flex items-center gap-1.5 h-5">
+            {secretsSaving && <><Loader2 className="w-3 h-3 animate-spin" style={{ color: '#6b6b6b' }} /><span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Saving…</span></>}
+            {secretsSaved  && !secretsSaving && <><Check className="w-3 h-3" style={{ color: '#15803d' }} /><span className="text-xs" style={{ color: '#15803d', fontFamily: 'Inter, sans-serif' }}>Saved</span></>}
+            {secretsError  && <><AlertCircle className="w-3 h-3" style={{ color: '#dc2626' }} /><span className="text-xs" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>Save failed — try again</span></>}
           </div>
         )}
 
