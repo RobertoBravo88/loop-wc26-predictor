@@ -28,6 +28,7 @@ export function stageName(stage: MatchStage): string {
   const map: Record<MatchStage, string> = {
     group: 'Group Stage',
     round_of_32: 'Round of 32',
+    round_of_16: 'Round of 16',
     quarter_final: 'Quarter-Final',
     semi_final: 'Semi-Final',
     third_place: '3rd Place Play-off',
@@ -43,5 +44,5 @@ export function outcomeLabel(home: number, away: number): string {
 }
 
 export function groupStageOrder(): MatchStage[] {
-  return ['group', 'round_of_32', 'quarter_final', 'semi_final', 'third_place', 'final']
+  return ['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
 }

@@ -57,7 +57,7 @@ CREATE TABLE matches (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   api_id        INTEGER UNIQUE,
   stage         TEXT NOT NULL CHECK (stage IN (
-                  'group', 'round_of_32', 'quarter_final',
+                  'group', 'round_of_32', 'round_of_16', 'quarter_final',
                   'semi_final', 'third_place', 'final'
                 )),
   group_letter  TEXT,                          -- only for group stage

@@ -7,6 +7,7 @@ export type UserRole = 'player' | 'admin'
 export type MatchStage =
   | 'group'
   | 'round_of_32'
+  | 'round_of_16'
   | 'quarter_final'
   | 'semi_final'
   | 'third_place'

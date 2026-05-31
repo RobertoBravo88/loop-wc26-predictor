@@ -5,7 +5,7 @@ import type { Match, Team, GroupStanding, MatchStage } from '@/types'
 export const revalidate = 60
 
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
-const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'quarter_final', 'semi_final', 'third_place', 'final']
+const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
 
 // WC 2026 Round of 32 bracket slot labels (home, away) — indexed by match order
 // Group winners play runners-up from adjacent groups; last 4 slots are best 3rd-place teams
@@ -194,7 +194,7 @@ function MatchNode({ match, userPick, homeSlot, awaySlot }: {
   const finished = match.status === 'finished'
   const hasTeams = match.home_team && match.away_team
   return (
-    <div className="min-w-[180px] text-xs" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+    <div className="w-full text-xs" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
       <div style={{ borderBottom: '1px solid #e0dbd3' }}>
         <TeamRow match={match} side="home" slot={homeSlot} finished={finished} />
       </div>
@@ -347,45 +347,65 @@ export default async function GroupsPage() {
             Knockout Stage
           </h2>
           <p className="text-xs uppercase tracking-wider mt-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            Your picks vs. reality
+            Your picks vs. reality · scroll right to see all rounds
           </p>
         </div>
 
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-6 min-w-max">
+        <div className="overflow-x-auto pb-6">
+          <div className="flex items-start gap-4" style={{ minWidth: 'max-content' }}>
             {KNOCKOUT_STAGES.map(stage => {
               const stageMatches = byStage.get(stage) ?? []
+              // Column width varies by stage — R32 and R16 are wider to hold slot labels
+              const colWidth = stage === 'round_of_32' || stage === 'round_of_16' ? 200 : 180
+
               return (
-                <div key={stage} className="flex flex-col">
-                  <h3
-                    className="text-xs font-bold uppercase tracking-wider mb-3 text-center pb-2"
-                    style={{ color: '#141414', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
+                <div key={stage} style={{ width: `${colWidth}px`, flexShrink: 0 }}>
+                  {/* Stage header */}
+                  <div
+                    className="px-3 py-1.5 mb-3 text-center text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      background: '#141414',
+                      color: '#ffffff',
+                      fontFamily: 'Inter, sans-serif',
+                    }}
                   >
                     {stageName(stage)}
-                  </h3>
-                  <div className="flex flex-col gap-3 justify-around flex-1">
-                    {stageMatches.length > 0 ? stageMatches.map((match, idx) => {
-                      const homeSlot = stage === 'round_of_32'
-                        ? resolveSlot(R32_SLOTS[idx]?.[0] ?? '', groupLeaders)
-                        : undefined
-                      const awaySlot = stage === 'round_of_32'
-                        ? resolveSlot(R32_SLOTS[idx]?.[1] ?? '', groupLeaders)
-                        : undefined
-                      return (
-                        <MatchNode
-                          key={match.id}
-                          match={match}
-                          userPick={predictionMap.get(match.id)}
-                          homeSlot={homeSlot}
-                          awaySlot={awaySlot}
-                        />
-                      )
-                    }) : (
-                      <div className="text-center text-xs px-4 py-8" style={{ color: '#e0dbd3', fontFamily: 'Inter, sans-serif' }}>
-                        TBD
-                      </div>
-                    )}
                   </div>
+
+                  {/* Matches */}
+                  {stageMatches.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {stageMatches.map((match, idx) => {
+                        const homeSlot = stage === 'round_of_32'
+                          ? resolveSlot(R32_SLOTS[idx]?.[0] ?? '', groupLeaders)
+                          : undefined
+                        const awaySlot = stage === 'round_of_32'
+                          ? resolveSlot(R32_SLOTS[idx]?.[1] ?? '', groupLeaders)
+                          : undefined
+                        return (
+                          <MatchNode
+                            key={match.id}
+                            match={match}
+                            userPick={predictionMap.get(match.id)}
+                            homeSlot={homeSlot}
+                            awaySlot={awaySlot}
+                          />
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center justify-center text-xs uppercase tracking-wider py-6"
+                      style={{
+                        border: '1px dashed #e0dbd3',
+                        color: '#c4bfb8',
+                        fontFamily: 'Inter, sans-serif',
+                        minHeight: '60px',
+                      }}
+                    >
+                      TBD
+                    </div>
+                  )}
                 </div>
               )
             })}

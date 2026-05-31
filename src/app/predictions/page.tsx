@@ -8,7 +8,7 @@ import type { Match, Prediction, MatchStage } from '@/types'
 
 export const revalidate = 30
 
-const STAGE_ORDER: MatchStage[] = ['group', 'round_of_32', 'quarter_final', 'semi_final', 'third_place', 'final']
+const STAGE_ORDER: MatchStage[] = ['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
 
 export default async function PredictionsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams
