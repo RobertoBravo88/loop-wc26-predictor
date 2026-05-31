@@ -7,23 +7,40 @@ export const revalidate = 60
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
 
-// WC 2026 Round of 32 bracket slot labels (home, away) — indexed by match order
-// Group winners play runners-up from adjacent groups; last 4 slots are best 3rd-place teams
-const R32_SLOTS: [string, string][] = [
-  ['A1','B2'],['C1','D2'],['E1','F2'],['G1','H2'],
-  ['I1','J2'],['K1','L2'],['B1','A2'],['D1','C2'],
-  ['F1','E2'],['H1','G2'],['J1','I2'],['L1','K2'],
-  ['3rd','3rd'],['3rd','3rd'],['3rd','3rd'],['3rd','3rd'],
-]
+// Official WC 2026 Round of 32 pairings, keyed by FIFA match number (73–88).
+// Source: FIFA World Cup 2026 official bracket / Wikipedia knockout stage article.
+// Slot format: 'X1' = Group X winner, 'X2' = Group X runner-up, '3rd' = best 3rd-place team.
+const R32_SLOT_MAP: Record<number, [string, string]> = {
+  73: ['A2', 'B2'],   // Runner-up A vs Runner-up B
+  74: ['E1', '3rd'],  // Winner E vs best 3rd (from A/B/C/D/F)
+  75: ['F1', 'C2'],   // Winner F vs Runner-up C
+  76: ['C1', 'F2'],   // Winner C vs Runner-up F
+  77: ['I1', '3rd'],  // Winner I vs best 3rd (from C/D/F/G/H)
+  78: ['E2', 'I2'],   // Runner-up E vs Runner-up I
+  79: ['A1', '3rd'],  // Winner A vs best 3rd (from C/E/F/H/I)
+  80: ['L1', '3rd'],  // Winner L vs best 3rd (from E/H/I/J/K)
+  81: ['D1', '3rd'],  // Winner D vs best 3rd (from B/E/F/I/J)
+  82: ['G1', '3rd'],  // Winner G vs best 3rd (from A/E/H/I/J)
+  83: ['K2', 'L2'],   // Runner-up K vs Runner-up L
+  84: ['H1', 'J2'],   // Winner H vs Runner-up J
+  85: ['B1', '3rd'],  // Winner B vs best 3rd (from E/F/G/I/J)
+  86: ['J1', 'H2'],   // Winner J vs Runner-up H
+  87: ['K1', '3rd'],  // Winner K vs best 3rd (from D/E/I/J/L)
+  88: ['D2', 'G2'],   // Runner-up D vs Runner-up G
+}
 
 function resolveSlot(slot: string, leaders: Map<string, { p1?: string; p2?: string; complete: boolean }>): { label: string; team?: string; confirmed: boolean } {
-  if (!slot || slot === '3rd') return { label: 'Best 3rd', confirmed: false }
+  if (!slot || slot === '3rd') return { label: 'Best 3rd place', confirmed: false }
   const m = slot.match(/^([A-L])([12])$/)
   if (!m) return { label: slot, confirmed: false }
   const group = m[1], pos = m[2]
   const g = leaders.get(group)
   const team = pos === '1' ? g?.p1 : g?.p2
-  return { label: `${group}${pos === '1' ? ' Winner' : ' Runner-up'}`, team, confirmed: g?.complete ?? false }
+  return {
+    label: `Group ${group} ${pos === '1' ? 'winner' : 'runner-up'}`,
+    team,
+    confirmed: g?.complete ?? false,
+  }
 }
 
 function computeStandings(matches: Match[], teams: Team[]): GroupStanding[] {
@@ -375,13 +392,16 @@ export default async function GroupsPage() {
                   {/* Matches */}
                   {stageMatches.length > 0 ? (
                     <div className="flex flex-col gap-2">
-                      {stageMatches.map((match, idx) => {
-                        const homeSlot = stage === 'round_of_32'
-                          ? resolveSlot(R32_SLOTS[idx]?.[0] ?? '', groupLeaders)
-                          : undefined
-                        const awaySlot = stage === 'round_of_32'
-                          ? resolveSlot(R32_SLOTS[idx]?.[1] ?? '', groupLeaders)
-                          : undefined
+                      {stageMatches.map((match) => {
+                        let homeSlot: SlotInfo | undefined
+                        let awaySlot: SlotInfo | undefined
+                        if (stage === 'round_of_32' && match.match_number != null) {
+                          const slots = R32_SLOT_MAP[match.match_number]
+                          if (slots) {
+                            homeSlot = resolveSlot(slots[0], groupLeaders)
+                            awaySlot = resolveSlot(slots[1], groupLeaders)
+                          }
+                        }
                         return (
                           <MatchNode
                             key={match.id}
