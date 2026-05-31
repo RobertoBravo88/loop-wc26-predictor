@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { stageName, isMatchLocked, formatKickoff, isTournamentStarted } from '@/lib/utils'
+import { stageName, isMatchLocked, isTournamentStarted } from '@/lib/utils'
+import { format } from 'date-fns'
 import PredictionCard from '@/components/predictions/PredictionCard'
 import TournamentPicksClient from '@/components/predictions/TournamentPicksClient'
 import Link from 'next/link'
@@ -8,76 +9,187 @@ import type { Match, Prediction, MatchStage } from '@/types'
 
 export const revalidate = 30
 
-const STAGE_ORDER: MatchStage[] = ['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
+const KNOCKOUT_STAGES: MatchStage[] = [
+  'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final',
+]
 
-export default async function PredictionsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function PredictionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   const { tab } = await searchParams
-  const activeTab = tab === 'tournament' ? 'tournament' : 'matches'
+  const activeTab =
+    tab === 'tournament' ? 'tournament' :
+    tab === 'finals'     ? 'finals'     :
+                           'matches'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const { data: matches } = await supabase
-    .from('matches')
-    .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-    .not('home_team_id', 'is', null)
-    .not('away_team_id', 'is', null)
-    .order('kickoff_at', { ascending: true })
+  // ─────────────────────────────────────────────────────────────────────
+  // Always fetch — lightweight data for tab badges
+  // ─────────────────────────────────────────────────────────────────────
+  const [
+    groupMatchesRes,
+    knockoutMatchesRes,
+    userPredIdsRes,
+    finalistCountRes,
+    scorerCountRes,
+  ] = await Promise.all([
+    supabase.from('matches').select('id, kickoff_at').eq('stage', 'group').order('kickoff_at'),
+    supabase.from('matches').select('id, kickoff_at').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
+    supabase.from('predictions').select('match_id').eq('user_id', user.id),
+    supabase.from('finalist_picks')
+      .select('first_team_id, second_team_id, third_team_id')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase.from('scorer_picks').select('id').eq('user_id', user.id),
+  ])
 
-  const { data: predictions } = await supabase
-    .from('predictions')
-    .select('*')
-    .eq('user_id', user.id)
+  const allGroupMatches   = groupMatchesRes.data   ?? []
+  const allKnockoutMatches = knockoutMatchesRes.data ?? []
+  const predSet = new Set((userPredIdsRes.data ?? []).map(p => p.match_id))
 
-  const predictionMap = new Map<string, Prediction>(
-    (predictions ?? []).map(p => [p.match_id, p])
+  // Group tab badge
+  const groupMatchCount = allGroupMatches.length
+  const groupPredCount  = allGroupMatches.filter(m => predSet.has(m.id)).length
+  const firstUnpredGroup = allGroupMatches.find(
+    m => !predSet.has(m.id) && !isMatchLocked(m.kickoff_at)
   )
 
-  // Fetch prediction distribution for all matches (all users)
-  const matchIds = (matches ?? []).map(m => m.id)
-  const { data: allPreds } = await supabase
-    .from('predictions')
-    .select('match_id, predicted_home, predicted_away')
-    .in('match_id', matchIds)
+  // Finals tab badge
+  const finalsMatchCount = allKnockoutMatches.length
+  const finalsPredCount  = allKnockoutMatches.filter(m => predSet.has(m.id)).length
+  const firstKnockoutKickoff = allKnockoutMatches[0]?.kickoff_at   // first R32 match
+  const firstUnpredFinal = allKnockoutMatches.find(
+    m => !predSet.has(m.id) && !isMatchLocked(m.kickoff_at)
+  )
 
-  const distMap = new Map<string, { home: number; draw: number; away: number; total: number }>()
-  for (const p of allPreds ?? []) {
-    const d = distMap.get(p.match_id) ?? { home: 0, draw: 0, away: 0, total: 0 }
-    d.total++
-    if (p.predicted_home > p.predicted_away) d.home++
-    else if (p.predicted_home < p.predicted_away) d.away++
-    else d.draw++
-    distMap.set(p.match_id, d)
+  // Tournament tab badge
+  const fp = finalistCountRes.data
+  const finalistDone = [fp?.first_team_id, fp?.second_team_id, fp?.third_team_id].filter(Boolean).length
+  const scorerDone   = scorerCountRes.data?.length ?? 0
+  const tournamentDone  = finalistDone + scorerDone
+  const tournamentTotal = 8   // 3 finalist picks + 5 scorer picks
+  const tournamentStart = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z')
+  const tournamentStarted = isTournamentStarted()
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Tab-specific data
+  // ─────────────────────────────────────────────────────────────────────
+
+  // Group tab
+  let groupMatches: Match[] = []
+  let predictionMap  = new Map<string, Prediction>()
+  let distMap = new Map<string, { home: number; draw: number; away: number; total: number }>()
+
+  if (activeTab === 'matches') {
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+      .eq('stage', 'group')
+      .not('home_team_id', 'is', null)
+      .not('away_team_id', 'is', null)
+      .order('kickoff_at')
+
+    const matchIds = (matchData ?? []).map(m => m.id)
+    const { data: predData }     = await supabase.from('predictions').select('*').eq('user_id', user.id).in('match_id', matchIds)
+    const { data: allPredsGroup } = await supabase.from('predictions').select('match_id, predicted_home, predicted_away').in('match_id', matchIds)
+
+    groupMatches  = (matchData ?? []) as Match[]
+    predictionMap = new Map((predData ?? []).map(p => [p.match_id, p as Prediction]))
+    for (const p of allPredsGroup ?? []) {
+      const d = distMap.get(p.match_id) ?? { home: 0, draw: 0, away: 0, total: 0 }
+      d.total++
+      if (p.predicted_home > p.predicted_away) d.home++
+      else if (p.predicted_home < p.predicted_away) d.away++
+      else d.draw++
+      distMap.set(p.match_id, d)
+    }
   }
 
-  // Group by stage
-  const byStage = new Map<MatchStage, Match[]>()
-  for (const match of (matches as Match[] ?? [])) {
-    if (!byStage.has(match.stage)) byStage.set(match.stage, [])
-    byStage.get(match.stage)!.push(match)
-  }
-
-  // Fetch tournament tab data when active
-  let teams = null
-  let players = null
-  let finalistPick = null
-  let scorerPicks = null
-
+  // Tournament tab
+  let teams = null, players = null, finalistPick = null, scorerPicks = null
   if (activeTab === 'tournament') {
     const [teamsRes, playersRes, finalistRes, scorerRes] = await Promise.all([
       supabase.from('teams').select('*').order('name'),
       supabase.from('players').select('*, team:teams(name)').order('name'),
-      supabase.from('finalist_picks').select('*').eq('user_id', user.id).single(),
+      supabase.from('finalist_picks').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('scorer_picks').select('*, player:players(name, position), team:teams(name, flag_url)').eq('user_id', user.id),
     ])
-    teams = teamsRes.data
-    players = playersRes.data
-    finalistPick = finalistRes.data
-    scorerPicks = scorerRes.data
+    teams = teamsRes.data; players = playersRes.data
+    finalistPick = finalistRes.data; scorerPicks = scorerRes.data
   }
 
-  const tournamentStarted = isTournamentStarted()
+  // Finals tab
+  let knockoutMatches: Match[] = []
+  let knockoutPredMap = new Map<string, Prediction>()
+  let knockoutDistMap = new Map<string, { home: number; draw: number; away: number; total: number }>()
+
+  if (activeTab === 'finals') {
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+      .in('stage', KNOCKOUT_STAGES)
+      .order('kickoff_at')
+
+    const matchIds = (matchData ?? []).map(m => m.id)
+    const { data: predData }        = await supabase.from('predictions').select('*').eq('user_id', user.id).in('match_id', matchIds)
+    const { data: allPredsKnockout } = await supabase.from('predictions').select('match_id, predicted_home, predicted_away').in('match_id', matchIds)
+
+    knockoutMatches  = (matchData ?? []) as Match[]
+    knockoutPredMap  = new Map((predData ?? []).map(p => [p.match_id, p as Prediction]))
+    for (const p of allPredsKnockout ?? []) {
+      const d = knockoutDistMap.get(p.match_id) ?? { home: 0, draw: 0, away: 0, total: 0 }
+      d.total++
+      if (p.predicted_home > p.predicted_away) d.home++
+      else if (p.predicted_home < p.predicted_away) d.away++
+      else d.draw++
+      knockoutDistMap.set(p.match_id, d)
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Tab bar helper
+  // ─────────────────────────────────────────────────────────────────────
+  const tabs = [
+    {
+      key: 'tournament',
+      href: '/predictions?tab=tournament',
+      label: 'Tournament',
+      done: tournamentDone,
+      total: tournamentTotal,
+      sub: tournamentStarted
+        ? 'Picks locked'
+        : `by ${format(tournamentStart, 'd MMM')}`,
+    },
+    {
+      key: 'matches',
+      href: '/predictions',
+      label: 'Group Stage',
+      done: groupPredCount,
+      total: groupMatchCount,
+      sub: groupPredCount === groupMatchCount && groupMatchCount > 0
+        ? 'All done! ✓'
+        : firstUnpredGroup
+        ? `by ${format(new Date(firstUnpredGroup.kickoff_at), 'd MMM')}`
+        : '—',
+    },
+    {
+      key: 'finals',
+      href: '/predictions?tab=finals',
+      label: 'Knockouts',
+      done: finalsPredCount,
+      total: finalsMatchCount,
+      sub: firstUnpredFinal
+        ? `by ${format(new Date(firstUnpredFinal.kickoff_at), 'd MMM')}`
+        : firstKnockoutKickoff
+        ? `from ${format(new Date(firstKnockoutKickoff), 'd MMM')}`
+        : '—',
+    },
+  ]
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -95,96 +207,87 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
         </p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex mb-8" style={{ borderBottom: '1px solid #e0dbd3' }}>
-        <Link
-          href="/predictions"
-          className="px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors"
-          style={
-            activeTab === 'matches'
-              ? { background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }
-              : { background: 'transparent', color: '#141414', border: '1px solid #141414', borderBottom: 'none', fontFamily: 'Inter, sans-serif' }
-          }
-        >
-          Match Predictions
-        </Link>
-        <Link
-          href="/predictions?tab=tournament"
-          className="px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors"
-          style={
-            activeTab === 'tournament'
-              ? { background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }
-              : { background: 'transparent', color: '#141414', border: '1px solid #141414', borderBottom: 'none', marginLeft: '4px', fontFamily: 'Inter, sans-serif' }
-          }
-        >
-          Tournament Predictions
-        </Link>
+      {/* ── Tab bar ── */}
+      <div className="flex mb-8" style={{ borderBottom: '2px solid #141414' }}>
+        {tabs.map((t, i) => {
+          const isActive = activeTab === t.key
+          const allDone  = t.done === t.total && t.total > 0
+          return (
+            <Link
+              key={t.key}
+              href={t.href}
+              className="flex flex-col flex-1 px-3 py-3 sm:px-5 transition-colors"
+              style={{
+                background:   isActive ? '#141414' : '#faf9f7',
+                borderRight:  i < tabs.length - 1 ? '1px solid #e0dbd3' : 'none',
+                textDecoration: 'none',
+              }}
+            >
+              {/* Tab name */}
+              <span
+                className="text-xs font-bold uppercase tracking-wider mb-1.5 block"
+                style={{
+                  color: isActive ? '#ffffff' : '#141414',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                {t.label}
+              </span>
+
+              {/* Count badge */}
+              <span
+                className="text-base font-bold block leading-none mb-1"
+                style={{
+                  color: allDone ? '#22c55e' : '#ff5c35',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                {t.done}<span style={{ color: isActive ? '#6b6b6b' : '#c4bfb8', fontWeight: 400, fontSize: '12px' }}>/{t.total}</span>
+              </span>
+
+              {/* Deadline / status */}
+              <span
+                className="text-xs block"
+                style={{
+                  color: isActive ? '#9ca3af' : '#6b6b6b',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                {t.sub}
+              </span>
+            </Link>
+          )
+        })}
       </div>
 
-      {/* Match Predictions tab */}
+      {/* ── Group Predictions tab ── */}
       {activeTab === 'matches' && (
         <>
-          {STAGE_ORDER.map(stage => {
-            const stageMatches = byStage.get(stage)
-            if (!stageMatches?.length) return null
-
-            // For group stage, sub-group by group letter
-            if (stage === 'group') {
-              const byGroup = new Map<string, Match[]>()
-              for (const m of stageMatches) {
-                const g = m.group_letter ?? '?'
-                if (!byGroup.has(g)) byGroup.set(g, [])
-                byGroup.get(g)!.push(m)
-              }
-              return Array.from(byGroup.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([group, groupMatches]) => (
-                <section key={group} className="mb-8">
-                  <h2
-                    className="text-lg mb-3 pb-2 flex items-center gap-2"
-                    style={{
-                      fontFamily: "'Playfair Display', Georgia, serif",
-                      fontWeight: 700,
-                      color: '#141414',
-                      borderBottom: '1px solid #e0dbd3'
-                    }}
-                  >
-                    <span
-                      className="w-6 h-6 flex items-center justify-center text-xs font-bold text-white"
-                      style={{ background: '#141414', fontFamily: 'Inter, sans-serif' }}
-                    >
-                      {group}
-                    </span>
-                    Group {group}
-                  </h2>
-                  <div style={{ border: '1px solid #e0dbd3' }}>
-                    {groupMatches.map((match) => (
-                      <PredictionCard
-                        key={match.id}
-                        match={match}
-                        prediction={predictionMap.get(match.id) ?? null}
-                        userId={user.id}
-                        distribution={distMap.get(match.id)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))
-            }
-
-            return (
-              <section key={stage} className="mb-8">
+          {Array.from(
+            groupMatches.reduce((acc, m) => {
+              const g = m.group_letter ?? '?'
+              if (!acc.has(g)) acc.set(g, [])
+              acc.get(g)!.push(m)
+              return acc
+            }, new Map<string, Match[]>())
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([group, gMatches]) => (
+              <section key={group} className="mb-8">
                 <h2
-                  className="text-lg mb-3 pb-2"
-                  style={{
-                    fontFamily: "'Playfair Display', Georgia, serif",
-                    fontWeight: 700,
-                    color: '#141414',
-                    borderBottom: '1px solid #e0dbd3'
-                  }}
+                  className="text-lg mb-3 pb-2 flex items-center gap-2"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
                 >
-                  {stageName(stage)}
+                  <span
+                    className="w-6 h-6 flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    style={{ background: '#141414', fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {group}
+                  </span>
+                  Group {group}
                 </h2>
                 <div style={{ border: '1px solid #e0dbd3' }}>
-                  {stageMatches.map(match => (
+                  {gMatches.map(match => (
                     <PredictionCard
                       key={match.id}
                       match={match}
@@ -195,18 +298,17 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
                   ))}
                 </div>
               </section>
-            )
-          })}
+            ))}
 
-          {!matches?.length && (
+          {groupMatches.length === 0 && (
             <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              Fixtures haven&apos;t been loaded yet. Check back soon!
+              Group fixtures haven&apos;t been loaded yet. Check back soon!
             </div>
           )}
         </>
       )}
 
-      {/* Tournament Predictions tab */}
+      {/* ── Tournament Predictions tab ── */}
       {activeTab === 'tournament' && (
         <TournamentPicksClient
           userId={user.id}
@@ -216,6 +318,63 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
           scorerPicks={scorerPicks ?? []}
           locked={tournamentStarted}
         />
+      )}
+
+      {/* ── Final Predictions tab ── */}
+      {activeTab === 'finals' && (
+        <>
+          {/* Informational banner — shown until the knockout stage kicks off */}
+          {firstKnockoutKickoff && !isMatchLocked(firstKnockoutKickoff) && (
+            <div
+              className="px-4 py-3 mb-8 text-xs uppercase tracking-wider leading-relaxed"
+              style={{
+                border: '1px solid #e0dbd3',
+                background: '#faf9f7',
+                color: '#6b6b6b',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              You can fill these out when the knockout stage starts on{' '}
+              <span className="font-semibold" style={{ color: '#141414' }}>
+                {format(new Date(firstKnockoutKickoff), 'EEEE d MMMM yyyy')}
+              </span>.
+              Predictions lock match by match at each kick-off.
+            </div>
+          )}
+
+          {/* Knockout matches grouped by round */}
+          {KNOCKOUT_STAGES.map(stage => {
+            const stageMatches = knockoutMatches.filter(m => m.stage === stage)
+            if (!stageMatches.length) return null
+            return (
+              <section key={stage} className="mb-8">
+                <h2
+                  className="text-lg mb-3 pb-2"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
+                >
+                  {stageName(stage)}
+                </h2>
+                <div style={{ border: '1px solid #e0dbd3' }}>
+                  {stageMatches.map(match => (
+                    <PredictionCard
+                      key={match.id}
+                      match={match}
+                      prediction={knockoutPredMap.get(match.id) ?? null}
+                      userId={user.id}
+                      distribution={knockoutDistMap.get(match.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+
+          {knockoutMatches.length === 0 && (
+            <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              Knockout fixtures will appear here once the group stage is complete.
+            </div>
+          )}
+        </>
       )}
     </div>
   )
