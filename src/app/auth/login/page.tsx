@@ -53,7 +53,7 @@ export default function LoginPage() {
             Loop WC26
           </h1>
           <p className="text-xs uppercase tracking-widest" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            Sign in to make your predictions
+            The squad is waiting.
           </p>
         </div>
 

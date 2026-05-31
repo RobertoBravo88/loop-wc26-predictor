@@ -205,7 +205,7 @@ export default function SignupPage() {
               marginBottom: '0.375rem',
             }}
           >
-            Join the Competition
+            Join the Loop.
           </h1>
           <p
             style={{

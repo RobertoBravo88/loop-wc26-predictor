@@ -175,10 +175,10 @@ export default async function StatsPage() {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 mb-8" style={{ border: '1px solid #e0dbd3' }}>
         {[
-          { emoji: '⚽', title: 'Most optimistic', desc: 'Highest avg goals predicted per match', player: mostOptimistic, value: mostOptimistic ? `${(mostOptimistic.totalGoalsPredicted / mostOptimistic.totalPredictions).toFixed(1)} goals/match` : null },
-          { emoji: '🛡️', title: 'Most pessimistic', desc: 'Lowest avg goals predicted per match', player: mostPessimistic, value: mostPessimistic ? `${(mostPessimistic.totalGoalsPredicted / mostPessimistic.totalPredictions).toFixed(1)} goals/match` : null },
-          { emoji: '🎯', title: 'Sharpest predictor', desc: 'Best exact score hit rate', player: mostAccurate, value: mostAccurate ? `${Math.round((mostAccurate.exactScores / mostAccurate.totalPredictions) * 100)}% exact` : null },
-          { emoji: '🔥', title: 'Longest streak', desc: 'Most exact scores in a row (all time)', player: longestStreak, value: longestStreak ? `${longestStreak.maxStreak} in a row` : null },
+          { emoji: '🕺', title: 'Total Football Disciple', desc: 'Highest avg goals predicted per match', player: mostOptimistic, value: mostOptimistic ? `${(mostOptimistic.totalGoalsPredicted / mostOptimistic.totalPredictions).toFixed(1)} goals/match` : null },
+          { emoji: '🛡️', title: 'Catenaccio Expert', desc: 'Lowest avg goals predicted per match', player: mostPessimistic, value: mostPessimistic ? `${(mostPessimistic.totalGoalsPredicted / mostPessimistic.totalPredictions).toFixed(1)} goals/match` : null },
+          { emoji: '🔮', title: 'The Oracle', desc: 'Best exact score hit rate', player: mostAccurate, value: mostAccurate ? `${Math.round((mostAccurate.exactScores / mostAccurate.totalPredictions) * 100)}% exact` : null },
+          { emoji: '🏆', title: 'Weltmeister Form', desc: 'Most exact scores in a row (all time)', player: longestStreak, value: longestStreak ? `${longestStreak.maxStreak} in a row` : null },
         ].map((award, idx) => (
           <div
             key={award.title}
