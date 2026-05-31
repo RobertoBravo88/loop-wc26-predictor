@@ -77,16 +77,16 @@ export default function HowToPlayPage() {
             </ul>
           </section>
 
-          {/* Section 3 — Tournament Picks */}
+          {/* Section 3 — Loop Crystal Ball */}
           <section style={{ borderLeft: '3px solid #e0dbd3', paddingLeft: '1rem' }}>
             <h2
               className="text-xl mb-1 pb-2"
               style={{ fontFamily: serif, fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
             >
-              Tournament Picks
+              🔮 Loop Crystal Ball
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
-              Pick the top three finishers before the tournament kicks off on{' '}
+              Who lifts the trophy in July? Pick the top three finishers before the tournament kicks off on{' '}
               <span style={{ fontWeight: 700 }}>June 11, 2026</span>. These picks lock at tournament start and cannot be changed.
             </p>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
@@ -105,16 +105,16 @@ export default function HowToPlayPage() {
             </ul>
           </section>
 
-          {/* Section 4 — Top Scorer Picks */}
+          {/* Section 4 — Loop's Golden Boots */}
           <section style={{ borderLeft: '3px solid #e0dbd3', paddingLeft: '1rem' }}>
             <h2
               className="text-xl mb-1 pb-2"
               style={{ fontFamily: serif, fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
             >
-              Top Scorer Picks
+              👟 Loop&apos;s Golden Boots
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
-              Pick up to 5 players as your goal scorers before the tournament starts — one per country maximum. Every goal your chosen players score during the tournament earns you points.
+              Five strikers. One country each. Every goal counts. Pick up to 5 players before the tournament starts — one per country maximum. Every goal your chosen players score earns you points.
             </p>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               <li>
@@ -122,31 +122,36 @@ export default function HowToPlayPage() {
                 {' '}per goal scored by each of your chosen players
               </li>
               <li>Pick up to <span style={{ fontWeight: 700 }}>5 players</span> — one per country max</li>
-              <li>Like tournament picks, these lock when the tournament starts on <span style={{ fontWeight: 700 }}>June 11, 2026</span>.</li>
+              <li>Locks when the tournament starts on <span style={{ fontWeight: 700 }}>June 11, 2026</span>.</li>
             </ul>
           </section>
 
           {/* Section 5 — Secret Bonuses */}
-          <section style={{ borderLeft: '3px solid #e0dbd3', paddingLeft: '1rem' }}>
+          <section style={{ borderLeft: '3px solid #ff5c35', paddingLeft: '1rem' }}>
             <h2
               className="text-xl mb-1 pb-2"
               style={{ fontFamily: serif, fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
             >
-              Secret Bonuses 🤫
+              🤫 Your Loop Confession
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
-              When you signed up, you picked a favourite team and a favourite player. These are your <span style={{ fontWeight: 700 }}>secret bonus picks</span> — hidden from everyone else until the tournament kicks off, when they&apos;ll all be revealed at once.
+              This one&apos;s about heart, not strategy. Pick the team you actually support — the one that makes you nervous, the one you&apos;ve been defending in the office for years.
+            </p>
+            <p className="mt-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
+              <span style={{ fontWeight: 700 }}>Their flag will appear next to your name on the leaderboard</span> for the entire tournament. Wear it with pride.
             </p>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               <li>
                 <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 points</span>
-                {' '}every time your favourite team scores a goal
+                {' '}every time your team scores a goal
               </li>
               <li>
                 <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 points</span>
-                {' '}every time your favourite player scores a goal
+                {' '}every time your player scores a goal
               </li>
-              <li>The further your team goes in the tournament, the more goals — and the more bonus points you rack up.</li>
+              <li>For your player, pick someone from your team — someone you&apos;re genuinely riding with all tournament.</li>
+              <li>These picks are hidden from everyone else until June 11. Then they&apos;re all revealed at once.</li>
+              <li>The further your team goes, the more goals — and the more bonus points you rack up.</li>
             </ul>
           </section>
 
@@ -191,7 +196,7 @@ export default function HowToPlayPage() {
                     { action: 'Tournament winner pick', points: '300 pts', highlight: false },
                     { action: 'Runner-up pick', points: '200 pts', highlight: true },
                     { action: '3rd place pick', points: '100 pts', highlight: false },
-                    { action: 'Top scorer pick (per goal, up to 5 picks)', points: '10 pts', highlight: true },
+                    { action: "Golden Boots pick (per goal, up to 5 picks)", points: '10 pts', highlight: true },
                     { action: 'Favourite team goal', points: '10 pts', highlight: false },
                     { action: 'Favourite player goal', points: '10 pts', highlight: true },
                   ].map(({ action, points, highlight }, i) => (

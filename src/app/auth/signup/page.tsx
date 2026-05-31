@@ -447,17 +447,28 @@ function Step2({
           marginBottom: '0.375rem',
         }}
       >
-        Your favourites
+        Your colours 🏴
       </h2>
       <p
         style={{
           fontSize: '0.8rem',
           color: '#6b6b6b',
           fontFamily: 'Inter, sans-serif',
+          marginBottom: '0.5rem',
+        }}
+      >
+        Pick the team you actually support — not the one you think will score the most.
+      </p>
+      <p
+        style={{
+          fontSize: '0.8rem',
+          color: '#141414',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 600,
           marginBottom: '1.25rem',
         }}
       >
-        Pick your favourite team and player — this personalises your profile on the leaderboard.
+        Their flag will appear next to your name on the leaderboard. Wear it with pride.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -484,9 +495,9 @@ function Step2({
         {/* Favourite player */}
         <div>
           <label style={labelStyle}>
-            Favourite player{' '}
+            Your player{' '}
             <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6b6b6b' }}>
-              (optional)
+              — from your team (optional)
             </span>
           </label>
 

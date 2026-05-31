@@ -31,8 +31,9 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const [favTeam, setFavTeam] = useState(favTeamId ?? '')
   const [favPlayer, setFavPlayer] = useState(favPlayerId ?? '')
   const [favPlayerTeam, setFavPlayerTeam] = useState<string>(() => {
-    if (!favPlayerId) return ''
-    return players.find(p => p.id === favPlayerId)?.team_id ?? ''
+    // If player already picked, use their team; otherwise default to favourite team
+    if (favPlayerId) return players.find(p => p.id === favPlayerId)?.team_id ?? (favTeamId ?? '')
+    return favTeamId ?? ''
   })
   const [secretsSaving, setSecretsSaving] = useState(false)
   const [secretsSaved,  setSecretsSaved]  = useState(false)
@@ -448,11 +449,15 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             className="text-xl"
             style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
           >
-            🤫 Secret Bonuses
+            🤫 Your Loop Confession
           </h2>
         </div>
-        <p className="text-xs uppercase tracking-wider mt-3 mb-5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Your dirty little secret. Revealed at kick-off. &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
+        <p className="text-sm mt-3 mb-1" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          Pick the team you <span style={{ fontWeight: 700 }}>actually support</span> — not the one you think will score the most.
+          Their flag will appear next to your name on the leaderboard for the whole tournament. Wear it with pride.
+        </p>
+        <p className="text-xs mb-5 uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          Hidden until June 11 &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
@@ -463,7 +468,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
               className="block mb-1.5 uppercase tracking-wider"
               style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
             >
-              Favourite team &middot; <span style={{ color: '#ff5c35' }}>+10 pts per team goal</span>
+              Your team — wear it with pride &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
             </label>
             <select
               value={favTeam}
@@ -484,7 +489,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
               className="block mb-1.5 uppercase tracking-wider"
               style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
             >
-              Favourite player &middot; <span style={{ color: '#ff5c35' }}>+10 pts per player goal</span>
+              Your player — ideally from your team &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
             </label>
 
             {/* Show current selection if already picked */}
