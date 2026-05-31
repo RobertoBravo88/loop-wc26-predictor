@@ -7,6 +7,25 @@ export const revalidate = 60
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'quarter_final', 'semi_final', 'third_place', 'final']
 
+// WC 2026 Round of 32 bracket slot labels (home, away) — indexed by match order
+// Group winners play runners-up from adjacent groups; last 4 slots are best 3rd-place teams
+const R32_SLOTS: [string, string][] = [
+  ['A1','B2'],['C1','D2'],['E1','F2'],['G1','H2'],
+  ['I1','J2'],['K1','L2'],['B1','A2'],['D1','C2'],
+  ['F1','E2'],['H1','G2'],['J1','I2'],['L1','K2'],
+  ['3rd','3rd'],['3rd','3rd'],['3rd','3rd'],['3rd','3rd'],
+]
+
+function resolveSlot(slot: string, leaders: Map<string, { p1?: string; p2?: string; complete: boolean }>): { label: string; team?: string; confirmed: boolean } {
+  if (!slot || slot === '3rd') return { label: 'Best 3rd', confirmed: false }
+  const m = slot.match(/^([A-L])([12])$/)
+  if (!m) return { label: slot, confirmed: false }
+  const group = m[1], pos = m[2]
+  const g = leaders.get(group)
+  const team = pos === '1' ? g?.p1 : g?.p2
+  return { label: `${group}${pos === '1' ? ' Winner' : ' Runner-up'}`, team, confirmed: g?.complete ?? false }
+}
+
 function computeStandings(matches: Match[], teams: Team[]): GroupStanding[] {
   const table = new Map<string, GroupStanding>()
   for (const t of teams) {
@@ -128,29 +147,59 @@ function StandingsTable({ standings, label }: { standings: GroupStanding[]; labe
   )
 }
 
-function MatchNode({ match, userPick }: { match: Match; userPick?: { h: number; a: number } }) {
+interface SlotInfo { label: string; team?: string; confirmed: boolean }
+
+function TeamRow({ match, side, slot, finished }: {
+  match: Match
+  side: 'home' | 'away'
+  slot?: SlotInfo
+  finished: boolean
+}) {
+  const team = side === 'home' ? match.home_team : match.away_team
+  const score = side === 'home' ? match.home_score : match.away_score
+  const oppScore = side === 'home' ? match.away_score : match.home_score
+  const won = finished && score !== null && oppScore !== null && score > oppScore
+
+  if (team) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', color: won ? '#141414' : '#6b6b6b', fontWeight: won ? 600 : 400 }}>
+        {team.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />}
+        <span className="truncate flex-1">{team.name}</span>
+        {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{score}</span>}
+      </div>
+    )
+  }
+
+  // No team yet — show slot label + current leader
+  return (
+    <div className="px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', minHeight: '32px' }}>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-semibold" style={{ color: '#141414' }}>{slot?.label ?? 'TBD'}</span>
+      </div>
+      {slot?.team && (
+        <div className="text-xs mt-0.5 truncate" style={{ color: slot.confirmed ? '#141414' : '#b0a99f', fontStyle: slot.confirmed ? 'normal' : 'italic' }}>
+          {slot.confirmed ? '✓ ' : ''}{slot.team}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MatchNode({ match, userPick, homeSlot, awaySlot }: {
+  match: Match
+  userPick?: { h: number; a: number }
+  homeSlot?: SlotInfo
+  awaySlot?: SlotInfo
+}) {
   const finished = match.status === 'finished'
   const hasTeams = match.home_team && match.away_team
   return (
-    <div className="min-w-[160px] text-xs" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
-      <div className="flex items-center gap-1.5 px-3 py-2" style={{
-        borderBottom: '1px solid #e0dbd3', fontFamily: 'Inter, sans-serif',
-        color: finished && match.home_score! > match.away_score! ? '#141414' : '#6b6b6b',
-        fontWeight: finished && match.home_score! > match.away_score! ? 600 : 400
-      }}>
-        {match.home_team?.flag_url && <img src={match.home_team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />}
-        <span className="truncate flex-1">{match.home_team?.name ?? 'TBD'}</span>
-        {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{match.home_score}</span>}
+    <div className="min-w-[180px] text-xs" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+      <div style={{ borderBottom: '1px solid #e0dbd3' }}>
+        <TeamRow match={match} side="home" slot={homeSlot} finished={finished} />
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-2" style={{
-        fontFamily: 'Inter, sans-serif',
-        color: finished && match.away_score! > match.home_score! ? '#141414' : '#6b6b6b',
-        fontWeight: finished && match.away_score! > match.home_score! ? 600 : 400,
-        borderBottom: userPick && hasTeams ? '1px solid #e0dbd3' : 'none'
-      }}>
-        {match.away_team?.flag_url && <img src={match.away_team.flag_url} alt="" className="w-4 h-3 object-cover flex-shrink-0" />}
-        <span className="truncate flex-1">{match.away_team?.name ?? 'TBD'}</span>
-        {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{match.away_score}</span>}
+      <div style={{ borderBottom: userPick && hasTeams ? '1px solid #e0dbd3' : 'none' }}>
+        <TeamRow match={match} side="away" slot={awaySlot} finished={finished} />
       </div>
       {userPick && hasTeams && (
         <div className="px-3 py-1.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
@@ -212,6 +261,16 @@ export default async function GroupsPage() {
     if (!m.group_letter) continue
     if (!matchesByGroup.has(m.group_letter)) matchesByGroup.set(m.group_letter, [])
     matchesByGroup.get(m.group_letter)!.push(m)
+  }
+
+  // Build group leaders map for bracket slot labels
+  const groupLeaders = new Map<string, { p1?: string; p2?: string; complete: boolean }>()
+  for (const g of GROUPS) {
+    const groupTeams = teamsByGroup.get(g) ?? []
+    const groupMatches = matchesByGroup.get(g) ?? []
+    const standings = computeStandings(groupMatches, groupTeams)
+    const complete = groupMatches.length > 0 && groupMatches.every(m => m.status === 'finished')
+    groupLeaders.set(g, { p1: standings[0]?.team.name, p2: standings[1]?.team.name, complete })
   }
 
   return (
@@ -305,9 +364,23 @@ export default async function GroupsPage() {
                     {stageName(stage)}
                   </h3>
                   <div className="flex flex-col gap-3 justify-around flex-1">
-                    {stageMatches.length > 0 ? stageMatches.map(match => (
-                      <MatchNode key={match.id} match={match} userPick={predictionMap.get(match.id)} />
-                    )) : (
+                    {stageMatches.length > 0 ? stageMatches.map((match, idx) => {
+                      const homeSlot = stage === 'round_of_32'
+                        ? resolveSlot(R32_SLOTS[idx]?.[0] ?? '', groupLeaders)
+                        : undefined
+                      const awaySlot = stage === 'round_of_32'
+                        ? resolveSlot(R32_SLOTS[idx]?.[1] ?? '', groupLeaders)
+                        : undefined
+                      return (
+                        <MatchNode
+                          key={match.id}
+                          match={match}
+                          userPick={predictionMap.get(match.id)}
+                          homeSlot={homeSlot}
+                          awaySlot={awaySlot}
+                        />
+                      )
+                    }) : (
                       <div className="text-center text-xs px-4 py-8" style={{ color: '#e0dbd3', fontFamily: 'Inter, sans-serif' }}>
                         TBD
                       </div>
