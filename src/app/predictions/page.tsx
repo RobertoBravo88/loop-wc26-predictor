@@ -38,6 +38,7 @@ export default async function PredictionsPage({
     finalistCountRes,
     scorerCountRes,
     lastSyncRes,
+    secretsCountRes,
   ] = await Promise.all([
     supabase.from('matches').select('id, kickoff_at').eq('stage', 'group').order('kickoff_at'),
     supabase.from('matches').select('id, kickoff_at').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
@@ -48,6 +49,7 @@ export default async function PredictionsPage({
       .maybeSingle(),
     supabase.from('scorer_picks').select('id').eq('user_id', user.id),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('profiles').select('favourite_team_id, favourite_player_id').eq('id', user.id).maybeSingle(),
   ])
 
   const lastSynced = lastSyncRes.data?.result_fetched_at ?? null
@@ -73,10 +75,12 @@ export default async function PredictionsPage({
 
   // Tournament tab badge
   const fp = finalistCountRes.data
-  const finalistDone = [fp?.first_team_id, fp?.second_team_id, fp?.third_team_id].filter(Boolean).length
-  const scorerDone   = scorerCountRes.data?.length ?? 0
-  const tournamentDone  = finalistDone + scorerDone
-  const tournamentTotal = 8   // 3 finalist picks + 5 scorer picks
+  const finalistDone  = [fp?.first_team_id, fp?.second_team_id, fp?.third_team_id].filter(Boolean).length
+  const scorerDone    = scorerCountRes.data?.length ?? 0
+  const sp            = secretsCountRes.data
+  const secretsDone   = (sp?.favourite_team_id ? 1 : 0) + (sp?.favourite_player_id ? 1 : 0)
+  const tournamentDone  = finalistDone + scorerDone + secretsDone
+  const tournamentTotal = 10  // 3 finalist + 5 scorers + 1 fav team + 1 fav player
   const tournamentStart = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z')
   const tournamentStarted = isTournamentStarted()
 
