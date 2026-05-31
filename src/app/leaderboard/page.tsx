@@ -128,7 +128,7 @@ export default async function LeaderboardPage() {
 
         {!leaderboard.length && (
           <div className="px-4 py-12 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}>
-            The competition hasn&apos;t started yet. Get your predictions in!
+            Still thinking? Make some noise.
           </div>
         )}
       </div>

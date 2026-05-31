@@ -124,10 +124,10 @@ export default async function StatsPage() {
           className="text-4xl mb-1"
           style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
         >
-          Stats
+          The Loop Report
         </h1>
         <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Tournament-wide records and player awards
+          Tournament-wide stats &amp; intelligence
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default async function StatsPage() {
           borderBottom: '1px solid #e0dbd3'
         }}
       >
-        Player Awards
+        Loop Legends
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 mb-8" style={{ border: '1px solid #e0dbd3' }}>
         {[
@@ -233,7 +233,7 @@ export default async function StatsPage() {
               className="text-base font-bold"
               style={{ color: '#141414', fontFamily: "'Playfair Display', Georgia, serif" }}
             >
-              Currently on fire
+              Loop&apos;s Hottest 🔥
             </h3>
             <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
               Active hot streak right now
@@ -266,7 +266,7 @@ export default async function StatsPage() {
           borderBottom: '1px solid #e0dbd3'
         }}
       >
-        Community Picks
+        Loop Intelligence
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

@@ -171,7 +171,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
         >
           <span className="flex items-center gap-2">
             <Trophy className="w-5 h-5" style={{ color: '#ff5c35' }} />
-            Who will win the World Cup?
+            🔮 Loop Crystal Ball
           </span>
         </h2>
         <p className="text-xs uppercase tracking-wider mt-3 mb-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
@@ -243,7 +243,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
               color: '#141414',
             }}
           >
-            Your 5 Goal Scorers
+            👟 Loop&apos;s Golden Boots
           </h2>
           <span
             className="text-xs font-semibold uppercase tracking-wider px-3 py-1"

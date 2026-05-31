@@ -25,7 +25,7 @@ export default async function NewsPage() {
           className="text-4xl"
           style={{ fontFamily: serif, fontWeight: 900, color: '#141414' }}
         >
-          News
+          La Gazzetta della Loop
         </h1>
       </div>
 

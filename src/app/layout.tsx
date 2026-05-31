@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Navbar profile={profile} />
         <main className="flex-1">{children}</main>
         <footer className="border-t py-6 text-center text-xs" style={{ borderColor: '#e0dbd3', color: '#6b6b6b' }}>
-          Loop WC26 Predictor &middot; {new Date().getFullYear()} &middot; Built for the team
+          Made with 🧡 for the Loop team &middot; WC26
         </footer>
       </body>
     </html>

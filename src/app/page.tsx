@@ -70,7 +70,7 @@ export default async function HomePage() {
             Loop WC26<br />Predictor
           </h1>
           <p className="text-sm mb-5 max-w-lg" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-            Predict every match, earn points, climb the leaderboard. The office is watching.
+            Predict every match, earn points, climb the table. Let&apos;s bring the noise.
           </p>
           {!user ? (
             <div className="flex gap-3 flex-wrap">
@@ -202,7 +202,7 @@ export default async function HomePage() {
             ))}
             {!leaders?.length && (
               <p className="px-4 py-6 text-sm text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                No scores yet — be the first!
+                Still thinking? Make some noise.
               </p>
             )}
           </div>
