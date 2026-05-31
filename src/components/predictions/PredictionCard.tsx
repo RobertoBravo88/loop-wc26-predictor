@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { formatKickoff, isMatchLocked } from '@/lib/utils'
 import { Lock, Check, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -21,29 +21,28 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
   const [away, setAway] = useState<string>(prediction?.predicted_away?.toString() ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
 
-  async function save() {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function triggerAutoSave(h: string, a: string) {
     if (locked) return
-    const h = parseInt(home)
-    const a = parseInt(away)
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) {
-      setError('Please enter valid scores')
-      return
-    }
-    setError('')
-    setSaving(true)
-    const supabase = createClient()
-    const { error: dbError } = await supabase.from('predictions').upsert({
-      user_id: userId,
-      match_id: match.id,
-      predicted_home: h,
-      predicted_away: a,
-    }, { onConflict: 'user_id,match_id' })
-    setSaving(false)
-    if (dbError) { setError(dbError.message); return }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    const hNum = parseInt(h)
+    const aNum = parseInt(a)
+    if (isNaN(hNum) || isNaN(aNum) || hNum < 0 || aNum < 0) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setSaving(true)
+      const supabase = createClient()
+      await supabase.from('predictions').upsert({
+        user_id: userId,
+        match_id: match.id,
+        predicted_home: hNum,
+        predicted_away: aNum,
+      }, { onConflict: 'user_id,match_id' })
+      setSaving(false)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }, 600)
   }
 
   // Result border/background based on outcome
@@ -90,6 +89,20 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
               +{prediction.points_total} pts
             </span>
           )}
+          {/* Auto-save indicator */}
+          {!locked && !finished && (
+            saving ? (
+              <span className="flex items-center gap-1 text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Saving…
+              </span>
+            ) : saved ? (
+              <span className="flex items-center gap-1 text-xs" style={{ color: '#15803d', fontFamily: 'Inter, sans-serif' }}>
+                <Check className="w-3 h-3" />
+                Saved
+              </span>
+            ) : null
+          )}
           {locked && <Lock className="w-3.5 h-3.5" style={{ color: '#e0dbd3' }} />}
         </div>
       </div>
@@ -124,14 +137,17 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
                 min="0"
                 max="20"
                 value={home}
-                onChange={e => { setHome(e.target.value); setSaved(false) }}
+                onChange={e => { const v = e.target.value; setHome(v); setSaved(false); triggerAutoSave(v, away) }}
                 disabled={locked}
-                className="w-10 text-center py-1.5 text-sm font-bold focus:outline-none"
+                className="w-10 py-1.5 text-sm font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 style={{
                   border: '1px solid #e0dbd3',
                   fontFamily: 'Inter, sans-serif',
                   background: locked ? '#faf9f6' : '#ffffff',
-                  color: locked ? '#6b6b6b' : '#141414'
+                  color: locked ? '#6b6b6b' : '#141414',
+                  textAlign: 'center',
+                  lineHeight: '1',
+                  appearance: 'textfield',
                 }}
               />
               <span className="font-bold" style={{ color: '#e0dbd3', fontFamily: 'Inter, sans-serif' }}>–</span>
@@ -140,14 +156,17 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
                 min="0"
                 max="20"
                 value={away}
-                onChange={e => { setAway(e.target.value); setSaved(false) }}
+                onChange={e => { const v = e.target.value; setAway(v); setSaved(false); triggerAutoSave(home, v) }}
                 disabled={locked}
-                className="w-10 text-center py-1.5 text-sm font-bold focus:outline-none"
+                className="w-10 py-1.5 text-sm font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 style={{
                   border: '1px solid #e0dbd3',
                   fontFamily: 'Inter, sans-serif',
                   background: locked ? '#faf9f6' : '#ffffff',
-                  color: locked ? '#6b6b6b' : '#141414'
+                  color: locked ? '#6b6b6b' : '#141414',
+                  textAlign: 'center',
+                  lineHeight: '1',
+                  appearance: 'textfield',
                 }}
               />
             </>
@@ -172,26 +191,6 @@ export default function PredictionCard({ match, prediction, userId }: Props) {
           {prediction.points_streak_bonus > 0 && (
             <span className="ml-2 font-semibold" style={{ color: '#ff5c35' }}>+{prediction.points_streak_bonus} streak 🔥</span>
           )}
-        </div>
-      )}
-
-      {/* Save button */}
-      {!locked && !finished && (
-        <div className="mt-3 flex items-center justify-end gap-2">
-          {error && <span className="text-xs" style={{ color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>{error}</span>}
-          <button
-            onClick={save}
-            disabled={saving}
-            className="text-xs font-semibold px-3 py-1.5 transition-colors flex items-center gap-1"
-            style={{
-              fontFamily: 'Inter, sans-serif',
-              background: saved ? '#dcfce7' : '#ff5c35',
-              color: saved ? '#15803d' : '#ffffff'
-            }}
-          >
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : saved ? <Check className="w-3 h-3" /> : null}
-            {saved ? 'Saved!' : 'Save'}
-          </button>
         </div>
       )}
     </div>
