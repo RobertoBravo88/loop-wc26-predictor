@@ -16,7 +16,7 @@ export default async function StatsPage() {
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, is_correct_outcome, points_total').not('processed_at', 'is', null),
     supabase.from('profiles').select('id, display_name, current_streak, max_streak, favourite_team:teams(name, flag_url)'),
-    supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(name, flag_url), second_team:teams!second_team_id(name, flag_url), third_team:teams!third_team_id(name, flag_url)').not('locked_at', 'is', null),
+    supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(name, flag_url), second_team:teams!second_team_id(name, flag_url), third_team:teams!third_team_id(name, flag_url)'),
     supabase.from('scorer_picks').select('player_id, player:players(name, team:teams(name, flag_url))'),
   ])
 
