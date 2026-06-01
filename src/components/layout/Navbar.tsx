@@ -31,7 +31,31 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
   }
 
   return (
-    <header className="sticky top-0 z-50" style={{ background: '#141414', overflow: 'visible' }}>
+    <header className="sticky top-0 z-50" style={{ background: '#141414', overflow: 'visible', position: 'relative' }}>
+
+      {/* Flag badge — absolutely positioned, anchored to right, overflows below navbar */}
+      {profile?.favourite_team?.flag_url && (
+        <div className="hidden md:block" style={{
+          position: 'absolute',
+          right: '16px',
+          top: '8px',
+          zIndex: 51,
+          pointerEvents: 'none',
+        }}>
+          <img
+            src={profile.favourite_team.flag_url}
+            alt={profile.favourite_team.name ?? ''}
+            style={{
+              width: '80px',
+              height: '72px',
+              objectFit: 'cover',
+              display: 'block',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            }}
+          />
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
 
@@ -85,25 +109,10 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
             )}
           </nav>
 
-          {/* Desktop user menu */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Desktop user menu — flag is rendered absolutely above, not in flow */}
+          <div className="hidden md:flex items-center gap-4" style={{ paddingRight: '104px' }}>
             {profile && (
               <>
-                {profile.favourite_team?.flag_url && (
-                  <img
-                    src={profile.favourite_team.flag_url}
-                    alt={profile.favourite_team.name}
-                    style={{
-                      width: '88px',
-                      height: '62px',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                      transform: 'translateY(16px)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
-                      display: 'block',
-                    }}
-                  />
-                )}
                 <Link
                   href={`/profile/${profile.id}`}
                   className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white transition-colors uppercase tracking-wider"
