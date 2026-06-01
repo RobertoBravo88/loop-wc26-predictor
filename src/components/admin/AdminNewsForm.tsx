@@ -41,13 +41,32 @@ const inputStyle = {
 export default function AdminNewsForm({ authorId, post, onClose, onSaved }: Props) {
   const isEdit = !!post
 
-  const [title,   setTitle]   = useState(post?.title   ?? '')
-  const [excerpt, setExcerpt] = useState(post?.excerpt ?? '')
-  const [body,    setBody]    = useState(post?.body    ?? '')
-  const [publish, setPublish] = useState(post?.is_published ?? true)
-  const [saving,  setSaving]  = useState(false)
-  const [done,    setDone]    = useState(false)
-  const [error,   setError]   = useState('')
+  const [title,      setTitle]      = useState(post?.title      ?? '')
+  const [excerpt,    setExcerpt]    = useState(post?.excerpt     ?? '')
+  const [body,       setBody]       = useState(post?.body        ?? '')
+  const [imageUrl,   setImageUrl]   = useState(post?.image_url   ?? '')
+  const [publish,    setPublish]    = useState(post?.is_published ?? true)
+  const [saving,     setSaving]     = useState(false)
+  const [uploading,  setUploading]  = useState(false)
+  const [done,       setDone]       = useState(false)
+  const [error,      setError]      = useState('')
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError('')
+    const supabase = createClient()
+    const ext  = file.name.split('.').pop()
+    const path = `news/${Date.now()}.${ext}`
+    const { error: uploadErr } = await supabase.storage
+      .from('news-images')
+      .upload(path, file, { upsert: true })
+    if (uploadErr) { setError('Image upload failed: ' + uploadErr.message); setUploading(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('news-images').getPublicUrl(path)
+    setImageUrl(publicUrl)
+    setUploading(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -65,6 +84,7 @@ export default function AdminNewsForm({ authorId, post, onClose, onSaved }: Prop
           title:        title.trim(),
           excerpt:      excerpt.trim() || null,
           body:         body,
+          image_url:    imageUrl.trim() || null,
           is_published: publish,
           published_at: publish ? (post.published_at ?? new Date().toISOString()) : null,
         })
@@ -82,6 +102,7 @@ export default function AdminNewsForm({ authorId, post, onClose, onSaved }: Prop
           slug:         makeSlug(title),
           excerpt:      excerpt.trim() || null,
           body:         body,
+          image_url:    imageUrl.trim() || null,
           is_published: publish,
           published_at: publish ? new Date().toISOString() : null,
         })
@@ -131,6 +152,46 @@ export default function AdminNewsForm({ authorId, post, onClose, onSaved }: Prop
         placeholder="Short excerpt (shown on homepage cards — optional)"
         style={inputStyle}
       />
+
+      {/* Header image */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          Header image
+        </p>
+
+        {/* Preview */}
+        {imageUrl && (
+          <div className="relative mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="" className="w-full object-cover" style={{ height: '140px', border: '1px solid #e0dbd3' }} />
+            <button
+              type="button"
+              onClick={() => setImageUrl('')}
+              className="absolute top-1.5 right-1.5 text-xs px-2 py-0.5"
+              style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+            >
+              ✕ Remove
+            </button>
+          </div>
+        )}
+
+        {/* Upload or paste URL */}
+        <div className="flex gap-2">
+          <label
+            className="flex-shrink-0 text-xs font-semibold px-3 py-2 cursor-pointer transition-colors"
+            style={{ background: uploading ? '#e0dbd3' : '#141414', color: uploading ? '#6b6b6b' : '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            {uploading ? 'Uploading…' : '⬆ Upload'}
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+          </label>
+          <input
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            placeholder="Or paste an image URL…"
+            style={{ ...inputStyle, flex: 1 }}
+          />
+        </div>
+      </div>
 
       {/* Rich text editor */}
       <RichTextEditor content={body} onChange={setBody} />
