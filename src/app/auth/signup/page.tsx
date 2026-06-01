@@ -541,7 +541,7 @@ function Step2({
                 padding: '0.625rem 0',
               }}
             >
-              Squads coming soon
+              No squad data yet for this team
             </p>
           ) : (
             <select

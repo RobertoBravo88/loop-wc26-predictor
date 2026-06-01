@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { format } from 'date-fns'
 
 export const metadata: Metadata = {
   title: 'How to Play — Loop WC26 Predictor',
@@ -7,6 +8,8 @@ export const metadata: Metadata = {
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans = 'Inter, sans-serif'
+
+const TOURNAMENT_START = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z')
 
 export default function HowToPlayPage() {
   return (
@@ -87,7 +90,7 @@ export default function HowToPlayPage() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               Who lifts the trophy in July? Pick the top three finishers before the tournament kicks off on{' '}
-              <span style={{ fontWeight: 700 }}>June 11, 2026</span>. These picks lock at tournament start and cannot be changed.
+              <span style={{ fontWeight: 700 }}>{format(TOURNAMENT_START, 'd MMMM yyyy')}</span>. These picks lock at tournament start and cannot be changed.
             </p>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               <li>
@@ -122,7 +125,7 @@ export default function HowToPlayPage() {
                 {' '}per goal scored by each of your chosen players
               </li>
               <li>Pick up to <span style={{ fontWeight: 700 }}>5 players</span> — one per country max</li>
-              <li>Locks when the tournament starts on <span style={{ fontWeight: 700 }}>June 11, 2026</span>.</li>
+              <li>Locks when the tournament starts on <span style={{ fontWeight: 700 }}>{format(TOURNAMENT_START, 'd MMMM yyyy')}</span>.</li>
             </ul>
           </section>
 
@@ -150,7 +153,7 @@ export default function HowToPlayPage() {
                 {' '}every time your player scores a goal
               </li>
               <li>Your player <span style={{ fontWeight: 700 }}>must be from your team</span> — someone you&apos;re genuinely riding with all tournament.</li>
-              <li>These picks are hidden from everyone else until June 11. Then they&apos;re all revealed at once.</li>
+              <li>These picks are hidden from everyone else until {format(TOURNAMENT_START, 'd MMMM')}. Then they&apos;re all revealed at once.</li>
               <li>The further your team goes, the more goals — and the more bonus points you rack up.</li>
             </ul>
           </section>

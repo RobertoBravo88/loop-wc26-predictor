@@ -85,7 +85,7 @@ export default async function GroupsPage() {
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('goal_events').select('player_id').eq('is_own_goal', false),
-    supabase.from('players').select('id, name, team:teams(name, flag_url)').order('name'),
+    supabase.from('players').select('id, name, team:teams(name, flag_url)').not('api_id', 'is', null).order('name'),
   ])
 
   const lastSynced = lastSyncRow?.result_fetched_at ?? null

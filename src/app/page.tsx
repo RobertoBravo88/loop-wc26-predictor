@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { formatKickoff, isTournamentStarted } from '@/lib/utils'
+import { formatKickoff, isTournamentStarted, stageName } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import type { Match, LeaderboardEntry, NewsPost } from '@/types'
 import NewsCarousel from '@/components/home/NewsCarousel'
@@ -235,7 +235,7 @@ export default async function HomePage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                          {match.group_letter ? `Group ${match.group_letter}` : match.stage.replace(/_/g, ' ')}
+                          {match.group_letter ? `Group ${match.group_letter}` : stageName(match.stage)}
                         </span>
                         <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                           {formatKickoff(match.kickoff_at)}
@@ -272,7 +272,7 @@ export default async function HomePage() {
                       {user && pred && (
                         <div className="mt-2">
                           <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                            Your call:{pred.predicted_home} – {pred.predicted_away}
+                            Your call: {pred.predicted_home} – {pred.predicted_away}
                           </span>
                         </div>
                       )}
@@ -312,7 +312,7 @@ export default async function HomePage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                      {match.group_letter ? `Group ${match.group_letter}` : match.stage.replace(/_/g, ' ')}
+                      {match.group_letter ? `Group ${match.group_letter}` : stageName(match.stage)}
                     </span>
                     <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                       {formatKickoff(match.kickoff_at)}
@@ -350,7 +350,7 @@ export default async function HomePage() {
                     <div className="mt-2">
                       {predictionMap.has(match.id) ? (
                         <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                          Your call:{predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
+                          Your call: {predictionMap.get(match.id)!.predicted_home} – {predictionMap.get(match.id)!.predicted_away}
                         </span>
                       ) : (
                         <Link

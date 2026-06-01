@@ -37,6 +37,7 @@ export interface Team {
   short_name: string | null
   flag_url: string | null
   group_letter: string | null
+  manager: string | null
   created_at: string
 }
 
@@ -246,6 +247,3 @@ export const POINTS = {
   STREAK_STARTS_AT: 3,      // streak bonus kicks in from match 3
 } as const
 
-export const TOURNAMENT_START = new Date(
-  process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z'
-)

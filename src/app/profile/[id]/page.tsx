@@ -58,7 +58,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const [finalistPickRes, scorerPicksRes, secretGoalEventsRes] = await Promise.all([
     supabase.from('finalist_picks').select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)').eq('user_id', id).single(),
     supabase.from('scorer_picks').select('*, player:players(name, position, shirt_number), team:teams(name, flag_url)').eq('user_id', id).order('created_at'),
-    supabase.from('point_events').select('points').eq('user_id', id).eq('type', 'favourite_player_goal'),
+    supabase.from('point_events').select('points').eq('user_id', id).in('type', ['favourite_player_goal', 'favourite_team_goal']),
   ])
 
   const finalistPick = finalistPickRes.data

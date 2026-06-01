@@ -165,12 +165,21 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
             </Link>
           )}
           {profile && (
-            <button
-              onClick={handleLogout}
-              className="block w-full text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
-            >
-              Log out
-            </button>
+            <>
+              <Link
+                href={`/profile/${profile.id}`}
+                onClick={() => setMenuOpen(false)}
+                className="block px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-300 hover:text-white transition-colors"
+              >
+                My profile
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
+              >
+                Log out
+              </button>
+            </>
           )}
         </div>
       )}

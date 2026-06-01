@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import NewsReactions from '@/components/news/NewsReactions'
+import sanitizeHtml from 'sanitize-html'
 
 export const revalidate = 60
 
@@ -23,6 +24,17 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
     .single()
 
   if (!post) notFound()
+
+  const safeBody = sanitizeHtml(post.body, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe']),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      'img': ['src', 'alt', 'class', 'style'],
+      'a':   ['href', 'target', 'rel'],
+      'iframe': ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
+      '*':   ['class', 'style'],
+    },
+  })
 
   const { data: reactions } = await supabase
     .from('news_reactions')
@@ -90,7 +102,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       <div
         className="article-body text-sm leading-relaxed"
         style={{ fontFamily: sans }}
-        dangerouslySetInnerHTML={{ __html: post.body }}
+        dangerouslySetInnerHTML={{ __html: safeBody }}
       />
 
       {/* Reactions */}

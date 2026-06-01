@@ -10,6 +10,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function GET(request: Request) {
+  // Guard: CRON_SECRET must be configured
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
+  }
+
   // Verify cron secret (set CRON_SECRET in env)
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -217,10 +222,18 @@ async function maybeProcessFinalistPicks(
   if (tHomeId === null || tAwayId === null || tHomeScore === null || tAwayScore === null) return
 
   let thirdId: string
-  if (tHomeScore >= tAwayScore) {
+  if (tHomeScore > tAwayScore) {
     thirdId = tHomeId
-  } else {
+  } else if (tAwayScore > tHomeScore) {
     thirdId = tAwayId
+  } else {
+    // Scores level — use penalty scores from the API result if this call came from the 3rd-place match
+    if (currentResult.penaltyHome !== null && currentResult.penaltyAway !== null) {
+      thirdId = currentResult.penaltyHome > currentResult.penaltyAway ? tHomeId : tAwayId
+    } else {
+      // Cannot determine winner — skip for now (cron will retry)
+      return
+    }
   }
 
   await processFinalistPicks(winnerId, runnerId, thirdId)

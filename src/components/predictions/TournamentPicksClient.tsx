@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Lock, Check, Loader2, Trophy, X, AlertCircle } from 'lucide-react'
 import type { Team, Player, FinalistPick, ScorerPick } from '@/types'
@@ -48,6 +48,21 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const [addingPlayer, setAddingPlayer] = useState('')
   const [savingScorer, setSavingScorer] = useState(false)
   const [removingTeam, setRemovingTeam] = useState<string | null>(null)
+
+  useEffect(() => {
+    const filledCount = [first, second, third].filter(Boolean).length
+    const hasPartial = filledCount > 0 && filledCount < 3 && !locked
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    if (hasPartial) {
+      window.addEventListener('beforeunload', handleBeforeUnload)
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [first, second, third, locked])
 
   function triggerFinalistSave(f: string, s: string, t: string) {
     if (locked || !f || !s || !t) return
@@ -222,8 +237,11 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             {!finalistSaving && !finalistSaved && !finalistError && first && second && third && (
               <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Auto-saves when all 3 are selected</span>
             )}
-            {!finalistSaving && !finalistSaved && !finalistError && (!first || !second || !third) && (
+            {!finalistSaving && !finalistSaved && !finalistError && (!first || !second || !third) && [first, second, third].filter(Boolean).length === 0 && (
               <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Select all 3 to save</span>
+            )}
+            {!finalistSaving && !finalistSaved && !finalistError && [first, second, third].filter(Boolean).length > 0 && [first, second, third].filter(Boolean).length < 3 && (
+              <span className="text-xs font-semibold" style={{ color: '#ca8a04', fontFamily: 'Inter, sans-serif' }}>Pick all 3 to save your Crystal Ball</span>
             )}
           </div>
         )}
