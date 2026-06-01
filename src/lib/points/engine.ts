@@ -151,62 +151,86 @@ export async function processMatchResult(matchId: string) {
   }
 
   // Process goal events for scorer / favourite bonuses
-  await processGoalBonuses(matchId, match.home_team_id, match.away_team_id)
+  await reprocessGoalBonuses(matchId)
 
   return { processed: processedCount }
 }
 
 // ============================================================
-// Award goal scorer + favourite team/player bonuses
+// Award (or re-award) goal scorer + favourite team/player bonuses
+// Fully idempotent — safe to call multiple times for the same match.
+// Uses goal_event_id as a unique key on point_events so no bonus is
+// ever double-awarded, even if a player was unlinked at match time
+// and linked later.
 // ============================================================
 
-async function processGoalBonuses(
-  matchId: string,
-  homeTeamId: string,
-  awayTeamId: string
-) {
+export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAwarded: number }> {
   const supabase = createServiceClient()
 
-  // Get unprocessed goals for this match (exclude own goals for scorer/fav bonuses)
+  // All non-own-goal events for this match — no processed filter
   const { data: goals } = await supabase
     .from('goal_events')
     .select('*')
     .eq('match_id', matchId)
-    .eq('processed', false)
     .eq('is_own_goal', false)
 
-  if (!goals?.length) return
+  if (!goals?.length) return { bonusesAwarded: 0 }
+
+  let bonusesAwarded = 0
+
+  // Helper: insert a bonus point_event only if it doesn't already exist
+  // (keyed on user_id + goal_event_id + type via the unique DB index)
+  async function awardIfNew(
+    userId: string,
+    type: string,
+    points: number,
+    goalEventId: string,
+    description: string,
+  ) {
+    const { data: existing } = await supabase
+      .from('point_events')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('goal_event_id', goalEventId)
+      .eq('type', type)
+      .maybeSingle()
+
+    if (existing) return // already awarded — skip
+
+    await supabase.from('point_events').insert({
+      user_id:       userId,
+      type,
+      points,
+      match_id:      matchId,
+      goal_event_id: goalEventId,
+      description,
+    })
+
+    await supabase.rpc('increment_user_points', {
+      p_user_id: userId,
+      p_points:  points,
+    })
+
+    bonusesAwarded++
+  }
 
   for (const goal of goals) {
-    // 1. Scorer picks — who picked this player for this team?
     if (goal.player_id) {
+      // 1. Scorer picks — who picked this player?
       const { data: scorerPicks } = await supabase
         .from('scorer_picks')
-        .select('*')
+        .select('user_id')
         .eq('player_id', goal.player_id)
         .eq('team_id', goal.team_id)
 
       for (const pick of scorerPicks ?? []) {
-        await supabase
-          .from('scorer_picks')
-          .update({
-            goals_counted: pick.goals_counted + 1,
-            points_awarded: pick.points_awarded + POINTS.SCORER_BONUS_PER_GOAL,
-          })
-          .eq('id', pick.id)
-
-        await supabase.from('point_events').insert({
-          user_id: pick.user_id,
-          type: 'scorer_bonus',
-          points: POINTS.SCORER_BONUS_PER_GOAL,
-          match_id: matchId,
-          description: `Scorer bonus: assigned player scored`,
-        })
-
-        await supabase.rpc('increment_user_points', {
-          p_user_id: pick.user_id,
-          p_points: POINTS.SCORER_BONUS_PER_GOAL,
-        })
+        await awardIfNew(
+          pick.user_id,
+          'scorer_bonus',
+          POINTS.SCORER_BONUS_PER_GOAL,
+          goal.id,
+          'Scorer bonus: assigned player scored',
+        )
       }
 
       // 2. Favourite player bonus
@@ -216,18 +240,13 @@ async function processGoalBonuses(
         .eq('favourite_player_id', goal.player_id)
 
       for (const user of favPlayerUsers ?? []) {
-        await supabase.from('point_events').insert({
-          user_id: user.id,
-          type: 'favourite_player_goal',
-          points: POINTS.FAVOURITE_PLAYER_PER_GOAL,
-          match_id: matchId,
-          description: `Secret bonus: favourite player scored`,
-        })
-
-        await supabase.rpc('increment_user_points', {
-          p_user_id: user.id,
-          p_points: POINTS.FAVOURITE_PLAYER_PER_GOAL,
-        })
+        await awardIfNew(
+          user.id,
+          'favourite_player_goal',
+          POINTS.FAVOURITE_PLAYER_PER_GOAL,
+          goal.id,
+          'Secret bonus: favourite player scored',
+        )
       }
     }
 
@@ -238,26 +257,39 @@ async function processGoalBonuses(
       .eq('favourite_team_id', goal.team_id)
 
     for (const user of favTeamUsers ?? []) {
-      await supabase.from('point_events').insert({
-        user_id: user.id,
-        type: 'favourite_team_goal',
-        points: POINTS.FAVOURITE_TEAM_PER_GOAL,
-        match_id: matchId,
-        description: `Secret bonus: favourite team scored`,
-      })
-
-      await supabase.rpc('increment_user_points', {
-        p_user_id: user.id,
-        p_points: POINTS.FAVOURITE_TEAM_PER_GOAL,
-      })
+      await awardIfNew(
+        user.id,
+        'favourite_team_goal',
+        POINTS.FAVOURITE_TEAM_PER_GOAL,
+        goal.id,
+        'Secret bonus: favourite team scored',
+      )
     }
 
-    // Mark goal as processed
-    await supabase
-      .from('goal_events')
-      .update({ processed: true })
-      .eq('id', goal.id)
+    // Keep processed flag updated for reference (no longer used as a gate)
+    await supabase.from('goal_events').update({ processed: true }).eq('id', goal.id)
   }
+
+  // Recalculate scorer_picks.goals_counted from scratch for every player
+  // who scored in this match — keeps the counts accurate after re-runs
+  const scoringPlayerIds = [...new Set(goals.filter(g => g.player_id).map(g => g.player_id as string))]
+  for (const playerId of scoringPlayerIds) {
+    const { count } = await supabase
+      .from('goal_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('player_id', playerId)
+      .eq('is_own_goal', false)
+
+    await supabase
+      .from('scorer_picks')
+      .update({
+        goals_counted:  count ?? 0,
+        points_awarded: (count ?? 0) * POINTS.SCORER_BONUS_PER_GOAL,
+      })
+      .eq('player_id', playerId)
+  }
+
+  return { bonusesAwarded }
 }
 
 // ============================================================

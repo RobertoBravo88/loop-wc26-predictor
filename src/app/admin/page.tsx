@@ -141,6 +141,12 @@ export default async function AdminPage() {
             Import pulls the official 48 squads from Wikipedia. After importing, use the linker below to connect players to their API id.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
+          <AdminSyncButton endpoint="/api/admin/reprocess-goal-bonuses" label="Reprocess goal bonuses" variant="primary" />
+          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Safe to run anytime — re-checks all goals for all finished matches and awards any missing scorer / 12th Man bonuses. Run this after linking unlinked players to pick up missed points.
+          </p>
+        </div>
       </section>
 
       {/* Manager editor */}
