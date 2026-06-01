@@ -47,7 +47,6 @@ export default async function AdminPage() {
   ])
   const unlinkedPlayers = unlinkedRes.data
 
-  // Build sets of "important" unlinked player IDs
   const pickedPlayerIds = new Set([
     ...(scorerPicksRes.data ?? []).map(r => r.player_id).filter(Boolean),
     ...(favPlayerRes.data ?? []).map(r => r.favourite_player_id).filter(Boolean),
@@ -56,10 +55,7 @@ export default async function AdminPage() {
     (goalEventsRes.data ?? []).map(r => r.player_id).filter(Boolean)
   )
 
-  const { data: matchStats } = await supabase
-    .from('matches')
-    .select('status')
-
+  const { data: matchStats } = await supabase.from('matches').select('status')
   const totalMatches     = matchStats?.length ?? 0
   const finishedMatches  = matchStats?.filter(m => m.status === 'finished').length ?? 0
   const scheduledMatches = matchStats?.filter(m => m.status === 'scheduled').length ?? 0
@@ -70,111 +66,121 @@ export default async function AdminPage() {
       {/* Page header */}
       <div className="mb-2 pb-3" style={{ borderBottom: '2px solid #141414' }}>
         <div className="flex items-center justify-between">
-          <h1
-            className="text-4xl"
-            style={{ fontFamily: serif, fontWeight: 900, color: '#141414' }}
-          >
+          <h1 className="text-4xl" style={{ fontFamily: serif, fontWeight: 900, color: '#141414' }}>
             Admin
           </h1>
-          <span
-            className="text-xs font-semibold uppercase tracking-wider px-3 py-1"
-            style={{ background: '#ff5c35', color: '#ffffff', fontFamily: sans }}
-          >
+          <span className="text-xs font-semibold uppercase tracking-wider px-3 py-1" style={{ background: '#ff5c35', color: '#ffffff', fontFamily: sans }}>
             Admin
           </span>
         </div>
       </div>
 
-      {/* Overview cards */}
+      {/* ── 1. Overview cards ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Loopers',       value: userCount ?? 0,    icon: Users,    color: '#3b82f6' },
-          { label: 'Total matches', value: totalMatches,       icon: Trophy,   color: '#eab308' },
-          { label: 'Finished',      value: finishedMatches,    icon: Trophy,   color: '#22c55e' },
-          { label: 'Upcoming',      value: scheduledMatches,   icon: Settings, color: '#6b6b6b' },
+          { label: 'Loopers',       value: userCount ?? 0,  icon: Users,    color: '#3b82f6' },
+          { label: 'Total matches', value: totalMatches,     icon: Trophy,   color: '#eab308' },
+          { label: 'Finished',      value: finishedMatches,  icon: Trophy,   color: '#22c55e' },
+          { label: 'Upcoming',      value: scheduledMatches, icon: Settings, color: '#6b6b6b' },
         ].map(card => (
-          <div
-            key={card.label}
-            className="p-4"
-            style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}
-          >
+          <div key={card.label} className="p-4" style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
             <card.icon className="w-4 h-4 mb-2" style={{ color: card.color }} />
-            <div
-              className="text-2xl font-bold mb-0.5"
-              style={{ color: '#141414', fontFamily: sans }}
-            >
-              {card.value}
-            </div>
-            <div
-              className="text-xs uppercase tracking-wider"
-              style={{ color: '#6b6b6b', fontFamily: sans }}
-            >
-              {card.label}
-            </div>
+            <div className="text-2xl font-bold mb-0.5" style={{ color: '#141414', fontFamily: sans }}>{card.value}</div>
+            <div className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: sans }}>{card.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Sync controls */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-6">
-        <h2
-          className="font-bold mb-1 flex items-center gap-2 text-sm uppercase tracking-wider"
-          style={{ color: '#141414', fontFamily: sans }}
-        >
-          <RefreshCw className="w-4 h-4" style={{ color: '#ff5c35' }} /> Data sync
-        </h2>
-        <p className="text-sm mb-4" style={{ color: '#6b6b6b', fontFamily: sans }}>
-          The cron job auto-syncs at midnight. Use manual sync if something looks off.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <AdminSyncButton endpoint="/api/sync/teams"    label="Sync team IDs" />
-          <AdminSyncButton endpoint="/api/sync/squads"   label="Sync squads" batched />
-          <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
-          <AdminSyncButton endpoint="/api/sync/results"  label="Sync results now" variant="primary" />
+      {/* ── 2. News posts ─────────────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <FileText className="w-4 h-4" style={{ color: '#6b6b6b' }} />
+          <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+            News posts
+          </h2>
         </div>
-        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
-          <AdminSyncButton endpoint="/api/admin/import-squads" label="Reset & Import WC26 Squads" variant="primary" />
-          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            ⚠️ Wipes all players and squad picks — then imports the built-in WC 2026 squad list. Run once before the tournament.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
-          <AdminSyncButton endpoint="/api/admin/find-league" label="Test fixtures API" />
-          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Searches api-football for World Cup leagues — use the result to set <code style={{ background: '#f7f4ef', padding: '1px 4px' }}>WC_2026_LEAGUE_ID</code> in Vercel env vars.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
-          <AdminSyncButton endpoint="/api/admin/reprocess-goal-bonuses" label="Reprocess goal bonuses" variant="primary" />
-          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Safe to run anytime — re-checks all goals for all finished matches and awards any missing scorer / 12th Man bonuses. Run this after linking unlinked players to pick up missed points.
-          </p>
-        </div>
+        <AdminNewsSection authorId={user.id} posts={(recentPosts ?? []) as any} />
       </section>
 
-      {/* Users */}
+      {/* ── 3. Loopers ────────────────────────────────────── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div
-          className="px-6 py-4 flex items-center gap-2"
-          style={{ borderBottom: '1px solid #e0dbd3' }}
-        >
+        <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <Users className="w-4 h-4" style={{ color: '#6b6b6b' }} />
-          <h2
-            className="font-bold text-sm uppercase tracking-wider"
-            style={{ color: '#141414', fontFamily: sans }}
-          >
+          <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
             Loopers ({userCount ?? 0})
           </h2>
         </div>
         <AdminUserTable users={users ?? []} />
       </section>
 
-      {/* Unlinked players */}
+      {/* ── 4. Sync & maintenance ────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-6">
+        <h2 className="font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+          <RefreshCw className="w-4 h-4" style={{ color: '#ff5c35' }} /> Data sync
+        </h2>
+
+        {/* During the tournament — most used */}
+        <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#141414', fontFamily: sans }}>
+          During the tournament
+        </p>
+        <div className="flex flex-wrap gap-3 mb-5">
+          <AdminSyncButton endpoint="/api/sync/results"      label="Sync results now"              variant="primary" />
+          <AdminSyncButton endpoint="/api/sync/players-wc"   label="Sync WC players (from Jun 11)" batched />
+          <AdminSyncButton endpoint="/api/admin/reprocess-goal-bonuses" label="Reprocess goal bonuses" variant="primary" />
+        </div>
+        <p className="text-xs mb-5" style={{ color: '#6b6b6b', fontFamily: sans }}>
+          <strong>Sync results now</strong> — manually trigger the result cron. Runs automatically every 10 min.<br />
+          <strong>Sync WC players</strong> — once matches start, syncs players from actual WC stats. Run daily from June 11.<br />
+          <strong>Reprocess goal bonuses</strong> — re-awards any missed scorer / 12th Man bonuses. Safe to run anytime, especially after linking players.
+        </p>
+
+        {/* Pre-tournament setup */}
+        <p className="text-xs font-semibold uppercase tracking-wider mb-2 pt-4" style={{ color: '#141414', fontFamily: sans, borderTop: '1px solid #e0dbd3', paddingTop: '1rem' }}>
+          Pre-tournament setup (run once)
+        </p>
+        <div className="flex flex-wrap gap-3 mb-3">
+          <AdminSyncButton endpoint="/api/sync/teams"    label="Sync team IDs" />
+          <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
+          <AdminSyncButton endpoint="/api/sync/squads"   label="Sync squads" batched />
+        </div>
+        <p className="text-xs mb-4" style={{ color: '#6b6b6b', fontFamily: sans }}>
+          <strong>Sync team IDs</strong> — links our teams to api-football IDs. Run once at setup.<br />
+          <strong>Sync fixtures</strong> — imports all 104 match schedules from api-football.<br />
+          <strong>Sync squads</strong> — enriches players with shirt numbers and photos from api-football.
+        </p>
+        <div className="flex flex-wrap items-center gap-3" style={{ borderTop: '1px solid #f0ede8', paddingTop: '0.75rem' }}>
+          <AdminSyncButton endpoint="/api/admin/import-squads" label="⚠️ Reset & Import WC26 Squads" variant="primary" />
+          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Wipes all players and squad picks, then reimports from the built-in WC 2026 squad list. Run once before the tournament to reset dirty data.
+          </p>
+        </div>
+
+        {/* Diagnostics */}
+        <p className="text-xs font-semibold uppercase tracking-wider mb-2 pt-4" style={{ color: '#141414', fontFamily: sans, borderTop: '1px solid #e0dbd3', paddingTop: '1rem' }}>
+          Diagnostics
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <AdminSyncButton endpoint="/api/admin/find-league" label="Test fixtures API" />
+          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Tests whether the api-football fixtures endpoint is returning data. Use if Sync fixtures returns 0 results.
+          </p>
+        </div>
+      </section>
+
+      {/* ── 5. Squad players ─────────────────────────────── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div
-          className="px-6 py-4 flex items-center justify-between"
-          style={{ borderBottom: '1px solid #e0dbd3' }}
-        >
+        <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <Users className="w-4 h-4" style={{ color: '#6b6b6b' }} />
+          <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+            Squad players ({allPlayers?.length ?? 0})
+          </h2>
+        </div>
+        <AdminPlayersSection players={(allPlayers ?? []) as any} />
+      </section>
+
+      {/* ── 6. Unlinked players ───────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" style={{ color: '#ff5c35' }} />
             <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
@@ -192,42 +198,6 @@ export default async function AdminPage() {
         />
       </section>
 
-      {/* Squad players */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div
-          className="px-6 py-4 flex items-center gap-2"
-          style={{ borderBottom: '1px solid #e0dbd3' }}
-        >
-          <Users className="w-4 h-4" style={{ color: '#6b6b6b' }} />
-          <h2
-            className="font-bold text-sm uppercase tracking-wider"
-            style={{ color: '#141414', fontFamily: sans }}
-          >
-            Squad players ({allPlayers?.length ?? 0})
-          </h2>
-        </div>
-        <AdminPlayersSection players={(allPlayers ?? []) as any} />
-      </section>
-
-      {/* News management */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div
-          className="px-6 py-4 flex items-center gap-2"
-          style={{ borderBottom: '1px solid #e0dbd3' }}
-        >
-          <FileText className="w-4 h-4" style={{ color: '#6b6b6b' }} />
-          <h2
-            className="font-bold text-sm uppercase tracking-wider"
-            style={{ color: '#141414', fontFamily: sans }}
-          >
-            News posts
-          </h2>
-        </div>
-        <AdminNewsSection
-          authorId={user.id}
-          posts={(recentPosts ?? []) as any}
-        />
-      </section>
     </div>
   )
 }
