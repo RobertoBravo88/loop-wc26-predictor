@@ -477,8 +477,11 @@ function Step2({
       >
         Your colours 🏴
       </h2>
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+        Pick your team with your heart, not your spreadsheet. If you&apos;re Belgian, you don&apos;t want a French flag next to your name all month.
+      </p>
       <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
-        Pick the team you actually support. Their flag appears next to your name on the leaderboard.
+        And Italians? Since Italy isn&apos;t here, we&apos;ll allow a temporary adoption.
       </p>
 
       {/* Points callout */}
