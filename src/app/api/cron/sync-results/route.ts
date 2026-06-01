@@ -66,11 +66,6 @@ async function runSync() {
         // Store goals
         for (const event of result.events ?? []) {
           if (event.type !== 'Goal') continue
-          const { data: player } = await supabase
-            .from('players')
-            .select('id')
-            .eq('api_id', event.player?.id)
-            .single()
 
           const { data: team } = await supabase
             .from('teams')
@@ -80,10 +75,37 @@ async function runSync() {
 
           if (!team) continue
 
+          // Look up player — auto-create if not in DB yet (handles late squad additions
+          // and the June 11+ switch to stats-based player IDs)
+          let playerDbId: string | null = null
+          if (event.player?.id) {
+            const { data: existingPlayer } = await supabase
+              .from('players')
+              .select('id')
+              .eq('api_id', event.player.id)
+              .single()
+
+            if (existingPlayer) {
+              playerDbId = existingPlayer.id
+            } else if (event.player?.name) {
+              // Player not in DB — create them so the goal is always linked
+              const { data: newPlayer } = await supabase
+                .from('players')
+                .upsert({
+                  api_id: event.player.id,
+                  name: event.player.name,
+                  team_id: team.id,
+                }, { onConflict: 'api_id' })
+                .select('id')
+                .single()
+              playerDbId = newPlayer?.id ?? null
+            }
+          }
+
           await supabase.from('goal_events').upsert({
             api_id: event.id,
             match_id: match.id,
-            player_id: player?.id ?? null,
+            player_id: playerDbId,
             team_id: team.id,
             minute: event.time?.elapsed ?? null,
             is_own_goal: event.detail === 'Own Goal',

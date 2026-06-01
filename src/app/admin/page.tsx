@@ -115,6 +115,12 @@ export default async function AdminPage() {
           <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
           <AdminSyncButton endpoint="/api/sync/results"  label="Sync results now" variant="primary" />
         </div>
+        <div className="flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
+          <AdminSyncButton endpoint="/api/sync/players-wc" label="Sync WC players (from Jun 11)" batched />
+          <p className="text-xs self-center" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Replaces squad data with actual WC participants — run after the tournament starts.
+          </p>
+        </div>
       </section>
 
       {/* Finalist picks processor */}

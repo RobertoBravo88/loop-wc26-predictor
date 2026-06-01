@@ -38,13 +38,13 @@ export async function fetchTeams(season: number = 2026) {
   return get<any[]>('/teams', { league: WC_2026_ID, season })
 }
 
-export async function fetchSquad(teamApiId: number, season: number = 2026) {
-  const data = await get<any[]>('/players/squads', { team: teamApiId, league: WC_2026_ID, season })
-  // Fall back to team-only query if the league/season filter returns nothing
-  if (data.length === 0) {
-    return get<any[]>('/players/squads', { team: teamApiId })
-  }
-  return data
+export async function fetchSquad(teamApiId: number) {
+  return get<any[]>('/players/squads', { team: teamApiId })
+}
+
+// Fetch players who actually appeared in WC 2026 fixtures — accurate from June 11 onwards
+export async function fetchWCPlayers(teamApiId: number, season: number = 2026, page: number = 1) {
+  return get<any[]>('/players', { team: teamApiId, league: WC_2026_ID, season, page })
 }
 
 // ============================================================
