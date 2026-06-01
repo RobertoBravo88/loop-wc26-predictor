@@ -4,7 +4,6 @@ import { Users, RefreshCw, FileText, Trophy, Settings } from 'lucide-react'
 import AdminSyncButton from '@/components/admin/AdminSyncButton'
 import AdminUserTable from '@/components/admin/AdminUserTable'
 import AdminNewsSection from '@/components/admin/AdminNewsSection'
-import AdminFinalistProcessor from '@/components/admin/AdminFinalistProcessor'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
 import AdminManagerEditor from '@/components/admin/AdminManagerEditor'
@@ -158,9 +157,6 @@ export default async function AdminPage() {
         </div>
         <AdminManagerEditor teams={(allTeams ?? []) as any} />
       </section>
-
-      {/* Finalist picks processor */}
-      <AdminFinalistProcessor teams={allTeams ?? []} />
 
       {/* Users */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">

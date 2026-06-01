@@ -12,12 +12,20 @@ export default function AdminUserTable({ users: initial }: { users: (Profile & {
 
   async function toggleAdmin(userId: string, currentRole: string) {
     setPromoting(userId)
-    const supabase = createClient()
-    await supabase.from('profiles')
-      .update({ role: currentRole === 'admin' ? 'player' : 'admin' })
-      .eq('id', userId)
-    setPromoting(null)
-    window.location.reload()
+    try {
+      const res = await fetch('/api/admin/toggle-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, currentRole }),
+      })
+      const data = await res.json()
+      if (data.error) { alert('Error: ' + data.error); return }
+      window.location.reload()
+    } catch (e: any) {
+      alert('Failed: ' + e.message)
+    } finally {
+      setPromoting(null)
+    }
   }
 
   async function handleDelete(userId: string, name: string) {

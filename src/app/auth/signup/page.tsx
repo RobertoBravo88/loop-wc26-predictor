@@ -646,7 +646,7 @@ function Step3({
   )
 }
 
-// ─── Step 4: Top scorer per team ─────────────────────────────────────────────
+// ─── Step 4: Golden Boots — up to 5 picks ────────────────────────────────────
 
 function Step4({
   formData,
@@ -665,188 +665,147 @@ function Step4({
   isSubmitting: boolean
   globalError: string
 }) {
-  // Load all players keyed by team_id
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, Player[]>>({})
   const [loading, setLoading] = useState(true)
+  const [addingTeam, setAddingTeam]     = useState('')
+  const [addingPlayer, setAddingPlayer] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
-    supabase
-      .from('players')
-      .select('*')
-      .order('name')
-      .then(({ data }) => {
-        const map: Record<string, Player[]> = {}
-        for (const p of data ?? []) {
-          if (!map[p.team_id]) map[p.team_id] = []
-          map[p.team_id].push(p)
-        }
-        setPlayersByTeam(map)
-        setLoading(false)
-      })
+    supabase.from('players').select('*').order('name').then(({ data }) => {
+      const map: Record<string, Player[]> = {}
+      for (const p of data ?? []) {
+        if (!map[p.team_id]) map[p.team_id] = []
+        map[p.team_id].push(p)
+      }
+      setPlayersByTeam(map)
+      setLoading(false)
+    })
   }, [])
 
-  function setScorerPick(teamId: string, playerId: string) {
-    const next = { ...formData.scorer_picks }
-    if (playerId) {
-      next[teamId] = playerId
-    } else {
-      delete next[teamId]
-    }
+  // picks as array for display
+  const picks = Object.entries(formData.scorer_picks).map(([teamId, playerId]) => ({ teamId, playerId }))
+  const pickedTeamIds = new Set(picks.map(p => p.teamId))
+  // exclude favourite player from golden boots (mutual exclusion)
+  const addingTeamPlayers = (playersByTeam[addingTeam] ?? []).filter(p => p.id !== formData.favourite_player_id)
+  const availableTeams = teams.filter(t => !pickedTeamIds.has(t.id))
+
+  function addPick() {
+    if (!addingTeam || !addingPlayer || picks.length >= 5) return
+    const next = { ...formData.scorer_picks, [addingTeam]: addingPlayer }
     update({ scorer_picks: next })
+    setAddingTeam('')
+    setAddingPlayer('')
+  }
+
+  function removePick(teamId: string) {
+    const next = { ...formData.scorer_picks }
+    delete next[teamId]
+    update({ scorer_picks: next })
+  }
+
+  const teamById = Object.fromEntries(teams.map(t => [t.id, t]))
+  const playerById: Record<string, Player> = {}
+  for (const players of Object.values(playersByTeam)) {
+    for (const p of players) playerById[p.id] = p
   }
 
   return (
     <div>
-      <h2
-        style={{
-          fontFamily: "'Playfair Display', Georgia, serif",
-          fontWeight: 700,
-          fontSize: '1.25rem',
-          color: '#141414',
-          marginBottom: '0.25rem',
-        }}
-      >
-        Pick your top scorer
+      <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: '1.25rem', color: '#141414', marginBottom: '0.25rem' }}>
+        👟 Golden Boots
       </h2>
-      <p
-        style={{
-          fontSize: '0.8rem',
-          color: '#6b6b6b',
-          fontFamily: 'Inter, sans-serif',
-          marginBottom: '1.25rem',
-        }}
-      >
-        Pick one player per team. Earn +10 pts every time they score. All picks are optional.
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+        Pick up to 5 players — one per country. Earn <span style={{ color: '#ff5c35', fontWeight: 600 }}>+10 pts</span> every time they score. All picks are optional.
+      </p>
+      <p style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'Inter, sans-serif', marginBottom: '1.25rem' }}>
+        You can always change these later in the predictions tab.
       </p>
 
       {loading ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            color: '#6b6b6b',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '0.875rem',
-            padding: '1rem 0',
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', fontSize: '0.875rem', padding: '1rem 0' }}>
           <Loader2 style={{ width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }} />
           Loading squads…
         </div>
       ) : (
-        <div
-          style={{
-            maxHeight: '380px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            paddingRight: '0.25rem',
-          }}
-        >
-          {teams.map((team) => {
-            const teamPlayers = playersByTeam[team.id] ?? []
-            const hasPlayers = teamPlayers.length > 0
-            const selectedPlayer = formData.scorer_picks[team.id] ?? ''
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
+          {/* Current picks */}
+          {picks.map((pick, idx) => {
+            const team   = teamById[pick.teamId]
+            const player = playerById[pick.playerId]
             return (
-              <div
-                key={team.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  paddingBottom: '0.75rem',
-                  borderBottom: '1px solid #f0ece6',
-                }}
-              >
-                {/* Team name + flag */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {team.flag_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={team.flag_url}
-                      alt=""
-                      style={{ width: '1.25rem', height: 'auto', flexShrink: 0 }}
-                    />
-                  )}
-                  <span
-                    style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: '#141414',
-                    }}
-                  >
-                    {team.name}
-                  </span>
+              <div key={pick.teamId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.875rem', background: '#faf9f6', border: '1px solid #e0dbd3' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.7rem', color: '#9ca3af', fontWeight: 700, width: '1rem', textAlign: 'center' }}>{idx + 1}</span>
+                {team?.flag_url && <img src={team.flag_url} alt="" style={{ width: '1.25rem', height: 'auto', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.8rem', fontWeight: 600, color: '#141414', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {player?.name ?? '—'}
+                  </div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.7rem', color: '#6b6b6b' }}>{team?.name}</div>
                 </div>
-
-                {/* Player dropdown */}
-                {hasPlayers ? (
-                  <select
-                    style={{ ...inputStyle, fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
-                    value={selectedPlayer}
-                    onChange={(e) => setScorerPick(team.id, e.target.value)}
-                  >
-                    <option value="">Select player…</option>
-                    {teamPlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}{p.position ? ` · ${p.position}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <select
-                    disabled
-                    style={{
-                      ...inputStyle,
-                      fontSize: '0.75rem',
-                      padding: '0.375rem 0.75rem',
-                      opacity: 0.45,
-                      cursor: 'not-allowed',
-                    }}
-                  >
-                    <option>Squad not loaded yet</option>
-                  </select>
-                )}
+                <button
+                  onClick={() => removePick(pick.teamId)}
+                  style={{ background: 'none', border: '1px solid #e0dbd3', cursor: 'pointer', color: '#6b6b6b', padding: '0.25rem 0.5rem', fontSize: '0.7rem', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}
+                >
+                  ✕
+                </button>
               </div>
             )
           })}
+
+          {/* Add pick row */}
+          {picks.length < 5 && (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <select
+                style={{ ...inputStyle, flex: 1, minWidth: '140px', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}
+                value={addingTeam}
+                onChange={e => { setAddingTeam(e.target.value); setAddingPlayer('') }}
+              >
+                <option value="">Select country…</option>
+                {availableTeams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+
+              {addingTeam && (
+                <select
+                  style={{ ...inputStyle, flex: 1, minWidth: '140px', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}
+                  value={addingPlayer}
+                  onChange={e => setAddingPlayer(e.target.value)}
+                >
+                  <option value="">Select player…</option>
+                  {addingTeamPlayers.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {addingTeam && addingPlayer && (
+                <button onClick={addPick} style={{ ...coralBtn, padding: '0.5rem 1rem', fontSize: '0.8rem', flexShrink: 0 }}>
+                  Add
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Pick counter */}
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.75rem', color: picks.length === 5 ? '#ff5c35' : '#9ca3af' }}>
+            {picks.length} / 5 picks
+          </p>
         </div>
       )}
 
       {globalError && (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1rem',
-            background: '#fff5f5',
-            color: '#dc2626',
-            border: '1px solid #fecaca',
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '0.875rem',
-          }}
-        >
+        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#fff5f5', color: '#dc2626', border: '1px solid #fecaca', fontFamily: 'Inter, sans-serif', fontSize: '0.875rem' }}>
           {globalError}
         </div>
       )}
 
       <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-        <button style={ghostBtn} onClick={onBack} disabled={isSubmitting}>
-          ← Back
-        </button>
-        <button
-          style={{ ...coralBtn, opacity: isSubmitting ? 0.75 : 1 }}
-          onClick={onSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting && (
-            <Loader2 style={{ width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }} />
-          )}
+        <button style={ghostBtn} onClick={onBack} disabled={isSubmitting}>← Back</button>
+        <button style={{ ...coralBtn, opacity: isSubmitting ? 0.75 : 1 }} onClick={onSubmit} disabled={isSubmitting}>
+          {isSubmitting && <Loader2 style={{ width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }} />}
           Create account
         </button>
       </div>

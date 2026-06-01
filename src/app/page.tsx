@@ -73,21 +73,20 @@ export default async function HomePage() {
             Predict every match, earn points, climb the table. Let&apos;s bring the noise.
           </p>
           {!user ? (
-            <div className="flex gap-3 flex-wrap">
-              <Link
-                href="/auth/signup"
-                className="px-4 py-2 text-xs font-semibold text-white transition-colors"
-                style={{ background: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
-              >
-                Join the competition
-              </Link>
+            <div className="flex flex-col gap-2">
               <Link
                 href="/auth/login"
-                className="px-4 py-2 text-xs font-semibold text-white border transition-colors hover:border-white/60"
-                style={{ borderColor: 'rgba(255,255,255,0.2)', fontFamily: 'Inter, sans-serif' }}
+                className="inline-block px-4 py-2 text-xs font-semibold text-white transition-colors"
+                style={{ background: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
               >
                 Sign in
               </Link>
+              <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                No account yet?{' '}
+                <Link href="/auth/signup" className="underline hover:text-white transition-colors">
+                  Create one here
+                </Link>
+              </p>
             </div>
           ) : (
             <div className="flex gap-3 flex-wrap">
