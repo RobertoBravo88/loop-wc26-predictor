@@ -18,56 +18,39 @@ function norm(s: string): string {
     .trim()
 }
 
-// ── GET: diagnostic — shows what the auto-link would work with ──
+// ── GET: diagnostic — which teams still have unlinked players ──
 export async function GET() {
   const supabase = createServiceClient()
 
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('id, name, api_id')
-    .not('api_id', 'is', null)
-
-  const teamsWithApiId = teams?.length ?? 0
-
-  // Count unlinked players per team
-  const { count: totalUnlinked } = await supabase
+  // All unlinked players with their team info
+  const { data: unlinked } = await supabase
     .from('players')
-    .select('id', { count: 'exact', head: true })
+    .select('id, name, team_id, team:teams(id, name, api_id)')
     .is('api_id', null)
 
-  // Pick the first team that has unlinked players for a sample
-  let sample: any = null
-  for (const team of teams ?? []) {
-    const { data: unlinked } = await supabase
-      .from('players')
-      .select('id, name')
-      .eq('team_id', team.id)
-      .is('api_id', null)
-      .limit(5)
-
-    if (!unlinked?.length) continue
-
-    // Fetch squad from api-football
-    const res = await fetch(`${API_BASE}/players/squads?team=${team.api_id}`, {
-      headers: { 'x-apisports-key': API_KEY },
-      next: { revalidate: 0 },
-    })
-    const data = await res.json()
-    const apiPlayers = (data.response?.[0]?.players ?? []).slice(0, 5).map((p: any) => ({
-      id: p.id, name: p.name, norm: norm(p.name),
-    }))
-
-    sample = {
-      team: team.name,
-      api_id: team.api_id,
-      unlinkedInDb: unlinked.map((p: { id: string; name: string }) => ({ name: p.name, norm: norm(p.name) })),
-      apiSquadSample: apiPlayers,
-      apiSquadTotal: data.response?.[0]?.players?.length ?? 0,
+  // Group by team
+  const byTeam = new Map<string, { name: string; api_id: number | null; count: number; sample: string[] }>()
+  for (const p of unlinked ?? []) {
+    const t = p.team as any
+    if (!t) continue
+    const existing = byTeam.get(t.id)
+    if (existing) {
+      existing.count++
+      if (existing.sample.length < 3) existing.sample.push(p.name)
+    } else {
+      byTeam.set(t.id, { name: t.name, api_id: t.api_id, count: 1, sample: [p.name] })
     }
-    break
   }
 
-  return NextResponse.json({ teamsWithApiId, totalUnlinked, sample })
+  const teams = [...byTeam.values()].sort((a, b) => b.count - a.count)
+  const noApiId = teams.filter(t => !t.api_id)
+  const hasApiId = teams.filter(t => t.api_id)
+
+  return NextResponse.json({
+    totalUnlinked: unlinked?.length ?? 0,
+    teamsWithNoApiId: noApiId,
+    teamsWithApiId: hasApiId,
+  })
 }
 
 export async function POST() {

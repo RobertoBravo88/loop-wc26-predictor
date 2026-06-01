@@ -44,9 +44,21 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
       const res  = await fetch('/api/admin/auto-link-players', { method: 'POST' })
       const data = await res.json()
       if (data.error) { alert(data.error); return }
-      setAutoResult({ linked: data.totalLinked, remaining: players.length - data.totalLinked })
-      // Reload so the list reflects what's now unlinked
-      window.location.reload()
+
+      const resolved  = data.totalResolved ?? 0
+      const remaining = players.length - resolved
+      setAutoResult({ linked: resolved, remaining })
+
+      if (resolved === 0) {
+        // Nothing changed — show report without reloading so we can diagnose
+        const skippedSummary = (data.report ?? [])
+          .filter((r: any) => r.skipped?.length > 0)
+          .map((r: any) => `${r.team}: ${r.skipped.slice(0, 3).join(', ')}${r.skipped.length > 3 ? '…' : ''}`)
+          .join('\n')
+        alert(`Auto-link resolved 0 players.\n\nSkipped teams:\n${skippedSummary || 'none — likely teams with no API id'}`)
+      } else {
+        window.location.reload()
+      }
     } catch (e: any) {
       alert('Auto-link failed: ' + e.message)
     } finally {
