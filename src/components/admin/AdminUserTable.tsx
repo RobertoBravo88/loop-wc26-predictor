@@ -5,8 +5,10 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 
-export default function AdminUserTable({ users }: { users: (Profile & { favourite_team?: { name: string; flag_url: string } })[] }) {
+export default function AdminUserTable({ users: initial }: { users: (Profile & { favourite_team?: { name: string; flag_url: string } })[] }) {
+  const [users, setUsers]     = useState(initial)
   const [promoting, setPromoting] = useState<string | null>(null)
+  const [deleting, setDeleting]   = useState<string | null>(null)
 
   async function toggleAdmin(userId: string, currentRole: string) {
     setPromoting(userId)
@@ -16,6 +18,21 @@ export default function AdminUserTable({ users }: { users: (Profile & { favourit
       .eq('id', userId)
     setPromoting(null)
     window.location.reload()
+  }
+
+  async function handleDelete(userId: string, name: string) {
+    if (!confirm(`Permanently delete looper "${name}"?\n\nThis will remove all their predictions, picks, and account. This cannot be undone.`)) return
+    setDeleting(userId)
+    try {
+      const res  = await fetch(`/api/admin/delete-user?id=${userId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.error) { alert('Error: ' + data.error); return }
+      setUsers(prev => prev.filter(u => u.id !== userId))
+    } catch (e: any) {
+      alert('Delete failed: ' + e.message)
+    } finally {
+      setDeleting(null)
+    }
   }
 
   return (
@@ -55,13 +72,23 @@ export default function AdminUserTable({ users }: { users: (Profile & { favourit
                 {new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               </td>
               <td className="px-6 py-3 text-right">
-                <button
-                  onClick={() => toggleAdmin(user.id, user.role)}
-                  disabled={promoting === user.id}
-                  className="text-xs text-gray-500 hover:text-[#ff5c35] transition-colors disabled:opacity-40"
-                >
-                  {user.role === 'admin' ? 'Remove admin' : 'Make admin'}
-                </button>
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => toggleAdmin(user.id, user.role)}
+                    disabled={promoting === user.id}
+                    className="text-xs text-gray-500 hover:text-[#ff5c35] transition-colors disabled:opacity-40"
+                  >
+                    {user.role === 'admin' ? 'Remove admin' : 'Make admin'}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id, user.display_name)}
+                    disabled={deleting === user.id}
+                    className="text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
+                    title="Delete looper"
+                  >
+                    {deleting === user.id ? '…' : 'Delete'}
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

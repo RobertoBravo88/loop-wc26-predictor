@@ -15,7 +15,7 @@ export default async function StatsPage() {
   ] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, is_correct_outcome, points_total').not('processed_at', 'is', null),
-    supabase.from('profiles').select('id, display_name, current_streak, max_streak, favourite_team:teams(name, flag_url)'),
+    supabase.from('profiles').select('id, display_name, total_points, current_streak, max_streak, favourite_team:teams(name, flag_url)'),
     supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(name, flag_url), second_team:teams!second_team_id(name, flag_url), third_team:teams!third_team_id(name, flag_url)'),
     supabase.from('scorer_picks').select('player_id, player:players(name, team:teams(name, flag_url))'),
   ])
@@ -114,6 +114,26 @@ export default async function StatsPage() {
   const topRatedScorers = Array.from(playerPickMap.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
+
+  // --- Best fan bases (avg total_points per team's fans) ---
+  const fanbaseMap = new Map<string, { name: string; flag: string | null; totalPoints: number; count: number }>()
+  for (const p of profiles ?? []) {
+    const team = (p.favourite_team as any)
+    if (!team) continue
+    const pts = (p as any).total_points ?? 0
+    const existing = fanbaseMap.get(team.name)
+    if (existing) {
+      existing.totalPoints += pts
+      existing.count++
+    } else {
+      fanbaseMap.set(team.name, { name: team.name, flag: team.flag_url, totalPoints: pts, count: 1 })
+    }
+  }
+  const bestFanbases = Array.from(fanbaseMap.values())
+    .filter(f => f.count > 0)
+    .map(f => ({ ...f, avgPoints: Math.round((f.totalPoints / f.count) * 10) / 10 }))
+    .sort((a, b) => b.avgPoints - a.avgPoints)
+    .slice(0, 10)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -404,6 +424,79 @@ export default async function StatsPage() {
         </div>
 
       </div>
+
+      {/* Best Fan Bases */}
+      <h2
+        className="text-2xl mt-10 mb-4 pb-3"
+        style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontWeight: 700,
+          color: '#141414',
+          borderBottom: '1px solid #e0dbd3'
+        }}
+      >
+        Best Fan Bases
+      </h2>
+      <p className="text-xs mb-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+        Average prediction points per fan — which country has the most football knowledge?
+      </p>
+
+      <div style={{ border: '1px solid #e0dbd3' }}>
+        <div
+          className="grid px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+          style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem' }}
+        >
+          <span>#</span>
+          <span>Country</span>
+          <span className="text-right">Fans</span>
+          <span className="text-right">Total pts</span>
+          <span className="text-right">Avg pts/fan</span>
+        </div>
+
+        {bestFanbases.length === 0 ? (
+          <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+            No data yet — points will appear once predictions are processed
+          </p>
+        ) : bestFanbases.map((fb, i) => (
+          <div
+            key={fb.name}
+            className="grid items-center px-4 py-3"
+            style={{
+              gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem',
+              background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
+              borderTop: '1px solid #e0dbd3',
+            }}
+          >
+            <span
+              className="text-xs font-bold"
+              style={{ color: i === 0 ? '#ff5c35' : '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+            >
+              {i + 1}
+            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              {fb.flag && (
+                <img src={fb.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+              )}
+              <span className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {fb.name}
+              </span>
+            </div>
+            <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              {fb.count} {fb.count === 1 ? 'fan' : 'fans'}
+            </span>
+            <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              {fb.totalPoints}
+            </span>
+            <span
+              className="text-sm font-bold text-right"
+              style={{ color: i === 0 ? '#ff5c35' : '#141414', fontFamily: 'Inter, sans-serif' }}
+            >
+              {fb.avgPoints.toFixed(1)}
+            </span>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
