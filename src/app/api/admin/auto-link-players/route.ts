@@ -12,10 +12,62 @@ function norm(s: string): string {
   return s
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')  // strip diacritics
+    .replace(/[̀-ͯ]/g, '') // strip combining diacritics
     .replace(/[^a-z\s'-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+// ── GET: diagnostic — shows what the auto-link would work with ──
+export async function GET() {
+  const supabase = createServiceClient()
+
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name, api_id')
+    .not('api_id', 'is', null)
+
+  const teamsWithApiId = teams?.length ?? 0
+
+  // Count unlinked players per team
+  const { count: totalUnlinked } = await supabase
+    .from('players')
+    .select('id', { count: 'exact', head: true })
+    .is('api_id', null)
+
+  // Pick the first team that has unlinked players for a sample
+  let sample: any = null
+  for (const team of teams ?? []) {
+    const { data: unlinked } = await supabase
+      .from('players')
+      .select('id, name')
+      .eq('team_id', team.id)
+      .is('api_id', null)
+      .limit(5)
+
+    if (!unlinked?.length) continue
+
+    // Fetch squad from api-football
+    const res = await fetch(`${API_BASE}/players/squads?team=${team.api_id}`, {
+      headers: { 'x-apisports-key': API_KEY },
+      next: { revalidate: 0 },
+    })
+    const data = await res.json()
+    const apiPlayers = (data.response?.[0]?.players ?? []).slice(0, 5).map((p: any) => ({
+      id: p.id, name: p.name, norm: norm(p.name),
+    }))
+
+    sample = {
+      team: team.name,
+      api_id: team.api_id,
+      unlinkedInDb: unlinked.map(p => ({ name: p.name, norm: norm(p.name) })),
+      apiSquadSample: apiPlayers,
+      apiSquadTotal: data.response?.[0]?.players?.length ?? 0,
+    }
+    break
+  }
+
+  return NextResponse.json({ teamsWithApiId, totalUnlinked, sample })
 }
 
 export async function POST() {
