@@ -277,6 +277,7 @@ export default function GroupsPageClient({
   lastSynced,
 }: Props) {
   const [tab, setTab] = useState<'groups' | 'finals' | 'scorers'>('groups')
+  const [standingsView, setStandingsView] = useState<'real' | 'predicted'>('real')
   const [scorerPage, setScorerPage] = useState(0)
   const [showMySquad, setShowMySquad] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -339,6 +340,7 @@ export default function GroupsPageClient({
           borderBottom: '2px solid #e0dbd3',
           display: 'flex',
           overflowX: 'auto',
+          overflowY: 'hidden',
           marginBottom: '2rem',
         }}
       >
@@ -355,32 +357,94 @@ export default function GroupsPageClient({
 
       {/* ── Group Stage tab ── */}
       {tab === 'groups' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {groupData.map(gd => (
-            <div key={gd.letter}>
-              {/* Group header */}
-              <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-                <span
-                  className="w-9 h-9 flex items-center justify-center text-base text-white flex-shrink-0"
-                  style={{ background: '#141414', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
-                >
-                  {gd.letter}
-                </span>
-                <h2
-                  className="text-2xl"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-                >
-                  Group {gd.letter}
-                </h2>
-              </div>
-
-              <StandingsTable
-                standings={gd.realStandings}
-                predictedStandings={gd.predictedStandings.length > 0 ? gd.predictedStandings : undefined}
-              />
+        <>
+          {/* Real / My Prediction toggle */}
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xs uppercase tracking-wider font-semibold" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              Standings:
+            </span>
+            <div style={{ display: 'flex', border: '1px solid #e0dbd3', background: '#faf9f6' }}>
+              <button
+                onClick={() => setStandingsView('real')}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'Inter, sans-serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: standingsView === 'real' ? '#141414' : 'transparent',
+                  color: standingsView === 'real' ? '#ffffff' : '#6b6b6b',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Real
+              </button>
+              <button
+                onClick={() => setStandingsView('predicted')}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'Inter, sans-serif',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  border: 'none',
+                  borderLeft: '1px solid #e0dbd3',
+                  cursor: 'pointer',
+                  background: standingsView === 'predicted' ? '#ff5c35' : 'transparent',
+                  color: standingsView === 'predicted' ? '#ffffff' : '#6b6b6b',
+                  transition: 'all 0.15s',
+                }}
+              >
+                My Prediction
+              </button>
             </div>
-          ))}
-        </div>
+            {standingsView === 'predicted' && (
+              <span className="text-xs" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                Based on your predicted match scores
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            {groupData.map(gd => {
+              const hasPred = gd.predictedStandings.length > 0
+              const primary   = standingsView === 'predicted' && hasPred
+                ? gd.predictedStandings
+                : gd.realStandings
+              const secondary = standingsView === 'real' && hasPred
+                ? gd.predictedStandings
+                : undefined
+
+              return (
+                <div key={gd.letter}>
+                  <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
+                    <span
+                      className="w-9 h-9 flex items-center justify-center text-base text-white flex-shrink-0"
+                      style={{ background: '#141414', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
+                    >
+                      {gd.letter}
+                    </span>
+                    <h2
+                      className="text-2xl"
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
+                    >
+                      Group {gd.letter}
+                    </h2>
+                  </div>
+
+                  <StandingsTable
+                    standings={primary}
+                    predictedStandings={secondary}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {/* ── Finals tab ── */}
