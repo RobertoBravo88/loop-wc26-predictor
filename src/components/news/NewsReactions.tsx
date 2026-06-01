@@ -3,10 +3,21 @@
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
-import data from '@emoji-mart/data'
 
-// Lazy-load the picker client-side only — emoji-mart doesn't support SSR
-const Picker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
+// Both the picker AND the data are loaded client-side only.
+// Bundling them together inside the dynamic import keeps them off the server.
+const Picker = dynamic(
+  async () => {
+    const [{ default: EmojiPicker }, { default: emojiData }] = await Promise.all([
+      import('@emoji-mart/react'),
+      import('@emoji-mart/data'),
+    ])
+    return function BoundPicker(props: any) {
+      return <EmojiPicker data={emojiData} {...props} />
+    }
+  },
+  { ssr: false }
+)
 
 interface Reaction {
   id: string
@@ -183,7 +194,6 @@ export default function NewsReactions({ postId, userId, initialReactions }: Prop
               boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             }}>
               <Picker
-                data={data}
                 onEmojiSelect={handlePickerSelect}
                 theme="light"
                 previewPosition="none"
