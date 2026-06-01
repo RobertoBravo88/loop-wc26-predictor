@@ -1,48 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { stageName } from '@/lib/utils'
-import { format } from 'date-fns'
 import type { Match, Team, GroupStanding, MatchStage } from '@/types'
+import GroupsPageClient from '@/components/groups/GroupsPageClient'
+import type { GroupData, KnockoutData, TopScorer } from '@/components/groups/GroupsPageClient'
 
 export const revalidate = 60
 
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
-
-// Official WC 2026 Round of 32 pairings, keyed by FIFA match number (73–88).
-// Source: FIFA World Cup 2026 official bracket / Wikipedia knockout stage article.
-// Slot format: 'X1' = Group X winner, 'X2' = Group X runner-up, '3rd' = best 3rd-place team.
-const R32_SLOT_MAP: Record<number, [string, string]> = {
-  73: ['A2', 'B2'],   // Runner-up A vs Runner-up B
-  74: ['E1', '3rd'],  // Winner E vs best 3rd (from A/B/C/D/F)
-  75: ['F1', 'C2'],   // Winner F vs Runner-up C
-  76: ['C1', 'F2'],   // Winner C vs Runner-up F
-  77: ['I1', '3rd'],  // Winner I vs best 3rd (from C/D/F/G/H)
-  78: ['E2', 'I2'],   // Runner-up E vs Runner-up I
-  79: ['A1', '3rd'],  // Winner A vs best 3rd (from C/E/F/H/I)
-  80: ['L1', '3rd'],  // Winner L vs best 3rd (from E/H/I/J/K)
-  81: ['D1', '3rd'],  // Winner D vs best 3rd (from B/E/F/I/J)
-  82: ['G1', '3rd'],  // Winner G vs best 3rd (from A/E/H/I/J)
-  83: ['K2', 'L2'],   // Runner-up K vs Runner-up L
-  84: ['H1', 'J2'],   // Winner H vs Runner-up J
-  85: ['B1', '3rd'],  // Winner B vs best 3rd (from E/F/G/I/J)
-  86: ['J1', 'H2'],   // Winner J vs Runner-up H
-  87: ['K1', '3rd'],  // Winner K vs best 3rd (from D/E/I/J/L)
-  88: ['D2', 'G2'],   // Runner-up D vs Runner-up G
-}
-
-function resolveSlot(slot: string, leaders: Map<string, { p1?: string; p2?: string; complete: boolean }>): { label: string; team?: string; confirmed: boolean } {
-  if (!slot || slot === '3rd') return { label: 'Best 3rd place', confirmed: false }
-  const m = slot.match(/^([A-L])([12])$/)
-  if (!m) return { label: slot, confirmed: false }
-  const group = m[1], pos = m[2]
-  const g = leaders.get(group)
-  const team = pos === '1' ? g?.p1 : g?.p2
-  return {
-    label: `Group ${group} ${pos === '1' ? 'winner' : 'runner-up'}`,
-    team,
-    confirmed: g?.complete ?? false,
-  }
-}
 
 function computeStandings(matches: Match[], teams: Team[]): GroupStanding[] {
   const table = new Map<string, GroupStanding>()
@@ -104,184 +68,6 @@ function computePredictedStandings(matches: Match[], teams: Team[], predictions:
   )
 }
 
-function StandingsTable({ standings, predictedStandings }: {
-  standings: GroupStanding[]
-  predictedStandings?: GroupStanding[]
-}) {
-  const hasPred = !!predictedStandings && predictedStandings.length > 0
-
-  // Build lookup maps from predicted standings
-  const predRankMap = new Map<string, number>()   // teamId → predicted rank (1-based)
-  const predPtsMap  = new Map<string, number>()   // teamId → predicted points
-  if (hasPred) {
-    predictedStandings!.forEach((row, i) => {
-      predRankMap.set(row.team.id, i + 1)
-      predPtsMap.set(row.team.id, row.points)
-    })
-  }
-
-  const thStyle = { color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }
-
-  return (
-    <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
-      <table className="w-full text-sm">
-        <thead>
-          <tr style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
-            <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={thStyle}>Team</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>P</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>W</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>D</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center hidden sm:table-cell" style={thStyle}>L</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>GD</th>
-            <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={thStyle}>Pts</th>
-            {hasPred && (
-              <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-center" style={{ ...thStyle, color: '#ff5c35' }}>
-                My pts
-              </th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {standings.map((row, i) => {
-            const actualRank = i + 1
-            const predRank   = predRankMap.get(row.team.id)
-            const predPts    = predPtsMap.get(row.team.id)
-            // positive delta → team is doing BETTER than you predicted (↑ green)
-            // negative delta → team is doing WORSE than you predicted (↓ red)
-            const delta = predRank != null ? predRank - actualRank : null
-
-            return (
-              <tr
-                key={row.team.id}
-                style={{
-                  borderBottom: '1px solid #e0dbd3',
-                  background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                  borderLeft: i < 2 ? '3px solid #22c55e' : '3px solid transparent',
-                }}
-              >
-                {/* Team name + flag + rank delta */}
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs w-4 flex-shrink-0 text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{actualRank}</span>
-                    {row.team.flag_url && (
-                      <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
-                    )}
-                    <span className="font-medium text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                      {row.team.name}
-                    </span>
-                    {/* Rank delta badge — only shown when predictions exist */}
-                    {delta !== null && delta !== 0 && (
-                      <span
-                        className="flex-shrink-0 text-xs font-bold"
-                        style={{ color: delta > 0 ? '#16a34a' : '#dc2626', fontFamily: 'Inter, sans-serif' }}
-                      >
-                        {delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`}
-                      </span>
-                    )}
-                    {delta === 0 && (
-                      <span className="flex-shrink-0 text-xs" style={{ color: '#22c55e', fontFamily: 'Inter, sans-serif' }}>✓</span>
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.played}</td>
-                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.won}</td>
-                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.drawn}</td>
-                <td className="px-2 py-2.5 text-center text-sm hidden sm:table-cell" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{row.lost}</td>
-                <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
-                </td>
-
-                {/* Actual points */}
-                <td className="px-2 py-2.5 text-center text-sm font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                  {row.points}
-                </td>
-
-                {/* Predicted points */}
-                {hasPred && (
-                  <td className="px-2 py-2.5 text-center text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                    {predPts ?? '–'}
-                  </td>
-                )}
-              </tr>
-            )
-          })}
-          {!standings.length && (
-            <tr>
-              <td colSpan={hasPred ? 8 : 7} className="px-4 py-6 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                No data yet
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-interface SlotInfo { label: string; team?: string; confirmed: boolean }
-
-function TeamRow({ match, side, slot, finished }: {
-  match: Match
-  side: 'home' | 'away'
-  slot?: SlotInfo
-  finished: boolean
-}) {
-  const team = side === 'home' ? match.home_team : match.away_team
-  const score = side === 'home' ? match.home_score : match.away_score
-  const oppScore = side === 'home' ? match.away_score : match.home_score
-  const won = finished && score !== null && oppScore !== null && score > oppScore
-
-  if (team) {
-    return (
-      <div className="flex items-center gap-1.5 px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', color: won ? '#141414' : '#6b6b6b', fontWeight: won ? 600 : 400 }}>
-        {team.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-contain flex-shrink-0" />}
-        <span className="truncate flex-1">{team.name}</span>
-        {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{score}</span>}
-      </div>
-    )
-  }
-
-  // No team yet — show slot label + current leader
-  return (
-    <div className="px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', minHeight: '32px' }}>
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs font-semibold" style={{ color: '#141414' }}>{slot?.label ?? 'TBD'}</span>
-      </div>
-      {slot?.team && (
-        <div className="text-xs mt-0.5 truncate" style={{ color: slot.confirmed ? '#141414' : '#b0a99f', fontStyle: slot.confirmed ? 'normal' : 'italic' }}>
-          {slot.confirmed ? '✓ ' : ''}{slot.team}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function MatchNode({ match, userPick, homeSlot, awaySlot }: {
-  match: Match
-  userPick?: { h: number; a: number }
-  homeSlot?: SlotInfo
-  awaySlot?: SlotInfo
-}) {
-  const finished = match.status === 'finished'
-  const hasTeams = match.home_team && match.away_team
-  return (
-    <div className="w-full text-xs" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
-      <div style={{ borderBottom: '1px solid #e0dbd3' }}>
-        <TeamRow match={match} side="home" slot={homeSlot} finished={finished} />
-      </div>
-      <div style={{ borderBottom: userPick && hasTeams ? '1px solid #e0dbd3' : 'none' }}>
-        <TeamRow match={match} side="away" slot={awaySlot} finished={finished} />
-      </div>
-      {userPick && hasTeams && (
-        <div className="px-3 py-1.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Your call: {userPick.h}–{userPick.a}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default async function GroupsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -291,15 +77,20 @@ export default async function GroupsPage() {
     { data: matches },
     { data: knockoutMatches },
     { data: lastSyncRow },
+    { data: goalEventsRaw },
   ] = await Promise.all([
     supabase.from('teams').select('*').order('name'),
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').eq('stage', 'group').order('kickoff_at'),
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('goal_events')
+      .select('player_id, team_id, player:players(id, name), team:teams(name, flag_url)')
+      .eq('is_own_goal', false),
   ])
 
   const lastSynced = lastSyncRow?.result_fetched_at ?? null
 
+  // Fetch predictions for the logged-in user
   const predictionMap = new Map<string, { h: number; a: number }>()
   if (user) {
     const groupIds = (matches ?? []).map(m => m.id)
@@ -312,11 +103,45 @@ export default async function GroupsPage() {
     for (const p of preds ?? []) predictionMap.set(p.match_id, { h: p.predicted_home, a: p.predicted_away })
   }
 
-  const byStage = new Map<MatchStage, Match[]>()
-  for (const m of (knockoutMatches as Match[] ?? [])) {
-    if (!byStage.has(m.stage)) byStage.set(m.stage, [])
-    byStage.get(m.stage)!.push(m)
+  // Fetch scorer picks for the logged-in user
+  let scorerPicksData: { player_id: string }[] = []
+  if (user) {
+    const { data } = await supabase
+      .from('scorer_picks')
+      .select('player_id')
+      .eq('user_id', user.id)
+    scorerPicksData = data ?? []
   }
+
+  // Aggregate goal events into topScorers
+  const scorerMap = new Map<string, TopScorer>()
+  for (const ge of goalEventsRaw ?? []) {
+    const playerId = (ge as any).player_id
+    if (!playerId || !(ge as any).player) continue
+    const player = (ge as any).player
+    const team = (ge as any).team
+    if (scorerMap.has(playerId)) {
+      scorerMap.get(playerId)!.goals++
+    } else {
+      scorerMap.set(playerId, {
+        id: playerId,
+        name: player.name,
+        teamName: (team?.name ?? ''),
+        flagUrl: (team?.flag_url ?? null),
+        goals: 1,
+        isMyPick: false,
+      })
+    }
+  }
+  const myPickIds = new Set((scorerPicksData ?? []).map((p: any) => p.player_id))
+  for (const [id, scorer] of scorerMap) {
+    scorer.isMyPick = myPickIds.has(id)
+  }
+  const topScorers: TopScorer[] = Array.from(scorerMap.values()).sort((a, b) => b.goals - a.goals)
+
+  // Convert Maps to plain objects for client component
+  const predictionObj: Record<string, { h: number; a: number }> = {}
+  for (const [k, v] of predictionMap) predictionObj[k] = v
 
   const allTeams = (teams ?? []) as Team[]
   const allMatches = (matches ?? []) as Match[]
@@ -337,158 +162,63 @@ export default async function GroupsPage() {
   }
 
   // Build group leaders map for bracket slot labels
-  const groupLeaders = new Map<string, { p1?: string; p2?: string; complete: boolean }>()
+  const groupLeadersMap = new Map<string, { p1?: string; p2?: string; complete: boolean }>()
   for (const g of GROUPS) {
     const groupTeams = teamsByGroup.get(g) ?? []
     const groupMatches = matchesByGroup.get(g) ?? []
     const standings = computeStandings(groupMatches, groupTeams)
     const complete = groupMatches.length > 0 && groupMatches.every(m => m.status === 'finished')
-    groupLeaders.set(g, { p1: standings[0]?.team.name, p2: standings[1]?.team.name, complete })
+    groupLeadersMap.set(g, { p1: standings[0]?.team.name, p2: standings[1]?.team.name, complete })
   }
 
+  // Convert groupLeaders map to plain object
+  const groupLeadersObj: Record<string, { p1?: string; p2?: string; complete: boolean }> = {}
+  for (const [k, v] of groupLeadersMap) groupLeadersObj[k] = v
+
+  // Build groupData array
+  const groupData: GroupData[] = GROUPS.map(g => {
+    const groupTeams = teamsByGroup.get(g) ?? []
+    const groupMatches = matchesByGroup.get(g) ?? []
+    const realStandings = computeStandings(groupMatches, groupTeams)
+
+    const groupPredictionMap = new Map<string, { h: number; a: number }>()
+    for (const m of groupMatches) {
+      const pred = predictionMap.get(m.id)
+      if (pred) groupPredictionMap.set(m.id, pred)
+    }
+    const hasPredictions = groupPredictionMap.size > 0
+    const predictedStandings = user && hasPredictions
+      ? computePredictedStandings(groupMatches, groupTeams, groupPredictionMap)
+      : []
+
+    return {
+      letter: g,
+      matches: groupMatches,
+      realStandings,
+      predictedStandings,
+    }
+  })
+
+  // Build knockoutData array
+  const byStage = new Map<MatchStage, Match[]>()
+  for (const m of (knockoutMatches as Match[] ?? [])) {
+    if (!byStage.has(m.stage)) byStage.set(m.stage, [])
+    byStage.get(m.stage)!.push(m)
+  }
+
+  const knockoutData: KnockoutData[] = KNOCKOUT_STAGES.map(stage => ({
+    stage,
+    matches: byStage.get(stage) ?? [],
+  }))
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-      {/* Page header */}
-      <div className="mb-10 pb-4" style={{ borderBottom: '2px solid #141414' }}>
-        <h1
-          className="text-4xl"
-          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
-        >
-          Tournament
-        </h1>
-        <p className="text-xs uppercase tracking-wider mt-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Group standings &amp; knockout bracket
-          {lastSynced && (
-            <span style={{ color: '#c4bfb8' }}> &middot; Last updated {format(new Date(lastSynced), 'd MMM · HH:mm')}</span>
-          )}
-        </p>
-      </div>
-
-      {/* All groups grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {GROUPS.map(g => {
-          const groupTeams = teamsByGroup.get(g) ?? []
-          const groupMatches = matchesByGroup.get(g) ?? []
-
-          const realStandings = computeStandings(groupMatches, groupTeams)
-
-          const groupPredictionMap = new Map<string, { h: number; a: number }>()
-          for (const m of groupMatches) {
-            const pred = predictionMap.get(m.id)
-            if (pred) groupPredictionMap.set(m.id, pred)
-          }
-          const hasPredictions = groupPredictionMap.size > 0
-          const predictedStandings = user && hasPredictions
-            ? computePredictedStandings(groupMatches, groupTeams, groupPredictionMap)
-            : []
-
-          return (
-            <div key={g}>
-              {/* Group header */}
-              <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-                <span
-                  className="w-9 h-9 flex items-center justify-center text-base text-white flex-shrink-0"
-                  style={{ background: '#141414', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
-                >
-                  {g}
-                </span>
-                <h2
-                  className="text-2xl"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
-                >
-                  Group {g}
-                </h2>
-              </div>
-
-              {/* Single combined standings table */}
-              <StandingsTable
-                standings={realStandings}
-                predictedStandings={user && hasPredictions ? predictedStandings : undefined}
-              />
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Knockout Bracket */}
-      <div className="mt-16">
-        <div className="mb-8 pb-4" style={{ borderBottom: '2px solid #141414' }}>
-          <h2
-            className="text-3xl"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, color: '#141414' }}
-          >
-            Knockout Stage
-          </h2>
-          <p className="text-xs uppercase tracking-wider mt-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            Your picks vs. reality · scroll right to see all rounds
-          </p>
-        </div>
-
-        <div className="overflow-x-auto pb-6">
-          <div className="flex items-start gap-4" style={{ minWidth: 'max-content' }}>
-            {KNOCKOUT_STAGES.map(stage => {
-              const stageMatches = byStage.get(stage) ?? []
-              // Column width varies by stage — R32 and R16 are wider to hold slot labels
-              const colWidth = stage === 'round_of_32' || stage === 'round_of_16' ? 200 : 180
-
-              return (
-                <div key={stage} style={{ width: `${colWidth}px`, flexShrink: 0 }}>
-                  {/* Stage header */}
-                  <div
-                    className="px-3 py-1.5 mb-3 text-center text-xs font-bold uppercase tracking-wider"
-                    style={{
-                      background: '#141414',
-                      color: '#ffffff',
-                      fontFamily: 'Inter, sans-serif',
-                    }}
-                  >
-                    {stageName(stage)}
-                  </div>
-
-                  {/* Matches */}
-                  {stageMatches.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {stageMatches.map((match) => {
-                        let homeSlot: SlotInfo | undefined
-                        let awaySlot: SlotInfo | undefined
-                        if (stage === 'round_of_32' && match.match_number != null) {
-                          const slots = R32_SLOT_MAP[match.match_number]
-                          if (slots) {
-                            homeSlot = resolveSlot(slots[0], groupLeaders)
-                            awaySlot = resolveSlot(slots[1], groupLeaders)
-                          }
-                        }
-                        return (
-                          <MatchNode
-                            key={match.id}
-                            match={match}
-                            userPick={predictionMap.get(match.id)}
-                            homeSlot={homeSlot}
-                            awaySlot={awaySlot}
-                          />
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div
-                      className="flex items-center justify-center text-xs uppercase tracking-wider py-6"
-                      style={{
-                        border: '1px dashed #e0dbd3',
-                        color: '#c4bfb8',
-                        fontFamily: 'Inter, sans-serif',
-                        minHeight: '60px',
-                      }}
-                    >
-                      TBD
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
+    <GroupsPageClient
+      groupData={groupData}
+      knockoutData={knockoutData}
+      predictionMap={predictionObj}
+      groupLeaders={groupLeadersObj}
+      topScorers={topScorers}
+      lastSynced={lastSynced}
+    />
   )
 }
