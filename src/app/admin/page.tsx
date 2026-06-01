@@ -134,10 +134,9 @@ export default async function AdminPage() {
           <AdminSyncButton endpoint="/api/sync/results"  label="Sync results now" variant="primary" />
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
-          <AdminSyncButton endpoint="/api/sync/players-wikipedia" label="Import from Wikipedia" />
-          <AdminSyncButton endpoint="/api/sync/players-wc" label="Sync WC players (from Jun 11)" batched />
+          <AdminSyncButton endpoint="/api/admin/import-squads" label="Reset & Import WC26 Squads" variant="primary" />
           <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Import pulls the official 48 squads from Wikipedia. After importing, use the linker below to connect players to their API id.
+            ⚠️ Wipes all players and squad picks — then imports the built-in WC 2026 squad list. Run once before the tournament.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
