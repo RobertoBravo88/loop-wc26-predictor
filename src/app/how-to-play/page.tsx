@@ -132,7 +132,7 @@ export default function HowToPlayPage() {
               className="text-xl mb-1 pb-2"
               style={{ fontFamily: serif, fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
             >
-              🤫 Your Loop Confession
+              ⭐ 12th Man Bonus
             </h2>
             <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
               This one&apos;s about heart, not strategy. Pick the team you actually support — the one that makes you nervous, the one you&apos;ve been defending in the office for years.
@@ -149,7 +149,7 @@ export default function HowToPlayPage() {
                 <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 points</span>
                 {' '}every time your player scores a goal
               </li>
-              <li>For your player, pick someone from your team — someone you&apos;re genuinely riding with all tournament.</li>
+              <li>Your player <span style={{ fontWeight: 700 }}>must be from your team</span> — someone you&apos;re genuinely riding with all tournament.</li>
               <li>These picks are hidden from everyone else until June 11. Then they&apos;re all revealed at once.</li>
               <li>The further your team goes, the more goals — and the more bonus points you rack up.</li>
             </ul>
@@ -197,8 +197,8 @@ export default function HowToPlayPage() {
                     { action: 'Runner-up pick', points: '200 pts', highlight: true },
                     { action: '3rd place pick', points: '100 pts', highlight: false },
                     { action: "Golden Boots pick (per goal, up to 5 picks)", points: '10 pts', highlight: true },
-                    { action: 'Favourite team goal', points: '10 pts', highlight: false },
-                    { action: 'Favourite player goal', points: '10 pts', highlight: true },
+                    { action: '12th Man Bonus — team goal', points: '10 pts', highlight: false },
+                    { action: '12th Man Bonus — player goal', points: '10 pts', highlight: true },
                   ].map(({ action, points, highlight }, i) => (
                     <tr
                       key={i}

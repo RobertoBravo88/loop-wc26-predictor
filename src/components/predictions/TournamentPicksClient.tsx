@@ -116,8 +116,8 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   // Players for the currently selected team in the add flow
   const addingTeamPlayers = players.filter(p => p.team_id === addingTeam)
 
-  // Players for favourite player team
-  const favPlayerTeamPlayers = players.filter(p => p.team_id === favPlayerTeam)
+  // Players from the selected favourite team only
+  const favPlayerTeamPlayers = players.filter(p => p.team_id === favTeam)
 
   // Helper: get team info from teams array
   function getTeam(teamId: string) {
@@ -449,7 +449,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             className="text-xl"
             style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414' }}
           >
-            🤫 Your Loop Confession
+            ⭐ 12th Man Bonus
           </h2>
         </div>
         <p className="text-sm mt-3 mb-1" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
@@ -472,7 +472,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             </label>
             <select
               value={favTeam}
-              onChange={e => { const v = e.target.value; setFavTeam(v); triggerSecretsSave(v, favPlayer) }}
+              onChange={e => { const v = e.target.value; setFavTeam(v); setFavPlayer(''); triggerSecretsSave(v, '') }}
               disabled={locked}
               style={{ ...selectStyle, opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
             >
@@ -483,33 +483,36 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             </select>
           </div>
 
-          {/* Favourite player — two-step */}
+          {/* Favourite player — from your team only */}
           <div>
             <label
               className="block mb-1.5 uppercase tracking-wider"
               style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
             >
-              Your player — ideally from your team &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
+              Your player — from your team only &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
             </label>
 
-            {/* Show current selection if already picked */}
-            {favPlayer && !locked ? (
+            {locked ? (
+              <p className="text-xs uppercase tracking-wider py-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                {favPlayerId ? players.find(p => p.id === favPlayerId)?.name ?? '—' : 'Not set'}
+              </p>
+            ) : !favTeam ? (
+              <p className="text-xs py-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                Pick your team first
+              </p>
+            ) : favPlayer ? (
               <div
-                className="flex items-center gap-3 px-3 py-2 mb-2"
+                className="flex items-center gap-3 px-3 py-2"
                 style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
               >
-                {getTeam(favPlayerTeam || (players.find(p => p.id === favPlayer)?.team_id ?? ''))?.flag_url && (
-                  <img
-                    src={getTeam(favPlayerTeam || (players.find(p => p.id === favPlayer)?.team_id ?? ''))!.flag_url!}
-                    alt=""
-                    className="w-6 h-4 object-contain flex-shrink-0"
-                  />
+                {getTeam(favTeam)?.flag_url && (
+                  <img src={getTeam(favTeam)!.flag_url!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 )}
                 <span className="flex-1 text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                   {players.find(p => p.id === favPlayer)?.name ?? '—'}
                 </span>
                 <button
-                  onClick={() => { setFavPlayer(''); setFavPlayerTeam(''); triggerSecretsSave(favTeam, '') }}
+                  onClick={() => { setFavPlayer(''); triggerSecretsSave(favTeam, '') }}
                   className="flex-shrink-0"
                   style={{ color: '#6b6b6b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   aria-label="Clear player"
@@ -517,51 +520,23 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : null}
-
-            {(!favPlayer || locked) && (
-              <>
-                {/* Step 1: country */}
-                <select
-                  value={favPlayerTeam}
-                  onChange={e => { setFavPlayerTeam(e.target.value); setFavPlayer('') }}
-                  disabled={locked}
-                  style={{ ...selectStyle, marginBottom: '0.5rem', opacity: locked ? 0.5 : 1, cursor: locked ? 'not-allowed' : 'default' }}
-                >
-                  <option value="">Select a country…</option>
-                  {teams.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-
-                {/* Step 2: player */}
-                {favPlayerTeam && !locked && (
-                  favPlayerTeamPlayers.length === 0 ? (
-                    <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                      Squads not loaded yet
-                    </p>
-                  ) : (
-                    <select
-                      value={favPlayer}
-                      onChange={e => { const v = e.target.value; setFavPlayer(v); triggerSecretsSave(favTeam, v) }}
-                      style={selectStyle}
-                    >
-                      <option value="">Pick a player…</option>
-                      {favPlayerTeamPlayers.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}{p.position ? ` · ${p.position}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )
-                )}
-
-                {locked && (
-                  <p className="text-xs uppercase tracking-wider" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                    {favPlayerId ? players.find(p => p.id === favPlayerId)?.name ?? '—' : 'Not set'}
-                  </p>
-                )}
-              </>
+            ) : favPlayerTeamPlayers.length === 0 ? (
+              <p className="text-xs py-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                Squad not loaded yet
+              </p>
+            ) : (
+              <select
+                value={favPlayer}
+                onChange={e => { const v = e.target.value; setFavPlayer(v); triggerSecretsSave(favTeam, v) }}
+                style={selectStyle}
+              >
+                <option value="">Pick a player from {getTeam(favTeam)?.name ?? 'your team'}…</option>
+                {favPlayerTeamPlayers.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.position ? ` · ${p.position}` : ''}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
         </div>

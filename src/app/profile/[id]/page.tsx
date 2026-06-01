@@ -156,7 +156,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               borderBottom: '1px solid #e0dbd3'
             }}
           >
-            <Star className="w-4 h-4" style={{ color: '#6b6b6b' }} /> Secret Bonus Picks
+            <Star className="w-4 h-4" style={{ color: '#6b6b6b' }} /> 12th Man Bonus
           </h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
