@@ -44,8 +44,12 @@ export async function POST() {
       }
     }
 
+    const unmatchedMsg = unmatched.length
+      ? ` | Unmatched: ${unmatched.join(', ')}`
+      : ''
+
     return NextResponse.json({
-      message: `Matched ${matched.length} / ${apiTeams.length} teams`,
+      message: `Matched ${matched.length} / ${apiTeams.length} teams${unmatchedMsg}`,
       matched,
       unmatched,
     })
