@@ -272,7 +272,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
 
   // Recalculate scorer_picks.goals_counted from scratch for every player
   // who scored in this match — keeps the counts accurate after re-runs
-  const scoringPlayerIds = [...new Set(goals.filter(g => g.player_id).map(g => g.player_id as string))]
+  const scoringPlayerIds = [...new Set(goals.filter((g: any) => g.player_id).map((g: any) => g.player_id as string))]
   for (const playerId of scoringPlayerIds) {
     const { count } = await supabase
       .from('goal_events')
