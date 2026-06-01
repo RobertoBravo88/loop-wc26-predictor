@@ -5,6 +5,13 @@ import { fetchTeams } from '@/lib/api-football/client'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+// Maps API team names → DB team names where they differ
+const NAME_ALIASES: Record<string, string> = {
+  'Türkiye':              'Turkey',
+  'Bosnia & Herzegovina': 'Bosnia-Herzegovina',
+  'Congo DR':             'DR Congo',
+}
+
 export async function POST() {
   const supabase = createServiceClient()
 
@@ -25,14 +32,17 @@ export async function POST() {
       const apiId   = teamInfo.id
       const apiName = teamInfo.name
 
-      // Try exact match (case-insensitive)
-      let dbTeam = dbTeams.find(t => t.name.toLowerCase() === apiName.toLowerCase())
+      // Resolve alias if name differs between API and DB
+      const lookupName = NAME_ALIASES[apiName] ?? apiName
 
-      // Fallback: partial match (api name is contained in db name or vice versa)
+      // Try exact match (case-insensitive)
+      let dbTeam = dbTeams.find(t => t.name.toLowerCase() === lookupName.toLowerCase())
+
+      // Fallback: partial match
       if (!dbTeam) {
         dbTeam = dbTeams.find(t =>
-          t.name.toLowerCase().includes(apiName.toLowerCase()) ||
-          apiName.toLowerCase().includes(t.name.toLowerCase())
+          t.name.toLowerCase().includes(lookupName.toLowerCase()) ||
+          lookupName.toLowerCase().includes(t.name.toLowerCase())
         )
       }
 
