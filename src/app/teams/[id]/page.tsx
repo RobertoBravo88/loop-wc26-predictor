@@ -299,93 +299,93 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      {/* ── Group standings table ──────────────────────── */}
-      {standings.length > 0 && (
-        <div className="mb-6" style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
-          <div className="px-5 py-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-            <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-              Group {team.group_letter} Standings
-            </h2>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr style={{ background: '#faf9f6', borderBottom: '1px solid #e0dbd3' }}>
-                {[
-                  { label: '#',   align: 'center' },
-                  { label: 'Team', align: 'left'   },
-                  { label: 'P',   align: 'center' },
-                  { label: 'W',   align: 'center' },
-                  { label: 'D',   align: 'center' },
-                  { label: 'L',   align: 'center' },
-                  { label: 'GD',  align: 'center' },
-                  { label: 'Pts', align: 'center' },
-                ].map(h => (
-                  <th
-                    key={h.label}
-                    className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider text-${h.align}`}
-                    style={{ color: '#6b6b6b', fontFamily: sans }}
-                  >
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {standings.map((row, i) => {
-                const isThis = row.team.id === id
-                return (
-                  <tr
-                    key={row.team.id}
-                    style={{
-                      borderBottom: '1px solid #e0dbd3',
-                      background: isThis ? '#fff8f0' : i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                      borderLeft: isThis
-                        ? '3px solid #ff5c35'
-                        : i < 2
-                        ? '3px solid #22c55e'
-                        : '3px solid transparent',
-                    }}
-                  >
-                    <td className="px-3 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{i + 1}</td>
-                    <td className="px-3 py-2.5">
-                      <Link href={`/teams/${row.team.id}`} className="flex items-center gap-2 group">
-                        {row.team.flag_url && (
-                          <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
-                        )}
-                        <span
-                          className="text-sm font-medium group-hover:underline"
-                          style={{ color: isThis ? '#ff5c35' : '#141414', fontFamily: sans }}
-                        >
-                          {row.team.name}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.played}</td>
-                    <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.won}</td>
-                    <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.drawn}</td>
-                    <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.lost}</td>
-                    <td className="px-2 py-2.5 text-center text-sm" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                      {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
-                    </td>
-                    <td
-                      className="px-2 py-2.5 text-center text-sm font-bold"
-                      style={{ color: isThis ? '#ff5c35' : '#141414', fontFamily: sans }}
-                    >
-                      {row.points}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* ── Standings + Matches grid ──────────────────────── */}
+      <div className={`grid grid-cols-1 gap-6 mb-6 ${standings.length > 0 ? 'lg:grid-cols-5' : ''}`}>
 
-      {/* ── Matches + Squad grid ───────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* ── Group standings (2/5) ── */}
+        {standings.length > 0 && (
+          <div className="lg:col-span-2" style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
+            <div className="px-5 py-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
+              <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+                Group {team.group_letter} Standings
+              </h2>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr style={{ background: '#faf9f6', borderBottom: '1px solid #e0dbd3' }}>
+                  {[
+                    { label: '#',    align: 'center' },
+                    { label: 'Team', align: 'left'   },
+                    { label: 'P',    align: 'center' },
+                    { label: 'W',    align: 'center' },
+                    { label: 'D',    align: 'center' },
+                    { label: 'L',    align: 'center' },
+                    { label: 'GD',   align: 'center' },
+                    { label: 'Pts',  align: 'center' },
+                  ].map(h => (
+                    <th
+                      key={h.label}
+                      className={`px-2 py-2 text-xs font-semibold uppercase tracking-wider text-${h.align}`}
+                      style={{ color: '#6b6b6b', fontFamily: sans }}
+                    >
+                      {h.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((row, i) => {
+                  const isThis = row.team.id === id
+                  return (
+                    <tr
+                      key={row.team.id}
+                      style={{
+                        borderBottom: '1px solid #e0dbd3',
+                        background: isThis ? '#fff8f0' : i % 2 === 0 ? '#ffffff' : '#faf9f6',
+                        borderLeft: isThis
+                          ? '3px solid #ff5c35'
+                          : i < 2
+                          ? '3px solid #22c55e'
+                          : '3px solid transparent',
+                      }}
+                    >
+                      <td className="px-2 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{i + 1}</td>
+                      <td className="px-2 py-2.5">
+                        <Link href={`/teams/${row.team.id}`} className="flex items-center gap-2 group">
+                          {row.team.flag_url && (
+                            <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
+                          )}
+                          <span
+                            className="text-xs font-medium group-hover:underline truncate"
+                            style={{ color: isThis ? '#ff5c35' : '#141414', fontFamily: sans }}
+                          >
+                            {row.team.name}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-1 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.played}</td>
+                      <td className="px-1 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.won}</td>
+                      <td className="px-1 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.drawn}</td>
+                      <td className="px-1 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>{row.lost}</td>
+                      <td className="px-1 py-2.5 text-center text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+                        {row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference}
+                      </td>
+                      <td
+                        className="px-1 py-2.5 text-center text-xs font-bold"
+                        style={{ color: isThis ? '#ff5c35' : '#141414', fontFamily: sans }}
+                      >
+                        {row.points}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* ── Matches (3/5) ── */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className={`${standings.length > 0 ? 'lg:col-span-3' : ''} space-y-6`}>
 
           {/* Group stage matches */}
           {groupMatches.length > 0 && (
@@ -428,20 +428,27 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
-        {/* ── Squad (2/5) ── */}
-        <div className="lg:col-span-2">
-          <h2
-            className="text-xs font-bold uppercase tracking-wider mb-3"
-            style={{ color: '#141414', fontFamily: sans }}
-          >
-            Squad {players.length > 0 && `(${players.length})`}
-          </h2>
-          <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+      </div>
+
+      {/* ── Squad — full width, one column per position ────── */}
+      <div>
+        <h2
+          className="text-xs font-bold uppercase tracking-wider mb-3"
+          style={{ color: '#141414', fontFamily: sans }}
+        >
+          Squad {players.length > 0 && `(${players.length})`}
+        </h2>
+        {players.length === 0 ? (
+          <div className="py-8 text-sm text-center" style={{ border: '1px solid #e0dbd3', color: '#6b6b6b', fontFamily: sans }}>
+            Squad not yet imported
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {POSITION_ORDER.map(pos => {
               const group = byPosition.get(pos) ?? []
               if (group.length === 0) return null
               return (
-                <div key={pos}>
+                <div key={pos} style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
                   {/* Position header */}
                   <div
                     className="flex items-center justify-between px-4 py-2"
@@ -458,7 +465,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                   {group.map((p, i) => (
                     <div
                       key={p.id}
-                      className="flex items-center gap-3 px-4 py-2.5"
+                      className="flex items-center gap-2 px-3 py-2"
                       style={{
                         borderBottom: '1px solid #e0dbd3',
                         background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
@@ -470,7 +477,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                       >
                         {p.shirt_number ?? ''}
                       </span>
-                      <span className="text-sm flex-1" style={{ color: '#141414', fontFamily: sans }}>
+                      <span className="text-xs flex-1 leading-tight" style={{ color: '#141414', fontFamily: sans }}>
                         {p.name}
                       </span>
                     </div>
@@ -478,14 +485,8 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                 </div>
               )
             })}
-            {players.length === 0 && (
-              <div className="px-4 py-8 text-sm text-center" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                Squad not yet imported
-              </div>
-            )}
           </div>
-        </div>
-
+        )}
       </div>
     </div>
   )
