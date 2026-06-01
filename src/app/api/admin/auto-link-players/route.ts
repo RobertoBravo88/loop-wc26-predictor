@@ -60,7 +60,7 @@ export async function GET() {
     sample = {
       team: team.name,
       api_id: team.api_id,
-      unlinkedInDb: unlinked.map(p => ({ name: p.name, norm: norm(p.name) })),
+      unlinkedInDb: unlinked.map((p: { id: string; name: string }) => ({ name: p.name, norm: norm(p.name) })),
       apiSquadSample: apiPlayers,
       apiSquadTotal: data.response?.[0]?.players?.length ?? 0,
     }
