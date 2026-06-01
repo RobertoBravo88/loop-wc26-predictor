@@ -31,42 +31,41 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
   }
 
   return (
-    <header className="sticky top-0 z-50" style={{ background: '#141414', overflow: 'visible', position: 'relative' }}>
-
-      {/* Flag badge — absolutely positioned, anchored to right, overflows below navbar */}
-      {profile?.favourite_team?.flag_url && (
-        <div className="hidden md:block" style={{
-          position: 'absolute',
-          right: '16px',
-          top: '8px',
-          zIndex: 51,
-          pointerEvents: 'none',
-        }}>
-          <img
-            src={profile.favourite_team.flag_url}
-            alt={profile.favourite_team.name ?? ''}
-            style={{
-              width: '80px',
-              height: '72px',
-              objectFit: 'cover',
-              display: 'block',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-            }}
-          />
-        </div>
-      )}
-
+    <header className="sticky top-0 z-50" style={{ background: '#141414', overflow: 'visible' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-14" style={{ overflow: 'visible' }}>
 
-          {/* Logo */}
-          <Link
-            href="/"
-            className="text-white text-xl tracking-tight"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
-          >
-            Loop WC26
-          </Link>
+          {/* Logo + flag badge */}
+          <div className="flex items-center gap-4" style={{ overflow: 'visible' }}>
+            <Link
+              href="/"
+              className="text-white text-xl tracking-tight"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900 }}
+            >
+              Loop WC26
+            </Link>
+
+            {/* Flag — hangs below navbar, links to team page */}
+            {profile?.favourite_team?.flag_url && (
+              <Link
+                href={`/teams/${(profile.favourite_team as any).id}`}
+                className="hidden md:block flex-shrink-0"
+                style={{ overflow: 'visible', lineHeight: 0 }}
+              >
+                <img
+                  src={profile.favourite_team.flag_url}
+                  alt={profile.favourite_team.name ?? ''}
+                  style={{
+                    height: '68px',
+                    width: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                    transform: 'translateY(12px)',
+                  }}
+                />
+              </Link>
+            )}
+          </div>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-0">
@@ -109,8 +108,8 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
             )}
           </nav>
 
-          {/* Desktop user menu — flag is rendered absolutely above, not in flow */}
-          <div className="hidden md:flex items-center gap-4" style={{ paddingRight: '104px' }}>
+          {/* Desktop user menu */}
+          <div className="hidden md:flex items-center gap-4">
             {profile && (
               <>
                 <Link
