@@ -1,20 +1,38 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import NewsReactions from '@/components/news/NewsReactions'
 
-export const revalidate = 300
+export const revalidate = 60
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
 
 export default async function NewsPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: posts } = await supabase
     .from('news_posts')
     .select('*, author:profiles(display_name)')
     .eq('is_published', true)
     .order('published_at', { ascending: false })
+
+  // Load all reactions for all posts in one query
+  const postIds = (posts ?? []).map((p: any) => p.id)
+  const { data: allReactions } = postIds.length
+    ? await supabase
+        .from('news_reactions')
+        .select('id, emoji, user_id, post_id, profiles(display_name)')
+        .in('post_id', postIds)
+    : { data: [] }
+
+  // Group reactions by post_id
+  const reactionsByPost: Record<string, any[]> = {}
+  for (const r of allReactions ?? []) {
+    if (!reactionsByPost[r.post_id]) reactionsByPost[r.post_id] = []
+    reactionsByPost[r.post_id].push(r)
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -78,6 +96,17 @@ export default async function NewsPage() {
               >
                 Read more →
               </span>
+
+              {/* Reactions — stopPropagation so clicking doesn't navigate */}
+              {user && (
+                <div onClick={e => { e.preventDefault(); e.stopPropagation() }}>
+                  <NewsReactions
+                    postId={post.id}
+                    userId={user.id}
+                    initialReactions={reactionsByPost[post.id] ?? []}
+                  />
+                </div>
+              )}
             </div>
           </Link>
         ))}
