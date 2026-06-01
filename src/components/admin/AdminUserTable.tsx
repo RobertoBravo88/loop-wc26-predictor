@@ -23,7 +23,7 @@ export default function AdminUserTable({ users }: { users: (Profile & { favourit
       <table className="w-full text-sm">
         <thead>
           <tr className="text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
-            <th className="text-left px-6 py-2.5 font-medium">Player</th>
+            <th className="text-left px-6 py-2.5 font-medium">Looper</th>
             <th className="px-4 py-2.5 font-medium">Points</th>
             <th className="px-4 py-2.5 font-medium">Role</th>
             <th className="px-4 py-2.5 font-medium">Joined</th>

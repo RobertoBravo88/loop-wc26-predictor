@@ -550,7 +550,7 @@ export default function GroupsPageClient({
                   }}
                 >
                   <span className="w-8 text-center text-xs font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>#</span>
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Player</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Football player</span>
                   <span className="text-xs font-semibold uppercase tracking-wider text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>Goals</span>
                 </div>
 

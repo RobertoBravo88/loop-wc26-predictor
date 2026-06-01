@@ -53,7 +53,7 @@ export default async function LeaderboardPage() {
           style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
         >
           <span className="col-span-1 text-center">#</span>
-          <span className="col-span-5">Player</span>
+          <span className="col-span-5">Looper</span>
           <span className="col-span-2 text-center">Predicted</span>
           <span className="col-span-2 text-center">Exact</span>
           <span className="col-span-2 text-right">Points</span>

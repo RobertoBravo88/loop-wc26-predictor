@@ -79,7 +79,7 @@ export default async function AdminPage() {
       {/* Overview cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Players',       value: userCount ?? 0,    icon: Users,    color: '#3b82f6' },
+          { label: 'Loopers',       value: userCount ?? 0,    icon: Users,    color: '#3b82f6' },
           { label: 'Total matches', value: totalMatches,       icon: Trophy,   color: '#eab308' },
           { label: 'Finished',      value: finishedMatches,    icon: Trophy,   color: '#22c55e' },
           { label: 'Upcoming',      value: scheduledMatches,   icon: Settings, color: '#6b6b6b' },
@@ -156,7 +156,7 @@ export default async function AdminPage() {
             className="font-bold text-sm uppercase tracking-wider"
             style={{ color: '#141414', fontFamily: sans }}
           >
-            Players ({userCount ?? 0})
+            Loopers ({userCount ?? 0})
           </h2>
         </div>
         <AdminUserTable users={users ?? []} />
@@ -181,7 +181,7 @@ export default async function AdminPage() {
         <AdminPlayerLinker players={(unlinkedPlayers ?? []) as any} />
       </section>
 
-      {/* Players */}
+      {/* Squad players */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
         <div
           className="px-6 py-4 flex items-center gap-2"
@@ -192,7 +192,7 @@ export default async function AdminPage() {
             className="font-bold text-sm uppercase tracking-wider"
             style={{ color: '#141414', fontFamily: sans }}
           >
-            Players ({allPlayers?.length ?? 0})
+            Squad players ({allPlayers?.length ?? 0})
           </h2>
         </div>
         <AdminPlayersSection players={(allPlayers ?? []) as any} />
