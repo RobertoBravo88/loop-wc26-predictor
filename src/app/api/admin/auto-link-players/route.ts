@@ -105,9 +105,11 @@ export async function POST() {
     if (!apiPlayers.length) continue
 
     // Build lookup maps
-    const byExact  = new Map<string, number>()
-    const lastCount = new Map<string, number>()
-    const byLast   = new Map<string, number>()
+    const byExact    = new Map<string, number>()
+    const lastCount  = new Map<string, number>()
+    const byLast     = new Map<string, number>()
+    // Tier 3: "initial.surname" → api_id  (handles "K. Mbappé" ↔ "Kylian Mbappé")
+    const byInitialSurname = new Map<string, number>()
 
     for (const ap of apiPlayers) {
       const n    = norm(ap.name)
@@ -115,20 +117,36 @@ export async function POST() {
       byExact.set(n, ap.id)
       lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
       byLast.set(last, ap.id)
+
+      // Build initial+surname key from abbreviated API names like "k. mbappe"
+      const abbrMatch = n.match(/^([a-z])\.\s+(.+)$/)
+      if (abbrMatch) {
+        const initial = abbrMatch[1]
+        const surname = abbrMatch[2].split(' ').pop()!
+        byInitialSurname.set(`${initial}.${surname}`, ap.id)
+      }
     }
 
     let teamResolved = 0
     const skipped: string[] = []
 
     for (const player of unlinked) {
-      const n    = norm(player.name)
-      const last = n.split(' ').pop()!
+      const n     = norm(player.name)
+      const words = n.split(' ')
+      const last  = words[words.length - 1]
+      const first = words[0] ?? ''
 
       // Tier 1: exact normalised match
       let apiId: number | null = byExact.get(n) ?? null
-      // Tier 2: unique surname match (handles "K. Coman" ↔ "Kingsley Coman")
+
+      // Tier 2: unique surname match
       if (!apiId && (lastCount.get(last) ?? 0) === 1) {
         apiId = byLast.get(last) ?? null
+      }
+
+      // Tier 3: first initial + surname (catches "K. Mbappé" ↔ "Kylian Mbappé")
+      if (!apiId && first.length > 0) {
+        apiId = byInitialSurname.get(`${first[0]}.${last}`) ?? null
       }
 
       if (!apiId) { skipped.push(player.name); totalSkipped++; continue }
