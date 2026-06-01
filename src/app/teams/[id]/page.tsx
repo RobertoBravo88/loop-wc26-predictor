@@ -153,7 +153,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
   const { data: team } = await supabase
     .from('teams')
-    .select('*')
+    .select('*, manager')
     .eq('id', id)
     .single()
 
@@ -239,14 +239,19 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
             >
               {team.name}
             </h1>
-            {team.group_letter && (
-              <p className="text-sm mt-1.5 uppercase tracking-widest" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                Group {team.group_letter}
-                {myRank && (
-                  <span style={{ color: '#ff5c35' }}> · #{myRank} in group</span>
-                )}
-              </p>
-            )}
+            <p className="text-sm mt-1.5 uppercase tracking-widest" style={{ color: '#6b6b6b', fontFamily: sans }}>
+              {team.group_letter && (
+                <>
+                  Group {team.group_letter}
+                  {myRank && <span style={{ color: '#ff5c35' }}> · #{myRank} in group</span>}
+                </>
+              )}
+              {(team as any).manager && (
+                <span style={{ color: '#9ca3af' }}>
+                  {team.group_letter ? ' · ' : ''}Coach: {(team as any).manager}
+                </span>
+              )}
+            </p>
           </div>
 
           {/* W/D/L quick stats (desktop) */}

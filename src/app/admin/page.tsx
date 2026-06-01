@@ -7,6 +7,7 @@ import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminFinalistProcessor from '@/components/admin/AdminFinalistProcessor'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
+import AdminManagerEditor from '@/components/admin/AdminManagerEditor'
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
@@ -32,8 +33,8 @@ export default async function AdminPage() {
 
   const { data: allTeams } = await supabase
     .from('teams')
-    .select('*')
-    .order('name')
+    .select('*, manager')
+    .order('group_letter, name')
 
   const { data: allPlayers } = await supabase
     .from('players')
@@ -129,6 +130,16 @@ export default async function AdminPage() {
             Import pulls the official 48 squads from Wikipedia. After importing, use the linker below to connect players to their API id.
           </p>
         </div>
+      </section>
+
+      {/* Manager editor */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+            Team Managers
+          </h2>
+        </div>
+        <AdminManagerEditor teams={(allTeams ?? []) as any} />
       </section>
 
       {/* Finalist picks processor */}
