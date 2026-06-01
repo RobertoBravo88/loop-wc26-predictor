@@ -101,11 +101,12 @@ export async function POST() {
       lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
       byLast.set(last, ap.id)
 
-      // Build initial+surname key from abbreviated API names like "k. mbappe"
-      const abbrMatch = n.match(/^([a-z])\.\s+(.+)$/)
-      if (abbrMatch) {
-        const initial = abbrMatch[1]
-        const surname = abbrMatch[2].split(' ').pop()!
+      // After norm(), "H. Kane" → "h kane" (period stripped), "K. Mbappé" → "k mbappe"
+      // Detect abbreviated names by checking if the first word is a single letter
+      const apWords = n.split(' ')
+      if (apWords.length >= 2 && apWords[0].length === 1) {
+        const initial = apWords[0]
+        const surname = apWords[apWords.length - 1]  // last word = surname
         byInitialSurname.set(`${initial}.${surname}`, ap.id)
       }
     }
