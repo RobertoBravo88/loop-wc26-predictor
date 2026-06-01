@@ -13,13 +13,6 @@ const sans  = 'Inter, sans-serif'
 // Tournament starts June 11 2026 — fans are revealed from this date
 const TOURNAMENT_START = new Date('2026-06-11T00:00:00Z')
 
-const POSITION_ORDER = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
-const POSITION_SHORT: Record<string, string> = {
-  Goalkeeper: 'GK',
-  Defender:   'DF',
-  Midfielder: 'MF',
-  Forward:    'FW',
-}
 
 function computeStandings(matches: Match[], teams: Team[]): GroupStanding[] {
   const table = new Map<string, GroupStanding>()
@@ -208,14 +201,6 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const myStanding = standings.find(s => s.team.id === id)
   const myRank     = myStanding ? standings.indexOf(myStanding) + 1 : null
 
-  // Squad grouped by position
-  const byPosition = new Map<string, typeof players>()
-  for (const pos of POSITION_ORDER) byPosition.set(pos, [])
-  byPosition.set('Other', [])
-  for (const p of players) {
-    const pos = POSITION_ORDER.includes(p.position ?? '') ? p.position! : 'Other'
-    byPosition.get(pos)!.push(p)
-  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -445,7 +430,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
       </div>
 
-      {/* ── Squad — full width, one column per position ────── */}
+      {/* ── Squad ─────────────────────────────────────────── */}
       <div>
         <h2
           className="text-xs font-bold uppercase tracking-wider mb-3"
@@ -458,90 +443,70 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
             Squad not yet imported
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[...POSITION_ORDER, 'Other'].map(pos => {
-              const group = byPosition.get(pos) ?? []
-              if (group.length === 0) return null
-              return (
-                <div key={pos} style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
-                  {/* Position header */}
+          <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              {players.map((p, i) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-2.5 px-3 py-2"
+                  style={{ borderBottom: '1px solid #f0ede8' }}
+                >
+                  {/* Photo / initials avatar */}
                   <div
-                    className="flex items-center justify-between px-4 py-2.5"
-                    style={{ background: '#141414', borderBottom: '1px solid #2a2a2a' }}
+                    className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+                    style={{
+                      width: 32, height: 32,
+                      background: (p as any).photo_url ? 'transparent' : '#e0dbd3',
+                    }}
                   >
-                    <span className="text-xs font-bold uppercase tracking-widest text-white" style={{ fontFamily: sans }}>
-                      {POSITION_SHORT[pos]}
-                    </span>
-                    <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                      {group.length} {pos.toLowerCase()}s
-                    </span>
+                    {(p as any).photo_url ? (
+                      <img
+                        src={(p as any).photo_url}
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold" style={{ color: '#6b6b6b', fontFamily: sans }}>
+                        {p.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Player cards */}
-                  {group.map(p => (
+                  {/* Name + club */}
+                  <div className="flex-1 min-w-0">
                     <div
-                      key={p.id}
-                      className="flex items-center gap-2.5 px-3 py-2"
-                      style={{ borderBottom: '1px solid #f0ede8' }}
+                      className="text-xs font-semibold leading-tight truncate"
+                      style={{ color: '#141414', fontFamily: sans }}
                     >
-                      {/* Photo / initials avatar */}
-                      <div
-                        className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
-                        style={{
-                          width: 32, height: 32,
-                          background: (p as any).photo_url ? 'transparent' : '#e0dbd3',
-                        }}
-                      >
-                        {(p as any).photo_url ? (
-                          <img
-                            src={(p as any).photo_url}
-                            alt={p.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                            {p.name.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Name + club */}
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className="text-xs font-semibold leading-tight truncate"
-                          style={{ color: '#141414', fontFamily: sans }}
-                        >
-                          {p.shirt_number != null && (
-                            <span className="mr-1 font-normal" style={{ color: '#b0a99f' }}>
-                              {p.shirt_number}
-                            </span>
-                          )}
-                          {p.name}
-                        </div>
-                        {(p as any).club && (
-                          <div
-                            className="text-xs truncate leading-tight mt-0.5"
-                            style={{ color: '#6b6b6b', fontFamily: sans }}
-                          >
-                            {(p as any).club}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Age */}
-                      {(p as any).age && (
-                        <span
-                          className="flex-shrink-0 text-xs font-mono"
-                          style={{ color: '#b0a99f', fontFamily: sans }}
-                        >
-                          {(p as any).age}
+                      {p.shirt_number != null && (
+                        <span className="mr-1 font-normal" style={{ color: '#b0a99f' }}>
+                          {p.shirt_number}
                         </span>
                       )}
+                      {p.name}
                     </div>
-                  ))}
+                    {(p as any).club && (
+                      <div
+                        className="text-xs truncate leading-tight mt-0.5"
+                        style={{ color: '#6b6b6b', fontFamily: sans }}
+                      >
+                        {(p as any).club}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Age */}
+                  {(p as any).age && (
+                    <span
+                      className="flex-shrink-0 text-xs font-mono"
+                      style={{ color: '#b0a99f', fontFamily: sans }}
+                    >
+                      {(p as any).age}
+                    </span>
+                  )}
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
         )}
       </div>
