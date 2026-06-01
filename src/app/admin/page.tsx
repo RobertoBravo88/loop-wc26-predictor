@@ -6,6 +6,7 @@ import AdminUserTable from '@/components/admin/AdminUserTable'
 import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminFinalistProcessor from '@/components/admin/AdminFinalistProcessor'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
+import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
@@ -37,6 +38,12 @@ export default async function AdminPage() {
   const { data: allPlayers } = await supabase
     .from('players')
     .select('*, team:teams(name, flag_url)')
+    .order('name')
+
+  const { data: unlinkedPlayers } = await supabase
+    .from('players')
+    .select('id, name, position, team:teams(id, name, flag_url)')
+    .is('api_id', null)
     .order('name')
 
   const { data: matchStats } = await supabase
@@ -115,10 +122,11 @@ export default async function AdminPage() {
           <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
           <AdminSyncButton endpoint="/api/sync/results"  label="Sync results now" variant="primary" />
         </div>
-        <div className="flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
+        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
+          <AdminSyncButton endpoint="/api/sync/players-wikipedia" label="Import from Wikipedia" />
           <AdminSyncButton endpoint="/api/sync/players-wc" label="Sync WC players (from Jun 11)" batched />
-          <p className="text-xs self-center" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Replaces squad data with actual WC participants — run after the tournament starts.
+          <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Import pulls the official 48 squads from Wikipedia. After importing, use the linker below to connect players to their API id.
           </p>
         </div>
       </section>
@@ -141,6 +149,25 @@ export default async function AdminPage() {
           </h2>
         </div>
         <AdminUserTable users={users ?? []} />
+      </section>
+
+      {/* Unlinked players */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: '1px solid #e0dbd3' }}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" style={{ color: '#ff5c35' }} />
+            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+              Unlinked players ({unlinkedPlayers?.length ?? 0})
+            </h2>
+          </div>
+          <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            No API id — search &amp; link to connect to goal events
+          </span>
+        </div>
+        <AdminPlayerLinker players={(unlinkedPlayers ?? []) as any} />
       </section>
 
       {/* Players */}
