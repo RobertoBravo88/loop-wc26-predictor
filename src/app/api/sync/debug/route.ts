@@ -7,16 +7,34 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q') ?? 'World Cup'
+  const mode = searchParams.get('mode') ?? 'leagues'
 
+  if (mode === 'teams') {
+    // Check what teams are returned for WC 2026
+    const url = `${API_BASE}/teams?league=1&season=2026`
+    const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
+    const data = await res.json()
+    return NextResponse.json({
+      total: data.results,
+      errors: data.errors,
+      teams: (data.response ?? []).slice(0, 5).map((e: any) => ({ id: e.team.id, name: e.team.name })),
+    })
+  }
+
+  if (mode === 'status') {
+    // Check API key status and remaining calls
+    const url = `${API_BASE}/status`
+    const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
+    const data = await res.json()
+    return NextResponse.json(data.response ?? data)
+  }
+
+  // Default: league search
+  const query = searchParams.get('q') ?? 'World Cup'
   const url = `${API_BASE}/leagues?search=${encodeURIComponent(query)}`
-  const res = await fetch(url, {
-    headers: { 'x-apisports-key': API_KEY },
-    next: { revalidate: 0 },
-  })
+  const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
   const data = await res.json()
 
-  // Return simplified list: id, name, available seasons
   const leagues = (data.response ?? []).map((entry: any) => ({
     id:      entry.league.id,
     name:    entry.league.name,
