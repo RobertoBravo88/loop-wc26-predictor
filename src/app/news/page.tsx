@@ -97,15 +97,13 @@ export default async function NewsPage() {
                 Read more →
               </span>
 
-              {/* Reactions — stopPropagation so clicking doesn't navigate */}
+              {/* Reactions — stopPropagation is handled inside the component */}
               {user && (
-                <div onClick={e => { e.preventDefault(); e.stopPropagation() }}>
-                  <NewsReactions
-                    postId={post.id}
-                    userId={user.id}
-                    initialReactions={reactionsByPost[post.id] ?? []}
-                  />
-                </div>
+                <NewsReactions
+                  postId={post.id}
+                  userId={user.id}
+                  initialReactions={reactionsByPost[post.id] ?? []}
+                />
               )}
             </div>
           </Link>

@@ -126,7 +126,11 @@ export default function NewsReactions({ postId, userId, initialReactions }: Prop
   }
 
   return (
-    <div className="mt-6 pt-5" style={{ borderTop: '1px solid #e0dbd3' }}>
+    <div
+      className="mt-6 pt-5"
+      style={{ borderTop: '1px solid #e0dbd3' }}
+      onClick={e => { e.preventDefault(); e.stopPropagation() }}
+    >
       <div className="flex items-center flex-wrap gap-2">
 
         {/* Reaction pills */}
