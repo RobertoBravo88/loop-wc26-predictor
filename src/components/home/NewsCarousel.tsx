@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
@@ -18,46 +18,56 @@ interface Post {
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
 
+// Fixed height for the card — consistent regardless of content or image presence
+const CARD_HEIGHT = 260
+
 export default function NewsCarousel({ posts }: { posts: Post[] }) {
   const [idx, setIdx] = useState(0)
+  const total = posts.length
+
+  const next = useCallback(() => setIdx(i => (i < total - 1 ? i + 1 : 0)), [total])
+  const prev = useCallback(() => setIdx(i => (i > 0 ? i - 1 : total - 1)), [total])
+
+  // Auto-advance every 5 seconds; resets whenever user navigates manually
+  useEffect(() => {
+    if (total <= 1) return
+    const timer = setInterval(next, 5000)
+    return () => clearInterval(timer)
+  }, [idx, next, total])
 
   if (!posts.length) return null
 
-  const post    = posts[idx]
-  const total   = posts.length
-  const hasPrev = total > 1
-  const hasNext = total > 1
-
-  function prev() { setIdx(i => (i > 0 ? i - 1 : total - 1)) }
-  function next() { setIdx(i => (i < total - 1 ? i + 1 : 0)) }
+  const post = posts[idx]
 
   return (
     <div style={{ border: '1px solid #e0dbd3', position: 'relative' }}>
-      {/* Card */}
+      {/* Card — fixed height so switching posts never jumps */}
       <Link
         href={`/news/${post.slug}`}
         className="flex flex-col sm:flex-row group transition-opacity hover:opacity-90"
-        style={{ background: '#ffffff', textDecoration: 'none', display: 'flex', minHeight: '200px' }}
+        style={{
+          background: '#ffffff',
+          textDecoration: 'none',
+          display: 'flex',
+          height: `${CARD_HEIGHT}px`,
+          overflow: 'hidden',
+        }}
       >
-        {/* Image */}
-        {post.image_url ? (
-          <div className="sm:w-1/2 flex-shrink-0">
+        {/* Image — always same height, covers the slot */}
+        <div className="sm:w-1/2 flex-shrink-0" style={{ height: '100%', overflow: 'hidden' }}>
+          {post.image_url ? (
             <img
               src={post.image_url}
               alt={post.title}
-              className="w-full h-48 sm:h-full object-cover"
-              style={{ minHeight: '200px' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
-          </div>
-        ) : (
-          <div
-            className="sm:w-1/2 flex-shrink-0 h-48"
-            style={{ background: '#f7f4ef', minHeight: '200px' }}
-          />
-        )}
+          ) : (
+            <div style={{ width: '100%', height: '100%', background: '#f7f4ef' }} />
+          )}
+        </div>
 
         {/* Text */}
-        <div className="flex flex-col justify-center p-6 sm:p-8 flex-1">
+        <div className="flex flex-col justify-center p-6 sm:p-8 flex-1 min-w-0">
           <span
             className="text-xs uppercase tracking-widest mb-3"
             style={{ color: '#ff5c35', fontFamily: sans }}
@@ -65,14 +75,14 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
             {post.published_at ? format(new Date(post.published_at), 'd MMM yyyy') : 'Latest'}
           </span>
           <h3
-            className="text-2xl sm:text-3xl leading-tight mb-3"
+            className="text-2xl sm:text-3xl leading-tight mb-3 line-clamp-3"
             style={{ fontFamily: serif, fontWeight: 700, color: '#141414' }}
           >
             {post.title}
           </h3>
           {post.excerpt && (
             <p
-              className="text-sm line-clamp-3"
+              className="text-sm line-clamp-2"
               style={{ color: '#6b6b6b', fontFamily: sans }}
             >
               {post.excerpt}
@@ -81,7 +91,7 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
         </div>
       </Link>
 
-      {/* Navigation — only shown when there are multiple posts */}
+      {/* Navigation */}
       {total > 1 && (
         <div
           className="flex items-center justify-between px-4 py-2"

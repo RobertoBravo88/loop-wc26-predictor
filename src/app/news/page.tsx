@@ -47,15 +47,15 @@ export default async function NewsPage() {
         </h1>
       </div>
 
-      {/* Post list */}
-      <div style={{ border: '1px solid #e0dbd3' }}>
+      {/* Post list — individual cards with gap */}
+      <div className="flex flex-col gap-4">
         {(posts ?? []).map((post: any, i: number) => (
           <Link
             key={post.id}
             href={`/news/${post.slug}`}
             className="block transition-colors hover:opacity-80"
             style={{
-              borderBottom: i < (posts?.length ?? 0) - 1 ? '1px solid #e0dbd3' : 'none',
+              border: '1px solid #e0dbd3',
               textDecoration: 'none',
             }}
           >
@@ -112,7 +112,7 @@ export default async function NewsPage() {
         {!posts?.length && (
           <div
             className="px-5 py-16 text-center text-sm"
-            style={{ color: '#6b6b6b', fontFamily: sans, background: '#ffffff' }}
+            style={{ color: '#6b6b6b', fontFamily: sans, background: '#ffffff', border: '1px solid #e0dbd3' }}
           >
             No posts yet — check back soon.
           </div>
