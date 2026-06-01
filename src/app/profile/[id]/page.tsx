@@ -45,7 +45,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     .select('*, match:matches(kickoff_at, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name))')
     .eq('user_id', id)
     .order('created_at', { ascending: false })
-    .limit(50)
 
   const { data: predictions } = await supabase
     .from('predictions')

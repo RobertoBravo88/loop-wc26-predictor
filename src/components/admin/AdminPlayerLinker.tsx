@@ -17,7 +17,13 @@ interface ApiResult {
 
 const sans = 'Inter, sans-serif'
 
-export default function AdminPlayerLinker({ players: initial }: { players: UnlinkedPlayer[] }) {
+interface Props {
+  players: UnlinkedPlayer[]
+  pickedPlayerIds?: string[]   // in scorer_picks or favourite_player_id
+  scoredPlayerIds?: string[]   // in goal_events
+}
+
+export default function AdminPlayerLinker({ players: initial, pickedPlayerIds = [], scoredPlayerIds = [] }: Props) {
   const [players, setPlayers]       = useState(initial)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [query, setQuery]           = useState('')
@@ -33,8 +39,21 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
 
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const pickedSet = new Set(pickedPlayerIds)
+  const scoredSet = new Set(scoredPlayerIds)
+
   const teamNames = [...new Set(players.map(p => p.team?.name).filter(Boolean) as string[])].sort()
-  const visible   = teamFilter ? players.filter(p => p.team?.name === teamFilter) : players
+
+  // Sort: picked first, then scored, then rest (all alphabetical within groups)
+  const sortedPlayers = [...players].sort((a, b) => {
+    const aPriority = pickedSet.has(a.id) ? 0 : scoredSet.has(a.id) ? 1 : 2
+    const bPriority = pickedSet.has(b.id) ? 0 : scoredSet.has(b.id) ? 1 : 2
+    return aPriority - bPriority || a.name.localeCompare(b.name)
+  })
+
+  const visible = teamFilter
+    ? sortedPlayers.filter(p => p.team?.name === teamFilter)
+    : sortedPlayers
 
   // ── Auto-link all ──────────────────────────────────────────────
   async function handleAutoLink() {
@@ -223,6 +242,16 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
               <span className="flex-1 text-sm font-medium truncate" style={{ color: '#141414', fontFamily: sans }}>
                 {player.name}
               </span>
+              {pickedSet.has(player.id) && (
+                <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5" style={{ background: '#fee2e2', color: '#dc2626', fontFamily: sans }}>
+                  🔴 Picked
+                </span>
+              )}
+              {scoredSet.has(player.id) && (
+                <span className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5" style={{ background: '#fef9c3', color: '#92400e', fontFamily: sans }}>
+                  ⚽ Scored
+                </span>
+              )}
               <span className="w-20 text-xs flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: sans }}>
                 {player.position ?? '—'}
               </span>

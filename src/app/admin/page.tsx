@@ -41,11 +41,22 @@ export default async function AdminPage() {
     .select('*, team:teams(name, flag_url)')
     .order('name')
 
-  const { data: unlinkedPlayers } = await supabase
-    .from('players')
-    .select('id, name, position, team:teams(id, name, flag_url, api_id)')
-    .is('api_id', null)
-    .order('name')
+  const [unlinkedRes, scorerPicksRes, favPlayerRes, goalEventsRes] = await Promise.all([
+    supabase.from('players').select('id, name, position, team:teams(id, name, flag_url, api_id)').is('api_id', null).order('name'),
+    supabase.from('scorer_picks').select('player_id'),
+    supabase.from('profiles').select('favourite_player_id').not('favourite_player_id', 'is', null),
+    supabase.from('goal_events').select('player_id').not('player_id', 'is', null),
+  ])
+  const unlinkedPlayers = unlinkedRes.data
+
+  // Build sets of "important" unlinked player IDs
+  const pickedPlayerIds = new Set([
+    ...(scorerPicksRes.data ?? []).map(r => r.player_id).filter(Boolean),
+    ...(favPlayerRes.data ?? []).map(r => r.favourite_player_id).filter(Boolean),
+  ])
+  const scoredPlayerIds = new Set(
+    (goalEventsRes.data ?? []).map(r => r.player_id).filter(Boolean)
+  )
 
   const { data: matchStats } = await supabase
     .from('matches')
@@ -175,10 +186,14 @@ export default async function AdminPage() {
             </h2>
           </div>
           <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            No API id — search &amp; link to connect to goal events
+            🔴 = picked by a Looper · ⚽ = has scored a goal — link these first
           </span>
         </div>
-        <AdminPlayerLinker players={(unlinkedPlayers ?? []) as any} />
+        <AdminPlayerLinker
+          players={(unlinkedPlayers ?? []) as any}
+          pickedPlayerIds={[...pickedPlayerIds]}
+          scoredPlayerIds={[...scoredPlayerIds]}
+        />
       </section>
 
       {/* Squad players */}
