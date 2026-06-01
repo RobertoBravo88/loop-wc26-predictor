@@ -6,7 +6,6 @@ import AdminUserTable from '@/components/admin/AdminUserTable'
 import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
-import AdminManagerEditor from '@/components/admin/AdminManagerEditor'
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
@@ -145,16 +144,6 @@ export default async function AdminPage() {
             Safe to run anytime — re-checks all goals for all finished matches and awards any missing scorer / 12th Man bonuses. Run this after linking unlinked players to pick up missed points.
           </p>
         </div>
-      </section>
-
-      {/* Manager editor */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div className="px-6 py-4" style={{ borderBottom: '1px solid #e0dbd3' }}>
-          <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-            Team Managers
-          </h2>
-        </div>
-        <AdminManagerEditor teams={(allTeams ?? []) as any} />
       </section>
 
       {/* Users */}
