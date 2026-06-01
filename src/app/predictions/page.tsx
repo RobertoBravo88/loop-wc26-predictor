@@ -76,7 +76,7 @@ export default async function PredictionsPage({
   // Tournament tab badge
   const fp = finalistCountRes.data
   const finalistDone  = [fp?.first_team_id, fp?.second_team_id, fp?.third_team_id].filter(Boolean).length
-  const scorerDone    = scorerCountRes.data?.length ?? 0
+  const scorerDone    = Math.min(scorerCountRes.data?.length ?? 0, 5)
   const sp            = secretsCountRes.data
   const secretsDone   = (sp?.favourite_team_id ? 1 : 0) + (sp?.favourite_player_id ? 1 : 0)
   const tournamentDone  = finalistDone + scorerDone + secretsDone

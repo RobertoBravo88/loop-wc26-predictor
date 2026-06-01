@@ -459,7 +459,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {POSITION_ORDER.map(pos => {
+            {[...POSITION_ORDER, 'Other'].map(pos => {
               const group = byPosition.get(pos) ?? []
               if (group.length === 0) return null
               return (
