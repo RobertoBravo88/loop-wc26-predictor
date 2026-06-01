@@ -21,6 +21,16 @@ export async function GET(request: Request) {
     })
   }
 
+  if (mode === 'findteam') {
+    const name = searchParams.get('name') ?? ''
+    const url = `${API_BASE}/teams?name=${encodeURIComponent(name)}`
+    const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
+    const data = await res.json()
+    return NextResponse.json({
+      results: (data.response ?? []).map((e: any) => ({ id: e.team.id, name: e.team.name, country: e.team.country })),
+    })
+  }
+
   if (mode === 'status') {
     // Check API key status and remaining calls
     const url = `${API_BASE}/status`
