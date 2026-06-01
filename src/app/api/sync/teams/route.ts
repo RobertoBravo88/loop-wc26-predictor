@@ -40,7 +40,7 @@ export async function POST() {
         await supabase.from('teams').update({ api_id: apiId }).eq('id', dbTeam.id)
         matched.push(`${dbTeam.name} → api_id ${apiId}`)
       } else {
-        unmatched.push(apiName)
+        unmatched.push(`${apiName} (api_id: ${apiId})`)
       }
     }
 
