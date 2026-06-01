@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Team, Player } from '@/types'
@@ -132,8 +132,12 @@ function StepIndicator({ step }: { step: number }) {
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState<FormData>(initialForm)
+  const [formData, setFormData] = useState<FormData>({
+    ...initialForm,
+    email: searchParams.get('email') ?? '',
+  })
   const [globalError, setGlobalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
