@@ -146,7 +146,7 @@ export default function HowToPlayPage() {
                 {' '}every time your team scores a goal
               </li>
               <li>
-                <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 points</span>
+                <span style={{ color: '#ff5c35', fontWeight: 700 }}>+20 points</span>
                 {' '}every time your player scores a goal
               </li>
               <li>Your player <span style={{ fontWeight: 700 }}>must be from your team</span> — someone you&apos;re genuinely riding with all tournament.</li>
@@ -198,7 +198,7 @@ export default function HowToPlayPage() {
                     { action: '3rd place pick', points: '100 pts', highlight: false },
                     { action: "Golden Boots pick (per goal, up to 5 picks)", points: '10 pts', highlight: true },
                     { action: '12th Man Bonus — team goal', points: '10 pts', highlight: false },
-                    { action: '12th Man Bonus — player goal', points: '10 pts', highlight: true },
+                    { action: '12th Man Bonus — player goal', points: '20 pts', highlight: true },
                   ].map(({ action, points, highlight }, i) => (
                     <tr
                       key={i}

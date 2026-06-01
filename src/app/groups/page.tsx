@@ -136,6 +136,7 @@ export default async function GroupsPage() {
     flagUrl: (p.team?.flag_url ?? null),
     goals: goalCountMap.get(p.id) ?? 0,
     isMyPick: mySquadIds.has(p.id),
+    isSecret: p.id === favPlayerId,
   })).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
 
   // Convert Maps to plain objects for client component

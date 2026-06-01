@@ -18,7 +18,7 @@ const NAV_LINKS = [
   { href: '/how-to-play',  label: 'How to Play' },
 ]
 
-export default function Navbar({ profile }: { profile: Profile | null }) {
+export default function Navbar({ profile, pendingPredictions = 0 }: { profile: Profile | null; pendingPredictions?: number }) {
   const pathname = usePathname()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -51,7 +51,7 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium transition-colors uppercase tracking-wider',
+                  'px-3 py-1.5 text-xs font-medium transition-colors uppercase tracking-wider flex items-center gap-1.5',
                   pathname === link.href
                     ? 'text-white border-b-2'
                     : 'text-gray-400 hover:text-white'
@@ -59,6 +59,14 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
                 style={pathname === link.href ? { borderBottomColor: '#ff5c35' } : {}}
               >
                 {link.label}
+                {link.href === '/predictions' && pendingPredictions > 0 && (
+                  <span
+                    className="text-white text-xs font-bold px-1.5 py-0.5 leading-none"
+                    style={{ background: '#ff5c35', minWidth: '18px', textAlign: 'center' }}
+                  >
+                    {pendingPredictions}
+                  </span>
+                )}
               </Link>
             ))}
             {profile?.role === 'admin' && (
@@ -125,7 +133,7 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
               href={link.href}
               onClick={() => setMenuOpen(false)}
               className={cn(
-                'block px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors',
+                'flex items-center gap-2 px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors',
                 pathname === link.href
                   ? 'text-white'
                   : 'text-gray-400 hover:text-white'
@@ -133,6 +141,14 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
               style={pathname === link.href ? { borderLeft: '2px solid #ff5c35', paddingLeft: '10px' } : {}}
             >
               {link.label}
+              {link.href === '/predictions' && pendingPredictions > 0 && (
+                <span
+                  className="text-white text-xs font-bold px-1.5 py-0.5 leading-none"
+                  style={{ background: '#ff5c35', minWidth: '18px', textAlign: 'center' }}
+                >
+                  {pendingPredictions}
+                </span>
+              )}
             </Link>
           ))}
           {profile?.role === 'admin' && (

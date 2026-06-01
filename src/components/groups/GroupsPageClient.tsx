@@ -27,6 +27,7 @@ export interface TopScorer {
   flagUrl: string | null
   goals: number
   isMyPick: boolean  // true if current user picked this player for Golden Boots
+  isSecret: boolean  // true if this is the user's 12th Man secret player
 }
 
 interface SlotInfo { label: string; team?: string; confirmed: boolean }
@@ -489,7 +490,16 @@ export default function GroupsPageClient({
                 {/* Scorer rows */}
                 {pagedScorers.map((scorer, i) => {
                   const globalRank = scorerPage * PAGE_SIZE + i + 1
-                  const isPick = scorer.isMyPick
+                  const bg = scorer.isSecret
+                    ? '#fefce8'
+                    : scorer.isMyPick
+                    ? '#fff8f0'
+                    : (i % 2 === 0 ? '#ffffff' : '#faf9f6')
+                  const border = scorer.isSecret
+                    ? '3px solid #eab308'
+                    : scorer.isMyPick
+                    ? '3px solid #ff5c35'
+                    : '3px solid transparent'
 
                   return (
                     <div
@@ -498,8 +508,8 @@ export default function GroupsPageClient({
                       style={{
                         gridTemplateColumns: 'auto 1fr auto',
                         borderBottom: '1px solid #e0dbd3',
-                        background: isPick ? '#fff8f0' : (i % 2 === 0 ? '#ffffff' : '#faf9f6'),
-                        borderLeft: isPick ? '3px solid #ff5c35' : '3px solid transparent',
+                        background: bg,
+                        borderLeft: border,
                       }}
                     >
                       {/* Rank */}
@@ -519,12 +529,16 @@ export default function GroupsPageClient({
                           <span className="font-semibold text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                             {scorer.name}
                           </span>
-                          {isPick && (
-                            <span className="flex-shrink-0" title="Your Golden Boots pick">👟</span>
+                          {scorer.isSecret && (
+                            <span className="flex-shrink-0" title="Your 12th Man player — 20pts per goal">⭐</span>
+                          )}
+                          {scorer.isMyPick && !scorer.isSecret && (
+                            <span className="flex-shrink-0" title="Your Golden Boots pick — 10pts per goal">👟</span>
                           )}
                         </div>
                         <span className="text-xs mt-0.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                           {scorer.teamName}
+                          {scorer.isSecret && <span style={{ color: '#eab308' }}> · 20 pts/goal</span>}
                         </span>
                       </div>
 
