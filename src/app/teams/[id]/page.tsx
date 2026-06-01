@@ -10,6 +10,9 @@ export const revalidate = 60
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
 
+// Tournament starts June 11 2026 — fans are revealed from this date
+const TOURNAMENT_START = new Date('2026-06-11T00:00:00Z')
+
 const POSITION_ORDER = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
 const POSITION_SHORT: Record<string, string> = {
   Goalkeeper: 'GK',
@@ -151,6 +154,8 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data: team } = await supabase
     .from('teams')
     .select('*, manager')
@@ -159,7 +164,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
   if (!team) notFound()
 
-  const [playersRes, teamMatchesRes, groupTeamsRes, allGroupMatchesRes] = await Promise.all([
+  const [playersRes, teamMatchesRes, groupTeamsRes, allGroupMatchesRes, fansRes] = await Promise.all([
     supabase
       .from('players')
       .select('id, name, position, shirt_number, photo_url, age, club')
@@ -181,12 +186,19 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
           .eq('group_letter', team.group_letter)
           .order('kickoff_at')
       : Promise.resolve({ data: [] as Match[] }),
+    supabase
+      .from('profiles')
+      .select('id, display_name, total_points')
+      .eq('favourite_team_id', id)
+      .order('total_points', { ascending: false }),
   ])
 
-  const players       = playersRes.data ?? []
-  const teamMatches   = (teamMatchesRes.data ?? []) as Match[]
-  const groupTeams    = (groupTeamsRes.data ?? []) as Team[]
+  const players         = playersRes.data ?? []
+  const teamMatches     = (teamMatchesRes.data ?? []) as Match[]
+  const groupTeams      = (groupTeamsRes.data ?? []) as Team[]
   const allGroupMatches = (allGroupMatchesRes.data ?? []) as Match[]
+  const fans            = fansRes.data ?? []
+  const tournamentLive  = new Date() >= TOURNAMENT_START
 
   const groupMatches   = teamMatches.filter(m => m.stage === 'group')
   const knockoutMatches = teamMatches.filter(m => m.stage !== 'group')
@@ -533,6 +545,105 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
       </div>
+
+      {/* ── Fans ──────────────────────────────────────────── */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2
+            className="text-xs font-bold uppercase tracking-wider"
+            style={{ color: '#141414', fontFamily: sans }}
+          >
+            Fans {fans.length > 0 && `(${fans.length})`}
+          </h2>
+          {!tournamentLive && fans.length > 0 && (
+            <span className="text-xs" style={{ color: '#b0a99f', fontFamily: sans }}>
+              🔒 Revealed on 11 June
+            </span>
+          )}
+        </div>
+
+        {fans.length === 0 ? (
+          <div
+            className="py-6 text-sm text-center"
+            style={{ border: '1px solid #e0dbd3', color: '#b0a99f', fontFamily: sans }}
+          >
+            No fans yet — be the first to support {team.name}
+          </div>
+        ) : (
+          <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+            {fans.map((fan, i) => {
+              const isMe = fan.id === user?.id
+              const revealed = tournamentLive || isMe
+
+              return (
+                <div
+                  key={fan.id}
+                  className="flex items-center gap-3 px-4 py-2.5"
+                  style={{
+                    borderBottom: '1px solid #f0ede8',
+                    background: isMe ? '#fff8f0' : '#ffffff',
+                    borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
+                  }}
+                >
+                  {/* Rank */}
+                  <span
+                    className="w-5 text-center text-xs flex-shrink-0"
+                    style={{ color: '#b0a99f', fontFamily: sans }}
+                  >
+                    {i + 1}
+                  </span>
+
+                  {/* Avatar */}
+                  <div
+                    className="flex-shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{
+                      width: 28, height: 28,
+                      background: isMe ? '#ff5c35' : '#e0dbd3',
+                      color: isMe ? '#ffffff' : '#6b6b6b',
+                      fontFamily: sans,
+                      filter: revealed ? 'none' : 'blur(4px)',
+                    }}
+                  >
+                    {revealed ? (fan.display_name?.[0] ?? '?').toUpperCase() : '?'}
+                  </div>
+
+                  {/* Name */}
+                  <span
+                    className="flex-1 text-sm font-medium truncate"
+                    style={{
+                      fontFamily: sans,
+                      color: revealed ? '#141414' : 'transparent',
+                      textShadow: revealed ? 'none' : '0 0 8px #6b6b6b',
+                      userSelect: revealed ? 'auto' : 'none',
+                    }}
+                  >
+                    {revealed ? fan.display_name : '●●●●●●●●'}
+                  </span>
+
+                  {/* Points */}
+                  <span
+                    className="text-xs font-mono flex-shrink-0"
+                    style={{ color: revealed ? '#ff5c35' : '#e0dbd3', fontFamily: sans }}
+                  >
+                    {revealed ? `${fan.total_points ?? 0} pts` : '––'}
+                  </span>
+
+                  {/* You badge */}
+                  {isMe && (
+                    <span
+                      className="text-xs px-2 py-0.5 flex-shrink-0"
+                      style={{ background: '#ff5c35', color: '#ffffff', fontFamily: sans }}
+                    >
+                      you
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
