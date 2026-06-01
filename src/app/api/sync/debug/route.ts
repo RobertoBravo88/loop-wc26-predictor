@@ -31,6 +31,33 @@ export async function GET(request: Request) {
     })
   }
 
+  // Check squad for a single team by api_id — e.g. ?mode=squad&teamid=88
+  if (mode === 'squad') {
+    const teamId = searchParams.get('teamid') ?? ''
+    if (!teamId) return NextResponse.json({ error: 'Pass ?teamid=<api_id>' }, { status: 400 })
+
+    // Try with WC 2026 league+season filter first
+    const urlWith = `${API_BASE}/players/squads?team=${teamId}&league=1&season=2026`
+    const resWith = await fetch(urlWith, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
+    const dataWith = await resWith.json()
+
+    // Also try without filter for comparison
+    const urlWithout = `${API_BASE}/players/squads?team=${teamId}`
+    const resWithout = await fetch(urlWithout, { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } })
+    const dataWithout = await resWithout.json()
+
+    return NextResponse.json({
+      with_wc_filter: {
+        count: dataWith.results,
+        players: (dataWith.response?.[0]?.players ?? []).map((p: any) => ({ id: p.id, name: p.name, number: p.number })),
+      },
+      without_filter: {
+        count: dataWithout.results,
+        players: (dataWithout.response?.[0]?.players ?? []).map((p: any) => ({ id: p.id, name: p.name, number: p.number })),
+      },
+    })
+  }
+
   if (mode === 'status') {
     // Check API key status and remaining calls
     const url = `${API_BASE}/status`

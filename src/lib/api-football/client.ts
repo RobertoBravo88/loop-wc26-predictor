@@ -39,7 +39,11 @@ export async function fetchTeams(season: number = 2026) {
 }
 
 export async function fetchSquad(teamApiId: number, season: number = 2026) {
-  const data = await get<any[]>('/players/squads', { team: teamApiId })
+  const data = await get<any[]>('/players/squads', { team: teamApiId, league: WC_2026_ID, season })
+  // Fall back to team-only query if the league/season filter returns nothing
+  if (data.length === 0) {
+    return get<any[]>('/players/squads', { team: teamApiId })
+  }
   return data
 }
 
