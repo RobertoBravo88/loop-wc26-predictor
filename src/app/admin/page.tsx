@@ -43,7 +43,7 @@ export default async function AdminPage() {
 
   const { data: unlinkedPlayers } = await supabase
     .from('players')
-    .select('id, name, position, team:teams(id, name, flag_url)')
+    .select('id, name, position, team:teams(id, name, flag_url, api_id)')
     .is('api_id', null)
     .order('name')
 
