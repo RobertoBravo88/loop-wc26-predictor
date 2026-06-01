@@ -291,6 +291,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
             }}
           >
             <Trophy className="w-4 h-4" style={{ color: '#6b6b6b' }} /> Tournament Picks
+            {isMe && !tournamentStarted && (
+              <Link href="/predictions?tab=tournament" className="ml-auto text-xs font-semibold hover:opacity-70 transition-opacity" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                Edit
+              </Link>
+            )}
           </h2>
           <div className="grid grid-cols-3 gap-3 text-sm">
             {[
