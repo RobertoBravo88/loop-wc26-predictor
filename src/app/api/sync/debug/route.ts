@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       total: data.results,
       errors: data.errors,
-      teams: (data.response ?? []).slice(0, 5).map((e: any) => ({ id: e.team.id, name: e.team.name })),
+      teams: (data.response ?? []).map((e: any) => ({ id: e.team.id, name: e.team.name })),
     })
   }
 
