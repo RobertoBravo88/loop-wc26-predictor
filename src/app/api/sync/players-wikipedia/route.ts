@@ -81,6 +81,13 @@ export async function POST() {
       const nextHeading = part.search(/<h[23][\s>]/)
       const sectionHtml = nextHeading > -1 ? part.slice(0, nextHeading) : part
 
+      // Extract coach — "Coach: [optional flag HTML] <a ...>Name</a>"
+      const coachMatch = sectionHtml.match(/Coach:[\s\S]*?<a[^>]*>([^<]+)<\/a>/)
+      const coachName  = coachMatch ? decodeEntities(coachMatch[1]) : null
+      if (coachName) {
+        await supabase.from('teams').update({ manager: coachName }).eq('id', teamId)
+      }
+
       // Parse each player row
       const rowParts = sectionHtml.split('<tr class="nat-fs-player">')
       let teamInserted = 0
@@ -120,7 +127,7 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message: `Imported ${inserted} new players (${skipped} already existed). Unmatched teams: ${unmatched.join(', ') || 'none'}`,
+      message: `Imported ${inserted} new players (${skipped} already existed), coaches updated. Unmatched teams: ${unmatched.join(', ') || 'none'}`,
       inserted,
       skipped,
       unmatched,
