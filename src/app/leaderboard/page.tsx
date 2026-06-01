@@ -10,14 +10,22 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [entriesRes, lastSyncRes] = await Promise.all([
+  const [entriesRes, lastSyncRes, shirtsRes] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('profiles').select('id, favourite_player:players(shirt_number)'),
   ])
 
   const leaderboard       = (entriesRes.data ?? []) as LeaderboardEntry[]
   const lastSynced        = lastSyncRes.data?.result_fetched_at ?? null
   const tournamentStarted = isTournamentStarted()
+
+  // Build shirt number lookup: userId → shirt_number
+  const shirtMap = new Map<string, number | null>()
+  for (const p of shirtsRes.data ?? []) {
+    const shirt = (p as any).favourite_player?.shirt_number ?? null
+    shirtMap.set(p.id, shirt)
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -82,6 +90,11 @@ export default async function LeaderboardPage() {
                   <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
                   <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
+                )}
+                {(tournamentStarted || isMe) && shirtMap.get(entry.id) != null && (
+                  <span className="text-xs flex-shrink-0 font-semibold" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    #{shirtMap.get(entry.id)}
+                  </span>
                 )}
                 <span
                   className="text-sm truncate"

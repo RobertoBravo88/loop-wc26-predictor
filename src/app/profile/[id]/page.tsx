@@ -145,7 +145,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Secret bonus picks */}
-      {tournamentStarted && (
+      {(tournamentStarted || isMe) && (
         <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-5">
           <h2
             className="text-lg mb-3 flex items-center gap-2 pb-2"

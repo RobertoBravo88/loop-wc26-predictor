@@ -78,14 +78,14 @@ export default async function GroupsPage() {
     { data: knockoutMatches },
     { data: lastSyncRow },
     { data: goalEventsRaw },
+    { data: allPlayersRaw },
   ] = await Promise.all([
     supabase.from('teams').select('*').order('name'),
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').eq('stage', 'group').order('kickoff_at'),
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('goal_events')
-      .select('player_id, team_id, player:players(id, name), team:teams(name, flag_url)')
-      .eq('is_own_goal', false),
+    supabase.from('goal_events').select('player_id').eq('is_own_goal', false),
+    supabase.from('players').select('id, name, team:teams(name, flag_url)').order('name'),
   ])
 
   const lastSynced = lastSyncRow?.result_fetched_at ?? null
@@ -103,41 +103,40 @@ export default async function GroupsPage() {
     for (const p of preds ?? []) predictionMap.set(p.match_id, { h: p.predicted_home, a: p.predicted_away })
   }
 
-  // Fetch scorer picks for the logged-in user
+  // Fetch scorer picks + secret player for the logged-in user
   let scorerPicksData: { player_id: string }[] = []
+  let favPlayerId: string | null = null
   if (user) {
-    const { data } = await supabase
-      .from('scorer_picks')
-      .select('player_id')
-      .eq('user_id', user.id)
-    scorerPicksData = data ?? []
+    const [picksRes, profileRes] = await Promise.all([
+      supabase.from('scorer_picks').select('player_id').eq('user_id', user.id),
+      supabase.from('profiles').select('favourite_player_id').eq('id', user.id).single(),
+    ])
+    scorerPicksData = picksRes.data ?? []
+    favPlayerId = profileRes.data?.favourite_player_id ?? null
   }
 
-  // Aggregate goal events into topScorers
-  const scorerMap = new Map<string, TopScorer>()
+  // Build goal count map from events
+  const goalCountMap = new Map<string, number>()
   for (const ge of goalEventsRaw ?? []) {
-    const playerId = (ge as any).player_id
-    if (!playerId || !(ge as any).player) continue
-    const player = (ge as any).player
-    const team = (ge as any).team
-    if (scorerMap.has(playerId)) {
-      scorerMap.get(playerId)!.goals++
-    } else {
-      scorerMap.set(playerId, {
-        id: playerId,
-        name: player.name,
-        teamName: (team?.name ?? ''),
-        flagUrl: (team?.flag_url ?? null),
-        goals: 1,
-        isMyPick: false,
-      })
-    }
+    const pid = (ge as any).player_id
+    if (pid) goalCountMap.set(pid, (goalCountMap.get(pid) ?? 0) + 1)
   }
-  const myPickIds = new Set((scorerPicksData ?? []).map((p: any) => p.player_id))
-  for (const [id, scorer] of scorerMap) {
-    scorer.isMyPick = myPickIds.has(id)
-  }
-  const topScorers: TopScorer[] = Array.from(scorerMap.values()).sort((a, b) => b.goals - a.goals)
+
+  // My squad = 5 Golden Boots picks + 1 secret player
+  const mySquadIds = new Set<string>([
+    ...scorerPicksData.map(p => p.player_id),
+    ...(favPlayerId ? [favPlayerId] : []),
+  ])
+
+  // Build topScorers from ALL players — everyone starts at 0
+  const topScorers: TopScorer[] = (allPlayersRaw ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    teamName: (p.team?.name ?? ''),
+    flagUrl: (p.team?.flag_url ?? null),
+    goals: goalCountMap.get(p.id) ?? 0,
+    isMyPick: mySquadIds.has(p.id),
+  })).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
 
   // Convert Maps to plain objects for client component
   const predictionObj: Record<string, { h: number; a: number }> = {}
@@ -218,6 +217,7 @@ export default async function GroupsPage() {
       predictionMap={predictionObj}
       groupLeaders={groupLeadersObj}
       topScorers={topScorers}
+      mySquadIds={Array.from(mySquadIds)}
       lastSynced={lastSynced}
     />
   )

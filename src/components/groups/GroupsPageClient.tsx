@@ -37,6 +37,7 @@ interface Props {
   predictionMap: Record<string, { h: number; a: number }>
   groupLeaders: Record<string, { p1?: string; p2?: string; complete: boolean }>
   topScorers: TopScorer[]
+  mySquadIds: string[]
   lastSynced: string | null
 }
 
@@ -264,18 +265,24 @@ export default function GroupsPageClient({
   predictionMap,
   groupLeaders,
   topScorers,
+  mySquadIds,
   lastSynced,
 }: Props) {
   const [tab, setTab] = useState<'groups' | 'finals' | 'scorers'>('groups')
   const [scorerPage, setScorerPage] = useState(0)
+  const [showMySquad, setShowMySquad] = useState(false)
 
   const knockoutByStage = new Map<MatchStage, Match[]>()
   for (const kd of knockoutData) {
     knockoutByStage.set(kd.stage, kd.matches)
   }
 
-  const totalScorerPages = Math.ceil(topScorers.length / PAGE_SIZE)
-  const pagedScorers = topScorers.slice(scorerPage * PAGE_SIZE, (scorerPage + 1) * PAGE_SIZE)
+  const hasSquad = mySquadIds.length > 0
+  const filteredScorers = showMySquad
+    ? topScorers.filter(s => mySquadIds.includes(s.id))
+    : topScorers
+  const totalScorerPages = Math.ceil(filteredScorers.length / PAGE_SIZE)
+  const pagedScorers = filteredScorers.slice(scorerPage * PAGE_SIZE, (scorerPage + 1) * PAGE_SIZE)
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '12px 20px',
@@ -431,13 +438,34 @@ export default function GroupsPageClient({
       {/* ── Top Scorers tab ── */}
       {tab === 'scorers' && (
         <div>
-          {topScorers.length === 0 ? (
+          {/* Toolbar */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              {filteredScorers.length} players
+            </span>
+            {hasSquad && (
+              <button
+                onClick={() => { setShowMySquad(v => !v); setScorerPage(0) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors"
+                style={{
+                  fontFamily: 'Inter, sans-serif',
+                  border: `1px solid ${showMySquad ? '#ff5c35' : '#e0dbd3'}`,
+                  background: showMySquad ? '#ff5c35' : '#ffffff',
+                  color: showMySquad ? '#ffffff' : '#6b6b6b',
+                }}
+              >
+                👟 My Squad
+              </button>
+            )}
+          </div>
+
+          {filteredScorers.length === 0 ? (
             <div
               className="flex items-center justify-center py-16"
               style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
             >
               <p className="text-sm text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                No goals scored yet — the tournament kicks off June 11.
+                No squad picked yet — head to Tournament Picks to choose your players.
               </p>
             </div>
           ) : (
