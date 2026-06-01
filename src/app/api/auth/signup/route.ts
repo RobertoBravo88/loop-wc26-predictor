@@ -47,22 +47,35 @@ export async function POST(req: NextRequest) {
     .eq('id', user.id)
 
   // Save finalist picks if provided
+  // Bug 2 fix: validate all 3 are distinct teams
+  const finalistIds = [first_team_id, second_team_id, third_team_id].filter(Boolean)
+  const finalistUnique = new Set(finalistIds).size === finalistIds.length
   if (first_team_id || second_team_id || third_team_id) {
+    if (finalistIds.length === 3 && !finalistUnique) {
+      return NextResponse.json(
+        { error: 'Crystal Ball picks must be three different teams' },
+        { status: 400 }
+      )
+    }
     await supabase.from('finalist_picks').upsert(
       {
         user_id:         user.id,
         first_team_id:   first_team_id   || null,
         second_team_id:  second_team_id  || null,
         third_team_id:   third_team_id   || null,
+        // Bug 4 fix: set locked_at so the points engine can process these picks
+        locked_at:       new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )
   }
 
   // Save scorer picks
+  // Bug 3 fix: cap at 5 picks, exclude the favourite player (12th Man mutual exclusion)
   if (scorer_picks && Object.keys(scorer_picks).length > 0) {
     const rows = Object.entries(scorer_picks as Record<string, string>)
-      .filter(([, playerId]) => !!playerId)
+      .filter(([, playerId]) => !!playerId && playerId !== favourite_player_id)
+      .slice(0, 5)
       .map(([teamId, playerId]) => ({
         user_id:   user.id,
         team_id:   teamId,

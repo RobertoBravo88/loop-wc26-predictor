@@ -274,7 +274,9 @@ export async function processFinalistPicks(
   const { data: picks } = await supabase
     .from('finalist_picks')
     .select('*')
-    .not('locked_at', 'is', null)
+    .not('first_team_id', 'is', null)
+    .not('second_team_id', 'is', null)
+    .not('third_team_id', 'is', null)
 
   for (const pick of picks ?? []) {
     let points = 0

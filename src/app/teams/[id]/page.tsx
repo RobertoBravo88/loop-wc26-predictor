@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { stageName } from '@/lib/utils'
+import { stageName, isTournamentStarted } from '@/lib/utils'
 import type { Match, Team, GroupStanding } from '@/types'
 
 export const revalidate = 60
@@ -10,8 +10,6 @@ export const revalidate = 60
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
 
-// Tournament starts June 11 2026 — fans are revealed from this date
-const TOURNAMENT_START = new Date('2026-06-11T00:00:00Z')
 
 
 function computeStandings(matches: Match[], teams: Team[]): GroupStanding[] {
@@ -191,7 +189,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const groupTeams      = (groupTeamsRes.data ?? []) as Team[]
   const allGroupMatches = (allGroupMatchesRes.data ?? []) as Match[]
   const fans            = fansRes.data ?? []
-  const tournamentLive  = new Date() >= TOURNAMENT_START
+  const tournamentLive  = isTournamentStarted()
 
   const groupMatches   = teamMatches.filter(m => m.stage === 'group')
   const knockoutMatches = teamMatches.filter(m => m.stage !== 'group')
