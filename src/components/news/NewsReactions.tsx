@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
+import data from '@emoji-mart/data'
 
-// Lazy-load the full emoji picker (it's ~1MB of emoji data)
-const Picker = lazy(() => import('@emoji-mart/react'))
+// Lazy-load the picker client-side only — emoji-mart doesn't support SSR
+const Picker = dynamic(() => import('@emoji-mart/react'), { ssr: false })
 
 interface Reaction {
   id: string
@@ -180,26 +182,15 @@ export default function NewsReactions({ postId, userId, initialReactions }: Prop
               zIndex: 30,
               boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             }}>
-              <Suspense fallback={
-                <div style={{
-                  width: '352px', height: '200px',
-                  background: '#ffffff', border: '1px solid #e0dbd3',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.75rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif',
-                }}>
-                  Loading emojis…
-                </div>
-              }>
-                <Picker
-                  data={async () => (await import('@emoji-mart/data')).default}
-                  onEmojiSelect={handlePickerSelect}
-                  theme="light"
-                  previewPosition="none"
-                  skinTonePosition="none"
-                  navPosition="bottom"
-                  perLine={9}
-                />
-              </Suspense>
+              <Picker
+                data={data}
+                onEmojiSelect={handlePickerSelect}
+                theme="light"
+                previewPosition="none"
+                skinTonePosition="none"
+                navPosition="bottom"
+                perLine={9}
+              />
             </div>
           )}
         </div>
