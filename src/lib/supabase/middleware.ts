@@ -28,41 +28,30 @@ export async function updateSession(request: NextRequest) {
   // Refresh session — do not remove this
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protected routes — redirect to login if not authenticated
-  const protectedPaths = [
-    '/predictions',
-    '/tournament-picks',
-    '/leaderboard',
-    '/groups',
-    '/bracket',
-    '/profile',
-    '/stats',
-    '/admin',
-  ]
+  const { pathname } = request.nextUrl
 
-  const isProtected = protectedPaths.some(path =>
-    request.nextUrl.pathname.startsWith(path)
-  )
+  // Always allow: auth pages and API routes (they handle their own auth)
+  const isPublic = pathname.startsWith('/auth/') || pathname.startsWith('/api/')
+  if (isPublic) return supabaseResponse
 
-  if (isProtected && !user) {
+  // Everything else requires a logged-in user
+  if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
-    url.searchParams.set('redirectTo', request.nextUrl.pathname)
+    url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
   }
 
   // Admin-only routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+  if (pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-      if (profile?.role !== 'admin') {
-        return NextResponse.redirect(new URL('/', request.url))
-      }
+    if (profile?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url))
     }
   }
 
