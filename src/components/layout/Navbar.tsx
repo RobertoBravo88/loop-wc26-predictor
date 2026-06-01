@@ -31,7 +31,7 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
   }
 
   return (
-    <header className="sticky top-0 z-50" style={{ background: '#141414' }}>
+    <header className="sticky top-0 z-50" style={{ background: '#141414', overflow: 'visible' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
 
@@ -93,7 +93,15 @@ export default function Navbar({ profile, pendingPredictions = 0 }: { profile: P
                   <img
                     src={profile.favourite_team.flag_url}
                     alt={profile.favourite_team.name}
-                    className="w-6 h-4 object-contain flex-shrink-0"
+                    style={{
+                      width: '88px',
+                      height: '62px',
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                      transform: 'translateY(16px)',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+                      display: 'block',
+                    }}
                   />
                 )}
                 <Link
