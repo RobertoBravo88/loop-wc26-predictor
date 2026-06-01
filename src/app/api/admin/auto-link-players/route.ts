@@ -79,8 +79,9 @@ export async function POST() {
     .select('id, name, api_id')
     .not('api_id', 'is', null)
 
-  let totalLinked = 0
-  const report: Array<{ team: string; linked: number; unmatched: string[] }> = []
+  let totalResolved = 0
+  let totalSkipped  = 0
+  const report: Array<{ team: string; resolved: number; skipped: string[] }> = []
 
   for (const team of teams ?? []) {
     // Unlinked players for this team
@@ -104,9 +105,9 @@ export async function POST() {
     if (!apiPlayers.length) continue
 
     // Build lookup maps
-    const byExact = new Map<string, number>()          // normalised full name → api_id
-    const lastCount = new Map<string, number>()        // last word count (for uniqueness check)
-    const byLast  = new Map<string, number>()          // normalised last word → api_id
+    const byExact  = new Map<string, number>()
+    const lastCount = new Map<string, number>()
+    const byLast   = new Map<string, number>()
 
     for (const ap of apiPlayers) {
       const n    = norm(ap.name)
@@ -116,36 +117,94 @@ export async function POST() {
       byLast.set(last, ap.id)
     }
 
-    let teamLinked = 0
-    const unmatched: string[] = []
+    let teamResolved = 0
+    const skipped: string[] = []
 
     for (const player of unlinked) {
       const n    = norm(player.name)
       const last = n.split(' ').pop()!
 
-      // Tier 1: exact normalised name
+      // Tier 1: exact normalised match
       let apiId: number | null = byExact.get(n) ?? null
-
-      // Tier 2: unique surname match
+      // Tier 2: unique surname match (handles "K. Coman" ↔ "Kingsley Coman")
       if (!apiId && (lastCount.get(last) ?? 0) === 1) {
         apiId = byLast.get(last) ?? null
       }
 
-      if (apiId) {
+      if (!apiId) { skipped.push(player.name); totalSkipped++; continue }
+
+      // Check if this api_id is already taken by a squad-sync duplicate
+      const { data: existingLinked } = await supabase
+        .from('players')
+        .select('id, name')
+        .eq('api_id', apiId)
+        .maybeSingle()
+
+      if (existingLinked) {
+        // The Wikipedia player is a duplicate of an already-linked squad-sync player.
+        // Strategy:
+        //   1. Promote the Wikipedia full name onto the linked player (better display name).
+        //   2. Try to delete the Wikipedia duplicate.
+        //   3. If deletion is blocked (FK refs like scorer_picks), reverse:
+        //      delete the squad-sync duplicate and link the Wikipedia player instead.
+
+        await supabase
+          .from('players')
+          .update({ name: player.name })
+          .eq('id', existingLinked.id)
+
+        const { error: delWikiErr } = await supabase
+          .from('players')
+          .delete()
+          .eq('id', player.id)
+
+        if (!delWikiErr) {
+          // Clean delete — Wikipedia duplicate removed, linked player has full name.
+          teamResolved++; totalResolved++
+        } else {
+          // Wikipedia player has references (scorer_picks / favourite_player).
+          // Reverse: delete the squad-sync player, then link the Wikipedia player.
+          const { error: delSyncErr } = await supabase
+            .from('players')
+            .delete()
+            .eq('id', existingLinked.id)
+
+          if (!delSyncErr) {
+            await supabase
+              .from('players')
+              .update({ api_id: apiId })
+              .eq('id', player.id)
+            teamResolved++; totalResolved++
+          } else {
+            // Both players have references — cannot auto-resolve.
+            // Revert the name change.
+            await supabase
+              .from('players')
+              .update({ name: existingLinked.name })
+              .eq('id', existingLinked.id)
+            skipped.push(player.name); totalSkipped++
+          }
+        }
+      } else {
+        // No duplicate — just link directly.
         const { error } = await supabase
           .from('players')
           .update({ api_id: apiId })
           .eq('id', player.id)
-        if (!error) { teamLinked++; totalLinked++ }
-      } else {
-        unmatched.push(player.name)
+        if (!error) { teamResolved++; totalResolved++ }
+        else { skipped.push(player.name); totalSkipped++ }
       }
     }
 
-    if (teamLinked > 0 || unmatched.length > 0) {
-      report.push({ team: team.name, linked: teamLinked, unmatched })
+    if (teamResolved > 0 || skipped.length > 0) {
+      report.push({ team: team.name, resolved: teamResolved, skipped })
     }
   }
 
-  return NextResponse.json({ totalLinked, report })
+  return NextResponse.json({
+    message: `Resolved ${totalResolved} players. ${totalSkipped} could not be matched.`,
+    totalResolved,
+    totalSkipped,
+    report,
+  })
 }
