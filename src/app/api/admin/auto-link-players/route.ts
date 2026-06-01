@@ -143,52 +143,43 @@ export async function POST() {
 
       if (existingLinked) {
         // The Wikipedia player is a duplicate of an already-linked squad-sync player.
-        // Strategy:
-        //   1. Promote the Wikipedia full name + age + club onto the linked player.
-        //   2. Try to delete the Wikipedia duplicate.
-        //   3. If deletion is blocked (FK refs like scorer_picks), reverse:
-        //      delete the squad-sync duplicate and link the Wikipedia player instead.
+        //
+        // MERGE strategy (handles scorer_picks / favourite_player_id FK blocks):
+        //   1. Enrich the squad-sync player with Wikipedia full name + age + club.
+        //   2. Transfer ALL scorer_picks references: Wikipedia → squad-sync.
+        //   3. Transfer ALL favourite_player_id references: Wikipedia → squad-sync.
+        //   4. Delete the now-orphaned Wikipedia duplicate.
 
+        // 1. Enrich squad-sync player with Wikipedia data
         const enrichment: Record<string, any> = { name: player.name }
         if ((player as any).age  != null) enrichment.age  = (player as any).age
         if ((player as any).club != null) enrichment.club = (player as any).club
+        await supabase.from('players').update(enrichment).eq('id', existingLinked.id)
 
+        // 2. Move scorer_picks from Wikipedia player → squad-sync player
         await supabase
-          .from('players')
-          .update(enrichment)
-          .eq('id', existingLinked.id)
+          .from('scorer_picks')
+          .update({ player_id: existingLinked.id })
+          .eq('player_id', player.id)
 
-        const { error: delWikiErr } = await supabase
+        // 3. Move favourite_player_id references
+        await supabase
+          .from('profiles')
+          .update({ favourite_player_id: existingLinked.id })
+          .eq('favourite_player_id', player.id)
+
+        // 4. Delete the now-orphaned Wikipedia record
+        const { error: delErr } = await supabase
           .from('players')
           .delete()
           .eq('id', player.id)
 
-        if (!delWikiErr) {
-          // Clean delete — Wikipedia duplicate removed, linked player has full name.
+        if (!delErr) {
           teamResolved++; totalResolved++
         } else {
-          // Wikipedia player has references (scorer_picks / favourite_player).
-          // Reverse: delete the squad-sync player, then link the Wikipedia player.
-          const { error: delSyncErr } = await supabase
-            .from('players')
-            .delete()
-            .eq('id', existingLinked.id)
-
-          if (!delSyncErr) {
-            await supabase
-              .from('players')
-              .update({ api_id: apiId })
-              .eq('id', player.id)
-            teamResolved++; totalResolved++
-          } else {
-            // Both players have references — cannot auto-resolve.
-            // Revert the name change.
-            await supabase
-              .from('players')
-              .update({ name: existingLinked.name })
-              .eq('id', existingLinked.id)
-            skipped.push(player.name); totalSkipped++
-          }
+          // Still blocked — revert name change and skip
+          await supabase.from('players').update({ name: existingLinked.name }).eq('id', existingLinked.id)
+          skipped.push(player.name); totalSkipped++
         }
       } else {
         // No duplicate — just link directly.
