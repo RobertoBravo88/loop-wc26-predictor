@@ -94,11 +94,11 @@ export async function fetchWCPlayersPage(
 // Fixtures
 // ============================================================
 
-// (C2) Uses getAll to paginate automatically
-// (M8) Throws a descriptive error if no fixtures are returned
+// Fetches all WC fixtures — uses simple get() since api-football
+// returns all fixtures on a single page (confirmed: no page=1 needed)
 export async function fetchFixtures(season: number = 2026) {
-  const fixtures = await getAll<any>('/fixtures', { league: WC_2026_ID, season })
-  if (!fixtures.length) {
+  const fixtures = await get<any[]>('/fixtures', { league: WC_2026_ID, season })
+  if (!fixtures?.length) {
     throw new Error(
       `fetchFixtures returned 0 results for season ${season}. ` +
       `WC_2026_ID (currently ${WC_2026_ID}) may be incorrect — confirm the league ID once the API key is active.`
