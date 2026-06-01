@@ -324,11 +324,35 @@ function Step1({
           fontWeight: 700,
           fontSize: '1.25rem',
           color: '#141414',
-          marginBottom: '1.25rem',
+          marginBottom: '0.375rem',
         }}
       >
         Your account details
       </h2>
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
+        4 quick steps — account, 12th Man pick, Crystal Ball, Golden Boots. Takes about 2 minutes.
+      </p>
+
+      {/* Quick points overview */}
+      <div style={{ background: '#faf9f6', border: '1px solid #e0dbd3', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#141414', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+          How you earn points
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {[
+            { label: 'Predict exact match score',      pts: '100 pts' },
+            { label: 'Predict correct outcome',        pts:  '50 pts' },
+            { label: '⭐ Favourite team / player goal', pts: '+10 / +20 pts' },
+            { label: '🔮 Crystal Ball correct pick',   pts: 'up to 300 pts' },
+            { label: '👟 Golden Boots goal',           pts:  '+10 pts' },
+          ].map(({ label, pts }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+              <span style={{ color: '#6b6b6b' }}>{label}</span>
+              <span style={{ color: '#ff5c35', fontWeight: 700 }}>{pts}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Full name */}
@@ -449,27 +473,26 @@ function Step2({
       >
         Your colours 🏴
       </h2>
-      <p
-        style={{
-          fontSize: '0.8rem',
-          color: '#6b6b6b',
-          fontFamily: 'Inter, sans-serif',
-          marginBottom: '0.5rem',
-        }}
-      >
-        Pick the team you actually support — not the one you think will score the most.
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
+        Pick the team you actually support. Their flag appears next to your name on the leaderboard.
       </p>
-      <p
-        style={{
-          fontSize: '0.8rem',
-          color: '#141414',
-          fontFamily: 'Inter, sans-serif',
-          fontWeight: 600,
-          marginBottom: '1.25rem',
-        }}
-      >
-        Their flag will appear next to your name on the leaderboard. Wear it with pride.
-      </p>
+
+      {/* Points callout */}
+      <div style={{ background: '#fff8f0', border: '1px solid #ff5c35', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#141414', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+          ⭐ 12th Man — how you earn points
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+            <span style={{ color: '#6b6b6b' }}>Every time your favourite team scores</span>
+            <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 pts</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+            <span style={{ color: '#6b6b6b' }}>Every time your favourite player scores</span>
+            <span style={{ color: '#ff5c35', fontWeight: 700 }}>+20 pts</span>
+          </div>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Favourite team */}
@@ -589,18 +612,30 @@ function Step3({
           marginBottom: '0.375rem',
         }}
       >
-        Who will win the World Cup?
+        🔮 Crystal Ball
       </h2>
-      <p
-        style={{
-          fontSize: '0.8rem',
-          color: '#6b6b6b',
-          fontFamily: 'Inter, sans-serif',
-          marginBottom: '1.25rem',
-        }}
-      >
-        Lock in your finalist predictions before the tournament starts. All picks are optional.
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
+        Who goes all the way? Lock in your picks before the tournament starts — you can&apos;t change them once it kicks off.
       </p>
+
+      {/* Points callout */}
+      <div style={{ background: '#fff8f0', border: '1px solid #ff5c35', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#141414', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+          🔮 Crystal Ball — how you earn points
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {[
+            { label: 'Correct winner', pts: '+300 pts' },
+            { label: 'Correct runner-up', pts: '+200 pts' },
+            { label: 'Correct 3rd place', pts: '+100 pts' },
+          ].map(({ label, pts }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+              <span style={{ color: '#6b6b6b' }}>{label}</span>
+              <span style={{ color: '#ff5c35', fontWeight: 700 }}>{pts}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {picks.map(({ key, label, points }) => (
@@ -712,15 +747,23 @@ function Step4({
 
   return (
     <div>
-      <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: '1.25rem', color: '#141414', marginBottom: '0.25rem' }}>
+      <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: '1.25rem', color: '#141414', marginBottom: '0.375rem' }}>
         👟 Golden Boots
       </h2>
-      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
-        Pick up to 5 players — one per country. Earn <span style={{ color: '#ff5c35', fontWeight: 600 }}>+10 pts</span> every time they score. All picks are optional.
+      <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
+        Pick up to 5 players — one per country. Points stack up every time they score. All picks are optional and can be changed until the tournament starts.
       </p>
-      <p style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'Inter, sans-serif', marginBottom: '1.25rem' }}>
-        You can always change these later in the predictions tab.
-      </p>
+
+      {/* Points callout */}
+      <div style={{ background: '#fff8f0', border: '1px solid #ff5c35', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#141414', fontFamily: 'Inter, sans-serif', marginBottom: '0.5rem' }}>
+          👟 Golden Boots — how you earn points
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+          <span style={{ color: '#6b6b6b' }}>Every time one of your 5 players scores a goal</span>
+          <span style={{ color: '#ff5c35', fontWeight: 700 }}>+10 pts</span>
+        </div>
+      </div>
 
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', fontSize: '0.875rem', padding: '1rem 0' }}>
