@@ -7,7 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 // Run auto-link afterwards to connect api_ids.
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+export const maxDuration = 120
 
 // Map Wikipedia display names → DB team names where they differ
 const NAME_ALIASES: Record<string, string> = {
@@ -45,17 +45,13 @@ function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, '').trim()
 }
 
-// Extract age from "(age XX)" pattern
 function parseAge(row: string): number | null {
   const m = row.match(/\(age[^\)]*?(\d{1,2})\)/)
   return m ? parseInt(m[1], 10) : null
 }
 
-// Extract club from the last <td> in the row.
-// The WC squad table columns are: # | Pos | Player | DOB (age) | Caps | Goals | Club
-// Club is the last <td>. It may contain a flag image + club link or plain text.
+// Club is the last <td> that isn't a bare number (those are caps/goals)
 function parseClub(row: string): string | null {
-  // Split on </td> and work backwards to find the last td with a real value
   const segments = row.split('</td>')
   for (let i = segments.length - 2; i >= 0; i--) {
     const seg = segments[i]
@@ -63,11 +59,8 @@ function parseClub(row: string): string | null {
     if (tdStart === -1) continue
     const tdContent = seg.slice(tdStart)
     const text = stripTags(tdContent).replace(/\s+/g, ' ').trim()
-    // Skip blank or purely-numeric cells (those are caps / goals)
     if (!text || /^\d+$/.test(text)) continue
-    // Skip if it's a position abbreviation
     if (['GK','DF','MF','FW'].includes(text)) continue
-    // Prefer the text inside a link if available
     const linkMatch = tdContent.match(/<a[^>]*>([^<]+)<\/a>/)
     return decodeEntities(linkMatch ? linkMatch[1] : text)
   }
@@ -78,6 +71,7 @@ export async function POST() {
   const supabase = createServiceClient()
 
   try {
+    // ── 1. Fetch Wikipedia page ────────────────────────────────
     const res = await fetch('https://en.wikipedia.org/wiki/2026_FIFA_World_Cup_squads', {
       headers: { 'User-Agent': 'Mozilla/5.0 Loop-WC26/1.0' },
       next: { revalidate: 0 },
@@ -85,6 +79,7 @@ export async function POST() {
     if (!res.ok) throw new Error(`Wikipedia fetch failed: ${res.status}`)
     const html = await res.text()
 
+    // ── 2. Load DB teams ───────────────────────────────────────
     const { data: dbTeams } = await supabase.from('teams').select('id, name')
     const teamByName = new Map<string, string>()
     for (const t of dbTeams ?? []) teamByName.set(t.name.toLowerCase(), t.id)
@@ -94,12 +89,25 @@ export async function POST() {
       return teamByName.get(resolved.toLowerCase()) ?? null
     }
 
+    // ── 3. Load ALL existing players in one query ──────────────
+    // Key: "teamId::playerName" → player id
+    const { data: existingPlayers } = await supabase
+      .from('players')
+      .select('id, name, team_id')
+
+    const existingMap = new Map<string, string>()
+    for (const p of existingPlayers ?? []) {
+      existingMap.set(`${p.team_id}::${p.name}`, p.id)
+    }
+
+    // ── 4. Parse Wikipedia HTML ────────────────────────────────
     const parts = html.split('<h3 id="')
-    let inserted = 0
-    let enriched = 0
-    let skipped  = 0
+
+    // Collect inserts and updates to batch
+    const toInsert: Array<{ name: string; team_id: string; position: string | null; age: number | null; club: string | null }> = []
+    const toUpdate: Array<{ id: string; age: number | null; club: string | null }> = []
+    const coachUpdates: Array<{ teamId: string; name: string }> = []
     const unmatched: string[] = []
-    const teamResults: Array<{ team: string; added: number; enriched: number }> = []
 
     for (const part of parts.slice(1)) {
       const gtIdx = part.indexOf('">')
@@ -119,16 +127,10 @@ export async function POST() {
 
       // Coach
       const coachMatch = sectionHtml.match(/Coach:[\s\S]*?<a[^>]*>([^<]+)<\/a>/)
-      const coachName  = coachMatch ? decodeEntities(coachMatch[1]) : null
-      if (coachName) {
-        await supabase.from('teams').update({ manager: coachName }).eq('id', teamId)
-      }
+      if (coachMatch) coachUpdates.push({ teamId, name: decodeEntities(coachMatch[1]) })
 
-      const rowParts = sectionHtml.split('<tr class="nat-fs-player">')
-      let teamInserted = 0
-      let teamEnriched = 0
-
-      for (const row of rowParts.slice(1)) {
+      // Players
+      for (const row of sectionHtml.split('<tr class="nat-fs-player">').slice(1)) {
         const posMatch = row.match(/>(GK|DF|MF|FW)<\/a>/)
         const position = posMatch ? (POSITION_MAP[posMatch[1]] ?? posMatch[1]) : null
 
@@ -139,48 +141,52 @@ export async function POST() {
 
         const age  = parseAge(row)
         const club = parseClub(row)
+        const key  = `${teamId}::${name}`
 
-        // Check if player already exists for this team
-        const { data: existing } = await supabase
-          .from('players')
-          .select('id')
-          .eq('team_id', teamId)
-          .eq('name', name)
-          .maybeSingle()
-
-        if (existing) {
-          // Enrich existing player with age + club if we have them
+        const existingId = existingMap.get(key)
+        if (existingId) {
           if (age !== null || club !== null) {
-            const patch: Record<string, any> = {}
-            if (age  !== null) patch.age  = age
-            if (club !== null) patch.club = club
-            await supabase.from('players').update(patch).eq('id', existing.id)
-            enriched++
-            teamEnriched++
-          } else {
-            skipped++
+            toUpdate.push({ id: existingId, age, club })
           }
-          continue
+        } else {
+          toInsert.push({ name, team_id: teamId, position, age, club })
         }
-
-        const { error } = await supabase.from('players').insert({
-          name, team_id: teamId, position, age, club,
-        })
-        if (!error) { inserted++; teamInserted++ }
       }
+    }
 
-      if (teamInserted > 0 || teamEnriched > 0) {
-        teamResults.push({ team: teamName, added: teamInserted, enriched: teamEnriched })
+    // ── 5. Batch-write coaches ─────────────────────────────────
+    for (const c of coachUpdates) {
+      await supabase.from('teams').update({ manager: c.name }).eq('id', c.teamId)
+    }
+
+    // ── 6. Batch-insert new players ────────────────────────────
+    let inserted = 0
+    if (toInsert.length > 0) {
+      // Insert in chunks of 100 to stay within Supabase limits
+      for (let i = 0; i < toInsert.length; i += 100) {
+        const chunk = toInsert.slice(i, i + 100)
+        const { error } = await supabase.from('players').insert(chunk)
+        if (!error) inserted += chunk.length
       }
+    }
+
+    // ── 7. Batch-update existing players (age + club) ──────────
+    let enriched = 0
+    for (const u of toUpdate) {
+      const patch: Record<string, any> = {}
+      if (u.age  !== null) patch.age  = u.age
+      if (u.club !== null) patch.club = u.club
+      if (Object.keys(patch).length === 0) continue
+      const { error } = await supabase.from('players').update(patch).eq('id', u.id)
+      if (!error) enriched++
     }
 
     return NextResponse.json({
       message: `Imported ${inserted} new, enriched ${enriched} existing players. Coaches updated. Unmatched teams: ${unmatched.join(', ') || 'none'}`,
       inserted,
       enriched,
-      skipped,
+      skipped: (existingPlayers?.length ?? 0) - enriched,
       unmatched,
-      byTeam: teamResults,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
