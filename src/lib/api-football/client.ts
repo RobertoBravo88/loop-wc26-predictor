@@ -4,7 +4,8 @@
 
 const API_BASE = 'https://v3.football.api-sports.io'
 const API_KEY = process.env.API_FOOTBALL_KEY ?? ''
-const WC_2026_ID = 1 // FIFA World Cup 2026 league/tournament ID — confirm once key is active
+// Set WC_2026_LEAGUE_ID in Vercel env vars once confirmed via the admin "Find WC league ID" button
+const WC_2026_ID = parseInt(process.env.WC_2026_LEAGUE_ID ?? '1', 10)
 
 function headers() {
   return {
