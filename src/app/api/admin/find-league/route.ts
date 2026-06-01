@@ -28,30 +28,35 @@ export async function GET(req: Request) {
   return NextResponse.json({ results: leagues, total: leagues.length })
 }
 
-// POST for AdminSyncButton — tests the fixtures endpoint directly and reports back
+// POST for AdminSyncButton — tests the fixtures endpoint with AND without page=1
+// to isolate whether the pagination param is causing the issue
 export async function POST() {
-  const res  = await fetch(`${API_BASE}/fixtures?league=1&season=2026`, {
+  // Test 1: without page param (same as the working test)
+  const res1   = await fetch(`${API_BASE}/fixtures?league=1&season=2026`, {
     headers: { 'x-apisports-key': API_KEY },
     next: { revalidate: 0 },
   })
-  const data = await res.json()
+  const data1  = await res1.json()
+  const count1 = data1.response?.length ?? 0
+  const errors1 = JSON.stringify(data1.errors ?? {})
 
-  const count   = data.response?.length ?? 0
-  const paging  = data.paging ?? {}
-  const errors  = data.errors ?? {}
-  const hasErr  = Object.keys(errors).length > 0
+  // Test 2: with page=1 (how getAll calls it)
+  const res2   = await fetch(`${API_BASE}/fixtures?league=1&season=2026&page=1`, {
+    headers: { 'x-apisports-key': API_KEY },
+    next: { revalidate: 0 },
+  })
+  const data2  = await res2.json()
+  const count2 = data2.response?.length ?? 0
+  const errors2 = JSON.stringify(data2.errors ?? {})
 
-  if (hasErr) {
-    return NextResponse.json({ message: `API error: ${JSON.stringify(errors)}` })
-  }
-
-  if (count === 0) {
-    return NextResponse.json({
-      message: `Fixtures endpoint returned 0 results. HTTP ${res.status}. Paging: ${JSON.stringify(paging)}. Check your API plan — free tier may not include WC fixtures.`,
-    })
-  }
+  // Also check remaining API requests
+  const remaining = res1.headers.get('x-ratelimit-requests-remaining') ?? res2.headers.get('x-ratelimit-requests-remaining') ?? 'unknown'
 
   return NextResponse.json({
-    message: `✓ Found ${count} fixtures on page 1 of ${paging.total ?? 1}. Total should be 104. Paging: ${JSON.stringify(paging)}`,
+    message: [
+      `Without page: ${count1} fixtures | errors: ${errors1}`,
+      `With page=1:  ${count2} fixtures | errors: ${errors2}`,
+      `API requests remaining: ${remaining}`,
+    ].join(' — '),
   })
 }
