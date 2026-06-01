@@ -304,12 +304,14 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
         {/* ── Group standings (2/5) ── */}
         {standings.length > 0 && (
-          <div className="lg:col-span-2" style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
-            <div className="px-5 py-3" style={{ borderBottom: '1px solid #e0dbd3' }}>
-              <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-                Group {team.group_letter} Standings
-              </h2>
-            </div>
+          <div className="lg:col-span-2">
+            <h2
+              className="text-xs font-bold uppercase tracking-wider mb-3"
+              style={{ color: '#141414', fontFamily: sans }}
+            >
+              Group {team.group_letter} Standings
+            </h2>
+            <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
             <table className="w-full">
               <thead>
                 <tr style={{ background: '#faf9f6', borderBottom: '1px solid #e0dbd3' }}>
@@ -381,6 +383,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
