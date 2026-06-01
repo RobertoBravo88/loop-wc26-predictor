@@ -10,9 +10,10 @@ export async function POST() {
 
   try {
     const apiTeams = await fetchTeams(2026)
-    const { data: dbTeams } = await supabase.from('teams').select('id, name, api_id')
+    const { data: dbTeamsRaw } = await supabase.from('teams').select('id, name, api_id')
+    const dbTeams = (dbTeamsRaw ?? []) as Array<{ id: string; name: string; api_id: number | null }>
 
-    if (!dbTeams?.length) {
+    if (!dbTeams.length) {
       return NextResponse.json({ error: 'No teams found in database' }, { status: 400 })
     }
 
