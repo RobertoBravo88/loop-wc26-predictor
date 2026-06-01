@@ -272,16 +272,22 @@ export default function GroupsPageClient({
   const [tab, setTab] = useState<'groups' | 'finals' | 'scorers'>('groups')
   const [scorerPage, setScorerPage] = useState(0)
   const [showMySquad, setShowMySquad] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTeam, setSelectedTeam] = useState('')
 
   const knockoutByStage = new Map<MatchStage, Match[]>()
   for (const kd of knockoutData) {
     knockoutByStage.set(kd.stage, kd.matches)
   }
 
+  // Build sorted list of unique team names for the dropdown
+  const allTeamNames = [...new Set(topScorers.map(s => s.teamName).filter(Boolean))].sort()
+
   const hasSquad = mySquadIds.length > 0
-  const filteredScorers = showMySquad
-    ? topScorers.filter(s => mySquadIds.includes(s.id))
-    : topScorers
+  const filteredScorers = topScorers
+    .filter(s => !showMySquad || mySquadIds.includes(s.id))
+    .filter(s => !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(s => !selectedTeam || s.teamName === selectedTeam)
   const totalScorerPages = Math.ceil(filteredScorers.length / PAGE_SIZE)
   const pagedScorers = filteredScorers.slice(scorerPage * PAGE_SIZE, (scorerPage + 1) * PAGE_SIZE)
 
@@ -440,24 +446,78 @@ export default function GroupsPageClient({
       {tab === 'scorers' && (
         <div>
           {/* Toolbar */}
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              {filteredScorers.length} players
-            </span>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {/* Search */}
+            <input
+              type="text"
+              placeholder="Search player…"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setScorerPage(0) }}
+              style={{
+                flex: '1 1 160px',
+                minWidth: '160px',
+                border: '1px solid #e0dbd3',
+                background: '#ffffff',
+                padding: '7px 11px',
+                fontSize: '0.75rem',
+                fontFamily: 'Inter, sans-serif',
+                color: '#141414',
+                outline: 'none',
+              }}
+            />
+            {/* Team filter */}
+            <select
+              value={selectedTeam}
+              onChange={e => { setSelectedTeam(e.target.value); setScorerPage(0) }}
+              style={{
+                flex: '1 1 140px',
+                minWidth: '140px',
+                border: '1px solid #e0dbd3',
+                background: '#ffffff',
+                padding: '7px 11px',
+                fontSize: '0.75rem',
+                fontFamily: 'Inter, sans-serif',
+                color: selectedTeam ? '#141414' : '#6b6b6b',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="">All teams</option>
+              {allTeamNames.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            {/* My Squad toggle */}
             {hasSquad && (
               <button
                 onClick={() => { setShowMySquad(v => !v); setScorerPage(0) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors flex-shrink-0"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   border: `1px solid ${showMySquad ? '#ff5c35' : '#e0dbd3'}`,
                   background: showMySquad ? '#ff5c35' : '#ffffff',
                   color: showMySquad ? '#ffffff' : '#6b6b6b',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 👟 My Squad
               </button>
             )}
+          </div>
+          {/* Player count */}
+          <div className="mb-4">
+            <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              {filteredScorers.length} player{filteredScorers.length !== 1 ? 's' : ''}
+              {(searchQuery || selectedTeam) && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSelectedTeam(''); setScorerPage(0) }}
+                  className="ml-2 underline"
+                  style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </span>
           </div>
 
           {filteredScorers.length === 0 ? (
