@@ -31,7 +31,7 @@ export default function LoginPage() {
     setError('')
     setShowCreatePrompt(false)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword(values)
+    const { data, error } = await supabase.auth.signInWithPassword(values)
     if (error) {
       const isInvalidCreds = error.message.toLowerCase().includes('invalid login credentials')
         || error.message.toLowerCase().includes('invalid credentials')
@@ -45,6 +45,14 @@ export default function LoginPage() {
       }
       return
     }
+
+    // Block unconfirmed users — sign them back out and prompt to check email
+    if (!data.user?.email_confirmed_at) {
+      await supabase.auth.signOut()
+      setError('Please confirm your email before signing in. Check your inbox for the confirmation link.')
+      return
+    }
+
     router.push(redirectTo)
     router.refresh()
   }
