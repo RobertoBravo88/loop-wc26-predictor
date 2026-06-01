@@ -78,11 +78,6 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
               {post.excerpt}
             </p>
           )}
-          {post.author?.display_name && (
-            <p className="text-xs mt-4" style={{ color: '#9ca3af', fontFamily: sans }}>
-              By {post.author.display_name}
-            </p>
-          )}
         </div>
       </Link>
 
