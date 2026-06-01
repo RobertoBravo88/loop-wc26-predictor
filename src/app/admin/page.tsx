@@ -110,8 +110,9 @@ export default async function AdminPage() {
           The cron job auto-syncs at midnight. Use manual sync if something looks off.
         </p>
         <div className="flex flex-wrap gap-3">
-          <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
+          <AdminSyncButton endpoint="/api/sync/teams"    label="Sync team IDs" />
           <AdminSyncButton endpoint="/api/sync/squads"   label="Sync squads" />
+          <AdminSyncButton endpoint="/api/sync/fixtures" label="Sync fixtures" />
           <AdminSyncButton endpoint="/api/sync/results"  label="Sync results now" variant="primary" />
         </div>
       </section>
