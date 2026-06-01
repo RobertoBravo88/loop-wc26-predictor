@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
+import NewsReactions from '@/components/news/NewsReactions'
 
-export const revalidate = 300
+export const revalidate = 60
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
@@ -12,6 +13,7 @@ const sans  = 'Inter, sans-serif'
 export default async function NewsArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: post } = await supabase
     .from('news_posts')
@@ -21,6 +23,11 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
     .single()
 
   if (!post) notFound()
+
+  const { data: reactions } = await supabase
+    .from('news_reactions')
+    .select('id, emoji, user_id, profiles(display_name)')
+    .eq('post_id', post.id)
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -85,6 +92,15 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
         style={{ fontFamily: sans }}
         dangerouslySetInnerHTML={{ __html: post.body }}
       />
+
+      {/* Reactions */}
+      {user && (
+        <NewsReactions
+          postId={post.id}
+          userId={user.id}
+          initialReactions={(reactions ?? []) as any}
+        />
+      )}
     </div>
   )
 }
