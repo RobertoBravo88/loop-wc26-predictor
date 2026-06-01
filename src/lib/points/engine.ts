@@ -167,19 +167,23 @@ export async function processMatchResult(matchId: string) {
 export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAwarded: number }> {
   const supabase = createServiceClient()
 
-  // All non-own-goal events for this match — no processed filter
+  // (C5) Exclude shootout goals (minute > 120) — they don't earn scorer bonuses
+  // They may be stored in goal_events but should not generate bonus points
   const { data: goals } = await supabase
     .from('goal_events')
     .select('*')
     .eq('match_id', matchId)
     .eq('is_own_goal', false)
+    .or('minute.lte.120,minute.is.null')
 
   if (!goals?.length) return { bonusesAwarded: 0 }
 
   let bonusesAwarded = 0
 
   // Helper: insert a bonus point_event only if it doesn't already exist
-  // (keyed on user_id + goal_event_id + type via the unique DB index)
+  // (C1) Rely on insert failure (unique DB index) rather than SELECT-then-INSERT.
+  // The DB unique index on (user_id, goal_event_id, type) provides the hard guarantee.
+  // We attempt the insert and skip silently on conflict/error.
   async function awardIfNew(
     userId: string,
     type: string,
@@ -187,31 +191,28 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
     goalEventId: string,
     description: string,
   ) {
-    const { data: existing } = await supabase
-      .from('point_events')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('goal_event_id', goalEventId)
-      .eq('type', type)
-      .maybeSingle()
+    try {
+      const { error } = await supabase.from('point_events').insert({
+        user_id:       userId,
+        type,
+        points,
+        match_id:      matchId,
+        goal_event_id: goalEventId,
+        description,
+      })
 
-    if (existing) return // already awarded — skip
+      if (error) return // unique constraint conflict — already awarded, skip silently
 
-    await supabase.from('point_events').insert({
-      user_id:       userId,
-      type,
-      points,
-      match_id:      matchId,
-      goal_event_id: goalEventId,
-      description,
-    })
+      // Only reach here if insert succeeded (new bonus)
+      await supabase.rpc('increment_user_points', {
+        p_user_id: userId,
+        p_points:  points,
+      })
 
-    await supabase.rpc('increment_user_points', {
-      p_user_id: userId,
-      p_points:  points,
-    })
-
-    bonusesAwarded++
+      bonusesAwarded++
+    } catch {
+      // unique constraint violation or other transient error — skip silently
+    }
   }
 
   for (const goal of goals) {
@@ -294,6 +295,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
 
 // ============================================================
 // Process finalist picks at end of tournament
+// (N5) Idempotent: each point_event type is only inserted once per user
 // ============================================================
 
 export async function processFinalistPicks(
@@ -317,12 +319,23 @@ export async function processFinalistPicks(
     if (pick.first_team_id === actualFirstId) {
       updates.first_correct = true
       points += POINTS.FINALIST_FIRST
-      await supabase.from('point_events').insert({
-        user_id: pick.user_id,
-        type: 'finalist_first',
-        points: POINTS.FINALIST_FIRST,
-        description: 'Correct tournament winner pick',
-      })
+
+      // (N5) Only insert if not already awarded — idempotent check
+      const { data: existing1 } = await supabase
+        .from('point_events')
+        .select('id')
+        .eq('user_id', pick.user_id)
+        .eq('type', 'finalist_first')
+        .maybeSingle()
+
+      if (!existing1) {
+        await supabase.from('point_events').insert({
+          user_id: pick.user_id,
+          type: 'finalist_first',
+          points: POINTS.FINALIST_FIRST,
+          description: 'Correct tournament winner pick',
+        })
+      }
     } else {
       updates.first_correct = false
     }
@@ -330,12 +343,23 @@ export async function processFinalistPicks(
     if (pick.second_team_id === actualSecondId) {
       updates.second_correct = true
       points += POINTS.FINALIST_SECOND
-      await supabase.from('point_events').insert({
-        user_id: pick.user_id,
-        type: 'finalist_second',
-        points: POINTS.FINALIST_SECOND,
-        description: 'Correct runner-up pick',
-      })
+
+      // (N5) Only insert if not already awarded
+      const { data: existing2 } = await supabase
+        .from('point_events')
+        .select('id')
+        .eq('user_id', pick.user_id)
+        .eq('type', 'finalist_second')
+        .maybeSingle()
+
+      if (!existing2) {
+        await supabase.from('point_events').insert({
+          user_id: pick.user_id,
+          type: 'finalist_second',
+          points: POINTS.FINALIST_SECOND,
+          description: 'Correct runner-up pick',
+        })
+      }
     } else {
       updates.second_correct = false
     }
@@ -343,12 +367,23 @@ export async function processFinalistPicks(
     if (pick.third_team_id === actualThirdId) {
       updates.third_correct = true
       points += POINTS.FINALIST_THIRD
-      await supabase.from('point_events').insert({
-        user_id: pick.user_id,
-        type: 'finalist_third',
-        points: POINTS.FINALIST_THIRD,
-        description: 'Correct 3rd place pick',
-      })
+
+      // (N5) Only insert if not already awarded
+      const { data: existing3 } = await supabase
+        .from('point_events')
+        .select('id')
+        .eq('user_id', pick.user_id)
+        .eq('type', 'finalist_third')
+        .maybeSingle()
+
+      if (!existing3) {
+        await supabase.from('point_events').insert({
+          user_id: pick.user_id,
+          type: 'finalist_third',
+          points: POINTS.FINALIST_THIRD,
+          description: 'Correct 3rd place pick',
+        })
+      }
     } else {
       updates.third_correct = false
     }

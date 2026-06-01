@@ -119,6 +119,8 @@ export async function POST() {
     const lastCount        = new Map<string, number>()  // last word → count (for uniqueness)
     const byLast           = new Map<string, number>()  // last word → api_id
     const byInitialSurname = new Map<string, number>()  // "h.kane" → api_id (abbreviated API names)
+    // (M1) Track keys that appear more than once — ambiguous, should not be used for matching
+    const initialSurnameCollisions = new Set<string>()
     // Tier 4: reversed order — API uses "J. Park" for Wikipedia's "Park Jin-seob"
     // Key: "j.park" built from reversed word order
     const byReversed       = new Map<string, number>()
@@ -132,9 +134,15 @@ export async function POST() {
       lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
       byLast.set(last, ap.id)
 
+      // (M1) Build byInitialSurname with collision detection
       if (words.length >= 2 && words[0].length === 1) {
         // Abbreviated first name: "H. Kane" → norm "h kane" → store "h.kane"
-        byInitialSurname.set(`${words[0]}.${last}`, ap.id)
+        const key = `${words[0]}.${last}`
+        if (byInitialSurname.has(key)) {
+          initialSurnameCollisions.add(key) // mark as ambiguous — two players share this key
+        } else {
+          byInitialSurname.set(key, ap.id)
+        }
       }
     }
 
@@ -165,17 +173,24 @@ export async function POST() {
       }
 
       // ── Tier 3: first-initial + surname ("Harry Kane" ↔ "H. Kane") ─────
+      // (M1) Skip if the key is colliding (ambiguous)
       if (!apiId && first.length > 0) {
-        apiId = byInitialSurname.get(`${first[0]}.${last}`) ?? null
+        const key = `${first[0]}.${last}`
+        if (!initialSurnameCollisions.has(key)) {
+          apiId = byInitialSurname.get(key) ?? null
+        }
         matchTier = 3
       }
 
       // ── Tier 4: reversed name order ("Park Jin-seob" ↔ "J. Park") ─────
       // Wikipedia: first="park", last="jin-seob"
       // We look for initial-of-last . first  →  "j.park"
+      // (M1) Skip if the reversed key is colliding (ambiguous)
       if (!apiId && words.length >= 2 && last.length > 0) {
         const reversedKey = `${last[0]}.${first}`
-        apiId = byInitialSurname.get(reversedKey) ?? null
+        if (!initialSurnameCollisions.has(reversedKey)) {
+          apiId = byInitialSurname.get(reversedKey) ?? null
+        }
         matchTier = 4
       }
 
@@ -234,9 +249,32 @@ export async function POST() {
         if (!delErr) {
           teamResolved++; totalResolved++
         } else {
-          // Still blocked by some FK — revert name and report
-          await supabase.from('players').update({ name: existingLinked.name }).eq('id', existingLinked.id)
-          skipped.push(`${player.name} [del:${delErr.code}]`)
+          // (C6) Delete failed — reverse all transfers to leave DB in consistent state
+          // Revert scorer_picks back to Wikipedia player
+          await supabase
+            .from('scorer_picks')
+            .update({ player_id: player.id })
+            .eq('player_id', existingLinked.id)
+
+          // Revert favourite_player_id back to Wikipedia player
+          await supabase
+            .from('profiles')
+            .update({ favourite_player_id: player.id })
+            .eq('favourite_player_id', existingLinked.id)
+
+          // Revert goal_events back to Wikipedia player
+          await supabase
+            .from('goal_events')
+            .update({ player_id: player.id })
+            .eq('player_id', existingLinked.id)
+
+          // Revert name enrichment on squad-sync player
+          await supabase
+            .from('players')
+            .update({ name: existingLinked.name })
+            .eq('id', existingLinked.id)
+
+          skipped.push(`${player.name} [del_reverted:${delErr.code}]`)
           totalSkipped++
         }
 

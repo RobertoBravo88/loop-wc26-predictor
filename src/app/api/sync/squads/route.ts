@@ -28,6 +28,11 @@ export async function POST(request: Request) {
         const squadData = await fetchSquad(team.api_id!)
         const squad = squadData[0]?.players ?? []
 
+        // (M2) Warn if API returned no players — squad may not be registered yet
+        if (squad.length === 0) {
+          errors.push(`${team.name}: API returned empty squad (squad may not be registered yet)`)
+        }
+
         for (const p of squad) {
           await supabase.from('players').upsert({
             api_id:       p.id,

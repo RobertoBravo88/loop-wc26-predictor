@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { fetchWCPlayers } from '@/lib/api-football/client'
+import { fetchWCPlayersPage } from '@/lib/api-football/client'
 
 // Syncs players from WC 2026 match statistics — only players who actually
 // appeared in a WC fixture will be returned. Run this from June 11 onwards
@@ -31,11 +31,11 @@ export async function POST(request: Request) {
 
     for (const team of teams) {
       try {
-        // Page through results — api-football returns max 20 players per page
+        // (N6) Use fetchWCPlayersPage which returns real paging data via { players, hasMore }
         let page = 1
         let teamTotal = 0
         while (true) {
-          const pageData = await fetchWCPlayers(team.api_id!, 2026, page)
+          const { players: pageData, hasMore } = await fetchWCPlayersPage(team.api_id!, 2026, page)
           if (!pageData || pageData.length === 0) break
 
           for (const entry of pageData) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
             teamTotal++
           }
 
-          if (pageData.length < 20) break // last page
+          if (!hasMore) break // last page according to real paging data
           page++
         }
         totalPlayers += teamTotal

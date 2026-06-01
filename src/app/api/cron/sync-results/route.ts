@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchMatchResult, mapStatus } from '@/lib/api-football/client'
-import { processMatchResult } from '@/lib/points/engine'
+import { processMatchResult, processFinalistPicks } from '@/lib/points/engine'
 
 // This endpoint is called by Vercel Cron every 10 minutes.
 // It checks for matches that should be finished and fetches their results.
@@ -36,9 +36,11 @@ async function runSync() {
     .select('*')
     .neq('status', 'finished')
     .neq('status', 'cancelled')
+    .neq('status', 'postponed')  // (M5) skip postponed matches
     .not('api_id', 'is', null)
     .not('home_team_id', 'is', null)
     .lte('kickoff_at', now.toISOString())
+    .order('kickoff_at', { ascending: true })  // (C4) process in chronological order
 
   if (!pendingMatches?.length) {
     return NextResponse.json({ message: 'No pending matches', processed: 0 })
@@ -63,9 +65,16 @@ async function runSync() {
       const status = mapStatus(result.status)
 
       if (status === 'finished') {
+        // (C3) Skip if scores are null — don't mark finished without real data
+        if (result.homeScore === null || result.awayScore === null) continue
+
         // Store goals
         for (const event of result.events ?? []) {
           if (event.type !== 'Goal') continue
+
+          // (C5) Skip penalty shootout goals (elapsed > 120) — they don't earn scorer bonuses
+          // We still receive and could store them but they should not count for bonuses
+          if ((event.time?.elapsed ?? 0) > 120) continue
 
           const { data: team } = await supabase
             .from('teams')
@@ -124,6 +133,12 @@ async function runSync() {
         // Award points
         const { processed: p } = await processMatchResult(match.id)
         processed += p
+
+        // (N5 / Auto Crystal Ball) If this is the final or third_place match,
+        // attempt to automatically process finalist picks once both matches are done
+        if (match.stage === 'final' || match.stage === 'third_place') {
+          await maybeProcessFinalistPicks(supabase, result)
+        }
       } else {
         // Update status only
         await supabase.from('matches').update({ status }).eq('id', match.id)
@@ -138,4 +153,75 @@ async function runSync() {
     processed,
     errors: errors.length ? errors : undefined,
   })
+}
+
+// ============================================================
+// Auto Crystal Ball — triggers processFinalistPicks once both
+// the Final and 3rd-place match are recorded as finished.
+// Safe to call multiple times — processFinalistPicks only
+// processes picks that haven't been awarded yet.
+// ============================================================
+
+async function maybeProcessFinalistPicks(
+  supabase: ReturnType<typeof import('@/lib/supabase/server').createServiceClient>,
+  currentResult: { penaltyHome: number | null; penaltyAway: number | null; homeScore: number | null; awayScore: number | null }
+) {
+  // Fetch the finished Final from DB
+  const { data: finalMatch } = await supabase
+    .from('matches')
+    .select('id, home_team_id, away_team_id, home_score, away_score')
+    .eq('stage', 'final')
+    .eq('status', 'finished')
+    .single()
+
+  if (!finalMatch) return // Final not finished yet
+
+  // Fetch the finished 3rd-place match from DB
+  const { data: thirdMatch } = await supabase
+    .from('matches')
+    .select('id, home_team_id, away_team_id, home_score, away_score')
+    .eq('stage', 'third_place')
+    .eq('status', 'finished')
+    .single()
+
+  if (!thirdMatch) return // 3rd-place match not finished yet
+
+  // Determine winner and runner-up from the Final
+  const { home_team_id: fHomeId, away_team_id: fAwayId, home_score: fHomeScore, away_score: fAwayScore } = finalMatch
+  if (fHomeId === null || fAwayId === null || fHomeScore === null || fAwayScore === null) return
+
+  let winnerId: string
+  let runnerId: string
+
+  if (fHomeScore > fAwayScore) {
+    winnerId = fHomeId
+    runnerId = fAwayId
+  } else if (fAwayScore > fHomeScore) {
+    winnerId = fAwayId
+    runnerId = fHomeId
+  } else {
+    // Scores level — use penalty scores from the API result
+    // currentResult.penaltyHome/Away may be populated if this call came from the Final itself
+    // otherwise fetch them from the DB (we don't store penalties, so rely on the in-memory result)
+    if (currentResult.penaltyHome !== null && currentResult.penaltyAway !== null) {
+      winnerId = currentResult.penaltyHome > currentResult.penaltyAway ? fHomeId : fAwayId
+      runnerId = currentResult.penaltyHome > currentResult.penaltyAway ? fAwayId : fHomeId
+    } else {
+      // Cannot determine winner — skip for now (cron will retry)
+      return
+    }
+  }
+
+  // Determine 3rd-place team from the third_place match
+  const { home_team_id: tHomeId, away_team_id: tAwayId, home_score: tHomeScore, away_score: tAwayScore } = thirdMatch
+  if (tHomeId === null || tAwayId === null || tHomeScore === null || tAwayScore === null) return
+
+  let thirdId: string
+  if (tHomeScore >= tAwayScore) {
+    thirdId = tHomeId
+  } else {
+    thirdId = tAwayId
+  }
+
+  await processFinalistPicks(winnerId, runnerId, thirdId)
 }

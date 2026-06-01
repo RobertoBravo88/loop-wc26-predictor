@@ -9,6 +9,8 @@ export async function POST() {
   const supabase = createServiceClient()
 
   try {
+    // (C2) fetchFixtures now paginates automatically via getAll
+    // (M8) fetchFixtures throws a descriptive error if result is empty
     const fixtures = await fetchFixtures(2026)
     let upserted = 0
 
@@ -16,6 +18,7 @@ export async function POST() {
       const { data: homeTeam } = await supabase.from('teams').select('id').eq('api_id', f.teams.home.id).single()
       const { data: awayTeam } = await supabase.from('teams').select('id').eq('api_id', f.teams.away.id).single()
 
+      // (M3) Do NOT write home_score / away_score here — those are owned by the cron sync-results job
       await supabase.from('matches').upsert({
         api_id:       f.fixture.id,
         stage:        mapApiRound(f.league.round),
@@ -25,8 +28,6 @@ export async function POST() {
         kickoff_at:   f.fixture.date,
         status:       mapStatus(f.fixture.status.short),
         venue:        f.fixture.venue?.name ?? null,
-        home_score:   f.goals.home,
-        away_score:   f.goals.away,
       }, { onConflict: 'api_id' })
 
       upserted++
