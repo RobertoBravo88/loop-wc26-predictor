@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { stageName, isMatchLocked, isTournamentStarted } from '@/lib/utils'
 import { format } from 'date-fns'
 import PredictionCard from '@/components/predictions/PredictionCard'
+import GroupMatchesList from '@/components/predictions/GroupMatchesList'
 import TournamentPicksClient from '@/components/predictions/TournamentPicksClient'
 import Link from 'next/link'
 import type { Match, Prediction, MatchStage } from '@/types'
@@ -278,44 +279,14 @@ export default async function PredictionsPage({
       {/* ── Group Predictions tab ── */}
       {activeTab === 'matches' && (
         <>
-          {Array.from(
-            groupMatches.reduce((acc, m) => {
-              const g = m.group_letter ?? '?'
-              if (!acc.has(g)) acc.set(g, [])
-              acc.get(g)!.push(m)
-              return acc
-            }, new Map<string, Match[]>())
-          )
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([group, gMatches]) => (
-              <section key={group} className="mb-8">
-                <h2
-                  className="text-lg mb-3 pb-2 flex items-center gap-2"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
-                >
-                  <span
-                    className="w-6 h-6 flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                    style={{ background: '#141414', fontFamily: 'Inter, sans-serif' }}
-                  >
-                    {group}
-                  </span>
-                  Group {group}
-                </h2>
-                <div style={{ border: '1px solid #e0dbd3' }}>
-                  {gMatches.map(match => (
-                    <PredictionCard
-                      key={match.id}
-                      match={match}
-                      prediction={predictionMap.get(match.id) ?? null}
-                      userId={user.id}
-                      distribution={distMap.get(match.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-
-          {groupMatches.length === 0 && (
+          {groupMatches.length > 0 ? (
+            <GroupMatchesList
+              matches={groupMatches}
+              predictionMap={Object.fromEntries(predictionMap)}
+              distMap={Object.fromEntries(distMap)}
+              userId={user.id}
+            />
+          ) : (
             <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
               Group fixtures haven&apos;t been loaded yet. Check back soon!
             </div>

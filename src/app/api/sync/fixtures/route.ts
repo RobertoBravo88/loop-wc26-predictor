@@ -15,14 +15,23 @@ export async function POST() {
     let upserted = 0
 
     for (const f of fixtures) {
-      const { data: homeTeam } = await supabase.from('teams').select('id').eq('api_id', f.teams.home.id).single()
-      const { data: awayTeam } = await supabase.from('teams').select('id').eq('api_id', f.teams.away.id).single()
+      // Fetch both teams including their group_letter (used as fallback when
+      // api-football uses "Group Stage - X" format instead of "Group D")
+      const [{ data: homeTeam }, { data: awayTeam }] = await Promise.all([
+        supabase.from('teams').select('id, group_letter').eq('api_id', f.teams.home.id).single(),
+        supabase.from('teams').select('id, group_letter').eq('api_id', f.teams.away.id).single(),
+      ])
+
+      const groupLetter = parseGroup(f.league.round)
+        ?? homeTeam?.group_letter      // fall back to team's own group
+        ?? awayTeam?.group_letter
+        ?? null
 
       // (M3) Do NOT write home_score / away_score here — those are owned by the cron sync-results job
       await supabase.from('matches').upsert({
         api_id:       f.fixture.id,
         stage:        mapApiRound(f.league.round),
-        group_letter: parseGroup(f.league.round),
+        group_letter: groupLetter,
         home_team_id: homeTeam?.id ?? null,
         away_team_id: awayTeam?.id ?? null,
         kickoff_at:   f.fixture.date,
