@@ -51,6 +51,8 @@ function mapApiRound(round: string): string {
 }
 
 function parseGroup(round: string): string | null {
-  const match = round.match(/Group (\w)/)
-  return match ? match[1] : null
+  // Match "Group A", "Group B" etc. but NOT "Group Stage" (which would
+  // incorrectly return "S" — the first char of "Stage")
+  const match = round.match(/^Group ([A-Z])$/i)
+  return match ? match[1].toUpperCase() : null
 }
