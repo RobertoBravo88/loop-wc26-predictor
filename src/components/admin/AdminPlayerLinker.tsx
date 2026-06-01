@@ -27,8 +27,9 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
   const [statusMsg, setStatusMsg]   = useState('')
 
   // Auto-link state
-  const [autoLinking, setAutoLinking] = useState(false)
-  const [autoResult, setAutoResult]   = useState<{ linked: number; remaining: number } | null>(null)
+  const [autoLinking, setAutoLinking]   = useState(false)
+  const [autoResult, setAutoResult]     = useState<{ linked: number; remaining: number } | null>(null)
+  const [autoReport, setAutoReport]     = useState<any[] | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -48,17 +49,12 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
       const resolved  = data.totalResolved ?? 0
       const remaining = players.length - resolved
       setAutoResult({ linked: resolved, remaining })
+      setAutoReport(data.report ?? [])
 
-      if (resolved === 0) {
-        // Nothing changed — show report without reloading so we can diagnose
-        const skippedSummary = (data.report ?? [])
-          .filter((r: any) => r.skipped?.length > 0)
-          .map((r: any) => `${r.team}: ${r.skipped.slice(0, 3).join(', ')}${r.skipped.length > 3 ? '…' : ''}`)
-          .join('\n')
-        alert(`Auto-link resolved 0 players.\n\nSkipped teams:\n${skippedSummary || 'none — likely teams with no API id'}`)
-      } else {
+      if (resolved > 0) {
         window.location.reload()
       }
+      // If resolved === 0, stay on page so the inline report is visible
     } catch (e: any) {
       alert('Auto-link failed: ' + e.message)
     } finally {
@@ -176,6 +172,31 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
           Auto-link fetches each team's squad from api-football and matches by name.
         </p>
       </div>
+
+      {/* Inline auto-link report */}
+      {autoReport !== null && (
+        <div className="mb-4 p-4" style={{ background: '#faf9f6', border: '1px solid #e0dbd3' }}>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#141414', fontFamily: sans }}>
+            Auto-link result — {autoResult?.linked ?? 0} resolved, {autoResult?.remaining ?? players.length} still unlinked
+          </p>
+          {autoReport.filter((r: any) => r.skipped?.length > 0).length === 0 ? (
+            <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+              No skipped teams — unlinked players may belong to teams with no API id.
+            </p>
+          ) : (
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {autoReport
+                .filter((r: any) => r.skipped?.length > 0)
+                .map((r: any) => (
+                  <div key={r.team} className="text-xs" style={{ fontFamily: sans }}>
+                    <span className="font-semibold" style={{ color: '#141414' }}>{r.team}</span>
+                    <span style={{ color: '#6b6b6b' }}>: {r.skipped.join(', ')}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Player list */}
       <div className="divide-y" style={{ border: '1px solid #e0dbd3' }}>
