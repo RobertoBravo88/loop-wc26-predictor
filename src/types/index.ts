@@ -208,6 +208,9 @@ export interface LeaderboardEntry {
   matches_predicted: number
   exact_scores: number
   correct_outcomes: number
+  prediction_points: number
+  streak_points: number
+  bonus_points: number
 }
 
 // ============================================================
