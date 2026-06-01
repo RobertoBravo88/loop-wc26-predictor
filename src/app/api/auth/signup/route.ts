@@ -36,15 +36,17 @@ export async function POST(req: NextRequest) {
   // ── Step 2: Use service client for privileged DB writes ──
   const supabase = createServiceClient()
 
-  // Update profile (created automatically by DB trigger on user insert)
+  // Upsert profile — handles both the normal case (trigger already created the row)
+  // and the edge case where the auth user existed but the profile row was deleted.
   await supabase
     .from('profiles')
-    .update({
+    .upsert({
+      id:                  user.id,
       display_name,
+      email,
       favourite_team_id:   favourite_team_id   || null,
       favourite_player_id: favourite_player_id || null,
-    })
-    .eq('id', user.id)
+    }, { onConflict: 'id' })
 
   // Save finalist picks if provided
   // Bug 2 fix: validate all 3 are distinct teams
