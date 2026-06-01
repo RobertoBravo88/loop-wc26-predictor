@@ -139,7 +139,7 @@ export default async function AdminPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid #e0dbd3' }}>
-          <AdminSyncButton endpoint="/api/admin/find-league?q=World+Cup" label="Find WC league ID" />
+          <AdminSyncButton endpoint="/api/admin/find-league" label="Test fixtures API" />
           <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
             Searches api-football for World Cup leagues — use the result to set <code style={{ background: '#f7f4ef', padding: '1px 4px' }}>WC_2026_LEAGUE_ID</code> in Vercel env vars.
           </p>

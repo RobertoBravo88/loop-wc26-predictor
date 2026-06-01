@@ -28,17 +28,30 @@ export async function GET(req: Request) {
   return NextResponse.json({ results: leagues, total: leagues.length })
 }
 
-// POST for AdminSyncButton — returns a message string the button can display
+// POST for AdminSyncButton — tests the fixtures endpoint directly and reports back
 export async function POST() {
-  const leagues = await search('World Cup')
+  const res  = await fetch(`${API_BASE}/fixtures?league=1&season=2026`, {
+    headers: { 'x-apisports-key': API_KEY },
+    next: { revalidate: 0 },
+  })
+  const data = await res.json()
 
-  if (!leagues.length) {
-    return NextResponse.json({ message: 'No results — check API_FOOTBALL_KEY is set correctly' })
+  const count   = data.response?.length ?? 0
+  const paging  = data.paging ?? {}
+  const errors  = data.errors ?? {}
+  const hasErr  = Object.keys(errors).length > 0
+
+  if (hasErr) {
+    return NextResponse.json({ message: `API error: ${JSON.stringify(errors)}` })
   }
 
-  const lines = leagues.map((l: any) =>
-    `ID ${l.id}: ${l.name} (${l.country}) — seasons: ${l.seasons}`
-  ).join(' | ')
+  if (count === 0) {
+    return NextResponse.json({
+      message: `Fixtures endpoint returned 0 results. HTTP ${res.status}. Paging: ${JSON.stringify(paging)}. Check your API plan — free tier may not include WC fixtures.`,
+    })
+  }
 
-  return NextResponse.json({ message: lines })
+  return NextResponse.json({
+    message: `✓ Found ${count} fixtures on page 1 of ${paging.total ?? 1}. Total should be 104. Paging: ${JSON.stringify(paging)}`,
+  })
 }
