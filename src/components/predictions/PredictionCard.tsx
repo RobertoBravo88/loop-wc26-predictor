@@ -28,10 +28,28 @@ export default function PredictionCard({ match, prediction, userId, distribution
 
   function triggerAutoSave(h: string, a: string) {
     if (locked) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    // Both cleared → delete the prediction
+    if (h === '' && a === '') {
+      debounceRef.current = setTimeout(async () => {
+        setSaving(true); setSaveError(false)
+        const supabase = createClient()
+        const { error } = await supabase.from('predictions')
+          .delete()
+          .eq('user_id', userId)
+          .eq('match_id', match.id)
+        setSaving(false)
+        if (error) { setSaveError(true); setTimeout(() => setSaveError(false), 4000) }
+        else        { setSaved(true);    setTimeout(() => setSaved(false), 2000) }
+      }, 600)
+      return
+    }
+
     const hNum = parseInt(h)
     const aNum = parseInt(a)
     if (isNaN(hNum) || isNaN(aNum) || hNum < 0 || aNum < 0) return
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+
     debounceRef.current = setTimeout(async () => {
       setSaving(true)
       setSaveError(false)

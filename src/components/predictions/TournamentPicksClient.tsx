@@ -113,11 +113,14 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
   const pickedTeamIds = new Set(picks.map(p => p.teamId))
   const availableTeams = teams.filter(t => !pickedTeamIds.has(t.id))
 
-  // Players for the currently selected team in the add flow
-  const addingTeamPlayers = players.filter(p => p.team_id === addingTeam)
+  // Player ids already used in golden boots picks
+  const goldenBootPlayerIds = new Set(picks.map(p => p.playerId))
 
-  // Players from the selected favourite team only
-  const favPlayerTeamPlayers = players.filter(p => p.team_id === favTeam)
+  // Players for the currently selected team in the add flow — exclude the 12th man player
+  const addingTeamPlayers = players.filter(p => p.team_id === addingTeam && p.id !== favPlayer)
+
+  // Players from the selected favourite team — exclude any player already in golden boots
+  const favPlayerTeamPlayers = players.filter(p => p.team_id === favTeam && !goldenBootPlayerIds.has(p.id))
 
   // Helper: get team info from teams array
   function getTeam(teamId: string) {
@@ -266,6 +269,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
           style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
         >
           Five strikers. One country each. Every goal counts. &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
+          {' · '}Cannot overlap with your 12th Man player pick.
         </p>
 
         {/* 5 numbered pick slots */}
@@ -452,12 +456,12 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
             ⭐ 12th Man Bonus
           </h2>
         </div>
-        <p className="text-sm mt-3 mb-1" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-          Pick the team you <span style={{ fontWeight: 700 }}>actually support</span> — not the one you think will score the most.
-          Their flag will appear next to your name on the leaderboard for the whole tournament. Wear it with pride.
+        <p className="text-sm mt-3 mb-2" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          Pick your team with your heart, not your spreadsheet. If you&apos;re Belgian, you don&apos;t want a French flag
+          next to your name all month. And Italians? Since Italy isn&apos;t here, we&apos;ll allow a temporary adoption.
         </p>
         <p className="text-xs mb-5 uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-          Hidden until June 11 &middot; <span style={{ color: '#ff5c35' }}>+10 pts every time they score</span>
+          Hidden until June 11 &middot; <span style={{ color: '#ff5c35' }}>+10 pts per team goal · +20 pts per player goal</span>
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
@@ -489,7 +493,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
               className="block mb-1.5 uppercase tracking-wider"
               style={{ fontSize: '10px', fontWeight: 600, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
             >
-              Your player — from your team only &middot; <span style={{ color: '#ff5c35' }}>+10 pts per goal</span>
+              Your player — from your team only &middot; <span style={{ color: '#ff5c35' }}>+20 pts per goal</span>
             </label>
 
             {locked ? (

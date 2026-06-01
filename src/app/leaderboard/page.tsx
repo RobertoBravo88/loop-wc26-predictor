@@ -45,6 +45,31 @@ export default async function LeaderboardPage() {
         </p>
       </div>
 
+      {/* Points legend */}
+      <div className="mb-6 p-4" style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          How points are earned
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
+          {[
+            { label: 'Exact score',                    pts: '100 pts' },
+            { label: 'Correct outcome',                pts: '50 pts' },
+            { label: 'Hot streak bonus (from 3rd exact in a row)', pts: '+50 pts each' },
+            { label: '🔮 Crystal Ball — winner',        pts: '300 pts' },
+            { label: '🔮 Crystal Ball — runner-up',     pts: '200 pts' },
+            { label: '🔮 Crystal Ball — 3rd place',     pts: '100 pts' },
+            { label: '👟 Golden Boots — per goal',      pts: '+10 pts' },
+            { label: '⭐ 12th Man — team goal',         pts: '+10 pts' },
+            { label: '⭐ 12th Man — player goal',        pts: '+20 pts' },
+          ].map(({ label, pts }) => (
+            <div key={label} className="flex items-center justify-between gap-4">
+              <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{label}</span>
+              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>{pts}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Newspaper-style rankings table */}
       <div style={{ border: '1px solid #e0dbd3' }}>
         {/* Header */}
@@ -53,9 +78,10 @@ export default async function LeaderboardPage() {
           style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
         >
           <span className="col-span-1 text-center">#</span>
-          <span className="col-span-5">Looper</span>
-          <span className="col-span-2 text-center">Predicted</span>
+          <span className="col-span-4">Looper</span>
+          <span className="col-span-2 text-center hidden sm:block">Predicted</span>
           <span className="col-span-2 text-center">Exact</span>
+          <span className="col-span-1 text-center hidden sm:block">✓ Right</span>
           <span className="col-span-2 text-right">Points</span>
         </div>
 
@@ -84,8 +110,8 @@ export default async function LeaderboardPage() {
                 {medal ?? entry.rank}
               </span>
 
-              {/* Player */}
-              <div className="col-span-5 flex items-center gap-2 min-w-0">
+              {/* Looper */}
+              <div className="col-span-4 flex items-center gap-2 min-w-0">
                 {(tournamentStarted || isMe) && entry.favourite_team_flag ? (
                   <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
@@ -114,18 +140,26 @@ export default async function LeaderboardPage() {
 
               {/* Predicted */}
               <span
-                className="col-span-2 text-center text-sm"
+                className="col-span-2 text-center text-sm hidden sm:block"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
               >
                 {entry.matches_predicted}
               </span>
 
-              {/* Exact */}
+              {/* Exact scores */}
               <span
                 className="col-span-2 text-center text-sm"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
               >
                 {entry.exact_scores}
+              </span>
+
+              {/* Correct outcomes */}
+              <span
+                className="col-span-1 text-center text-sm hidden sm:block"
+                style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
+              >
+                {entry.correct_outcomes}
               </span>
 
               {/* Points */}
