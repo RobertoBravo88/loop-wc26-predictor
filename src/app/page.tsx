@@ -244,9 +244,11 @@ export default async function HomePage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 flex-1 justify-end">
-                          <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                            {match.home_team?.name ?? '—'}
-                          </span>
+                          {match.home_team ? (
+                            <Link href={`/teams/${match.home_team.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                              {match.home_team.name}
+                            </Link>
+                          ) : <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span>}
                           {match.home_team?.flag_url && (
                             <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                           )}
@@ -261,9 +263,11 @@ export default async function HomePage() {
                           {match.away_team?.flag_url && (
                             <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                           )}
-                          <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                            {match.away_team?.name ?? '—'}
-                          </span>
+                          {match.away_team ? (
+                            <Link href={`/teams/${match.away_team.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                              {match.away_team.name}
+                            </Link>
+                          ) : <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span>}
                         </div>
                       </div>
                       {user && pred && (
@@ -317,9 +321,11 @@ export default async function HomePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 flex-1 justify-end">
-                      <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                        {match.home_team?.name ?? '—'}
-                      </span>
+                      {match.home_team ? (
+                        <Link href={`/teams/${match.home_team.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                          {match.home_team.name}
+                        </Link>
+                      ) : <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span>}
                       {match.home_team?.flag_url && (
                         <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                       )}
@@ -334,9 +340,11 @@ export default async function HomePage() {
                       {match.away_team?.flag_url && (
                         <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                       )}
-                      <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                        {match.away_team?.name ?? '—'}
-                      </span>
+                      {match.away_team ? (
+                        <Link href={`/teams/${match.away_team.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                          {match.away_team.name}
+                        </Link>
+                      ) : <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span>}
                     </div>
                   </div>
                   {user && (

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { stageName } from '@/lib/utils'
 import { format } from 'date-fns'
 import type { Match, GroupStanding, MatchStage } from '@/types'
@@ -149,9 +150,13 @@ function StandingsTable({ standings, predictedStandings }: {
                     {row.team.flag_url && (
                       <img src={row.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
                     )}
-                    <span className="font-medium text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                    <Link
+                      href={`/teams/${row.team.id}`}
+                      className="font-medium text-sm truncate hover:underline"
+                      style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}
+                    >
                       {row.team.name}
-                    </span>
+                    </Link>
                     {delta !== null && delta !== 0 && (
                       <span
                         className="flex-shrink-0 text-xs font-bold"
@@ -211,7 +216,9 @@ function TeamRow({ match, side, slot, finished }: {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2" style={{ fontFamily: 'Inter, sans-serif', color: won ? '#141414' : '#6b6b6b', fontWeight: won ? 600 : 400 }}>
         {team.flag_url && <img src={team.flag_url} alt="" className="w-4 h-3 object-contain flex-shrink-0" />}
-        <span className="truncate flex-1">{team.name}</span>
+        <Link href={`/teams/${team.id}`} className="truncate flex-1 hover:underline" style={{ color: 'inherit' }}>
+          {team.name}
+        </Link>
         {finished && <span className="ml-auto font-bold" style={{ color: '#ff5c35' }}>{score}</span>}
       </div>
     )
