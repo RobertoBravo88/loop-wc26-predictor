@@ -184,12 +184,15 @@ export default function AdminPlayerLinker({ players: initial }: { players: Unlin
               No skipped teams — unlinked players may belong to teams with no API id.
             </p>
           ) : (
-            <div className="space-y-1 max-h-48 overflow-y-auto">
+            <div className="space-y-1 max-h-64 overflow-y-auto">
               {autoReport
                 .filter((r: any) => r.skipped?.length > 0)
                 .map((r: any) => (
                   <div key={r.team} className="text-xs" style={{ fontFamily: sans }}>
                     <span className="font-semibold" style={{ color: '#141414' }}>{r.team}</span>
+                    {r.apiSquadSize != null && (
+                      <span className="ml-1 text-xs" style={{ color: '#9ca3af' }}>(API:{r.apiSquadSize})</span>
+                    )}
                     <span style={{ color: '#6b6b6b' }}>: {r.skipped.join(', ')}</span>
                   </div>
                 ))}
