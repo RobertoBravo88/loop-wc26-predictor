@@ -131,16 +131,16 @@ export default async function LeaderboardPage() {
           <span className="hidden sm:block sm:col-span-1 text-center">Pred.</span>
 
           {/* Prediction points */}
-          <span className="col-span-2 text-right">Pred. pts</span>
+          <span className="col-span-2 text-center">Pred. pts</span>
 
           {/* Hot streak — desktop only */}
-          <span className="hidden sm:block sm:col-span-2 text-right">🔥 Streak</span>
+          <span className="hidden sm:block sm:col-span-2 text-center">🔥 Streak</span>
 
           {/* Bonus — desktop only */}
-          <span className="hidden sm:block sm:col-span-2 text-right">Bonus</span>
+          <span className="hidden sm:block sm:col-span-2 text-center">Bonus</span>
 
           {/* Total */}
-          <span className="col-span-4 sm:col-span-1 text-right">Total</span>
+          <span className="col-span-4 sm:col-span-1 text-center">Total</span>
         </div>
 
         {leaderboard.map((entry, i) => {
@@ -213,7 +213,7 @@ export default async function LeaderboardPage() {
 
               {/* Prediction points */}
               <span
-                className="col-span-2 text-right text-sm"
+                className="col-span-2 text-center text-sm"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
               >
                 {entry.prediction_points ?? 0}
@@ -221,7 +221,7 @@ export default async function LeaderboardPage() {
 
               {/* Streak points — desktop only, orange if non-zero */}
               <span
-                className="hidden sm:block sm:col-span-2 text-right text-sm"
+                className="hidden sm:block sm:col-span-2 text-center text-sm"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   color: (entry.streak_points ?? 0) > 0 ? '#ff5c35' : '#6b6b6b',
@@ -232,7 +232,7 @@ export default async function LeaderboardPage() {
 
               {/* Bonus points — desktop only, orange if non-zero */}
               <span
-                className="hidden sm:block sm:col-span-2 text-right text-sm"
+                className="hidden sm:block sm:col-span-2 text-center text-sm"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   color: (entry.bonus_points ?? 0) > 0 ? '#ff5c35' : '#6b6b6b',
@@ -243,7 +243,7 @@ export default async function LeaderboardPage() {
 
               {/* Total */}
               <span
-                className="col-span-4 sm:col-span-1 text-right text-sm font-bold"
+                className="col-span-4 sm:col-span-1 text-center text-sm font-bold"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#ff5c35' }}
               >
                 {entry.total_points}
