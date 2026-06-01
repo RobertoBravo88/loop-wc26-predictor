@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 // Imports all 48 WC 2026 squads from Wikipedia.
-// Creates players with full names and positions but no api_id.
-// Run the admin linker afterwards to connect api_ids for picked players.
+// Extracts name, position, age, club from each player row.
+// If the player already exists, updates their age + club (enrich run).
+// Run auto-link afterwards to connect api_ids.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -18,8 +19,8 @@ const NAME_ALIASES: Record<string, string> = {
 
 // Wikipedia section titles that are NOT teams — skip them
 const NON_TEAM_SECTIONS = new Set([
-  'Age', 'Coach representation by country', 'Notes', 'References', 'External links',
-  'Squads', 'Key', 'Legend',
+  'Age', 'Coach representation by country', 'Notes', 'References',
+  'External links', 'Squads', 'Key', 'Legend',
 ])
 
 const POSITION_MAP: Record<string, string> = {
@@ -29,7 +30,6 @@ const POSITION_MAP: Record<string, string> = {
   'FW': 'Forward',
 }
 
-// Decode common HTML entities that appear in player names
 function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g,  '&')
@@ -39,6 +39,39 @@ function decodeEntities(s: string): string {
     .replace(/&lt;/g,   '<')
     .replace(/&gt;/g,   '>')
     .trim()
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]+>/g, '').trim()
+}
+
+// Extract age from "(age XX)" pattern
+function parseAge(row: string): number | null {
+  const m = row.match(/\(age[^\)]*?(\d{1,2})\)/)
+  return m ? parseInt(m[1], 10) : null
+}
+
+// Extract club from the last <td> in the row.
+// The WC squad table columns are: # | Pos | Player | DOB (age) | Caps | Goals | Club
+// Club is the last <td>. It may contain a flag image + club link or plain text.
+function parseClub(row: string): string | null {
+  // Split on </td> and work backwards to find the last td with a real value
+  const segments = row.split('</td>')
+  for (let i = segments.length - 2; i >= 0; i--) {
+    const seg = segments[i]
+    const tdStart = seg.lastIndexOf('<td')
+    if (tdStart === -1) continue
+    const tdContent = seg.slice(tdStart)
+    const text = stripTags(tdContent).replace(/\s+/g, ' ').trim()
+    // Skip blank or purely-numeric cells (those are caps / goals)
+    if (!text || /^\d+$/.test(text)) continue
+    // Skip if it's a position abbreviation
+    if (['GK','DF','MF','FW'].includes(text)) continue
+    // Prefer the text inside a link if available
+    const linkMatch = tdContent.match(/<a[^>]*>([^<]+)<\/a>/)
+    return decodeEntities(linkMatch ? linkMatch[1] : text)
+  }
+  return null
 }
 
 export async function POST() {
@@ -52,9 +85,8 @@ export async function POST() {
     if (!res.ok) throw new Error(`Wikipedia fetch failed: ${res.status}`)
     const html = await res.text()
 
-    // Load all DB teams for name matching
     const { data: dbTeams } = await supabase.from('teams').select('id, name')
-    const teamByName = new Map<string, string>() // lowercase name → id
+    const teamByName = new Map<string, string>()
     for (const t of dbTeams ?? []) teamByName.set(t.name.toLowerCase(), t.id)
 
     function findTeamId(wikiName: string): string | null {
@@ -62,60 +94,53 @@ export async function POST() {
       return teamByName.get(resolved.toLowerCase()) ?? null
     }
 
-    // Split HTML on <h3 id=" — each piece is a team section
     const parts = html.split('<h3 id="')
     let inserted = 0
+    let enriched = 0
     let skipped  = 0
     const unmatched: string[] = []
-    const teamResults: Array<{ team: string; added: number }> = []
+    const teamResults: Array<{ team: string; added: number; enriched: number }> = []
 
     for (const part of parts.slice(1)) {
-      // Extract display name: format is `{id}">Display Name</h3>...`
       const gtIdx = part.indexOf('">')
       if (gtIdx === -1) continue
       const nameEnd = part.indexOf('</h3>', gtIdx + 2)
       if (nameEnd === -1) continue
-      // Strip any inline HTML tags (e.g. <span id="Cura.C3.A7ao"></span>) before the visible text
       const rawInner = part.slice(gtIdx + 2, nameEnd)
       const teamName = decodeEntities(rawInner.replace(/<[^>]+>/g, '')).trim()
       if (!teamName) continue
-
-      // Skip known non-team Wikipedia sections
       if (NON_TEAM_SECTIONS.has(teamName)) continue
 
       const teamId = findTeamId(teamName)
-      if (!teamId) {
-        unmatched.push(teamName)
-        continue
-      }
+      if (!teamId) { unmatched.push(teamName); continue }
 
-      // Crop section to just this team (stop at next h2/h3)
       const nextHeading = part.search(/<h[23][\s>]/)
       const sectionHtml = nextHeading > -1 ? part.slice(0, nextHeading) : part
 
-      // Extract coach — "Coach: [optional flag HTML] <a ...>Name</a>"
+      // Coach
       const coachMatch = sectionHtml.match(/Coach:[\s\S]*?<a[^>]*>([^<]+)<\/a>/)
       const coachName  = coachMatch ? decodeEntities(coachMatch[1]) : null
       if (coachName) {
         await supabase.from('teams').update({ manager: coachName }).eq('id', teamId)
       }
 
-      // Parse each player row
       const rowParts = sectionHtml.split('<tr class="nat-fs-player">')
       let teamInserted = 0
+      let teamEnriched = 0
 
       for (const row of rowParts.slice(1)) {
-        // Position abbreviation — e.g. >GK</a>
         const posMatch = row.match(/>(GK|DF|MF|FW)<\/a>/)
         const position = posMatch ? (POSITION_MAP[posMatch[1]] ?? posMatch[1]) : null
 
-        // Player name — first <a> link inside <th scope="row">
         const thMatch = row.match(/<th[^>]*scope="row"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/)
         if (!thMatch) continue
         const name = decodeEntities(thMatch[1])
         if (!name) continue
 
-        // Skip if exact name already exists for this team
+        const age  = parseAge(row)
+        const club = parseClub(row)
+
+        // Check if player already exists for this team
         const { data: existing } = await supabase
           .from('players')
           .select('id')
@@ -124,23 +149,35 @@ export async function POST() {
           .maybeSingle()
 
         if (existing) {
-          skipped++
+          // Enrich existing player with age + club if we have them
+          if (age !== null || club !== null) {
+            const patch: Record<string, any> = {}
+            if (age  !== null) patch.age  = age
+            if (club !== null) patch.club = club
+            await supabase.from('players').update(patch).eq('id', existing.id)
+            enriched++
+            teamEnriched++
+          } else {
+            skipped++
+          }
           continue
         }
 
-        const { error } = await supabase.from('players').insert({ name, team_id: teamId, position })
-        if (!error) {
-          inserted++
-          teamInserted++
-        }
+        const { error } = await supabase.from('players').insert({
+          name, team_id: teamId, position, age, club,
+        })
+        if (!error) { inserted++; teamInserted++ }
       }
 
-      if (teamInserted > 0) teamResults.push({ team: teamName, added: teamInserted })
+      if (teamInserted > 0 || teamEnriched > 0) {
+        teamResults.push({ team: teamName, added: teamInserted, enriched: teamEnriched })
+      }
     }
 
     return NextResponse.json({
-      message: `Imported ${inserted} new players (${skipped} already existed), coaches updated. Unmatched teams: ${unmatched.join(', ') || 'none'}`,
+      message: `Imported ${inserted} new, enriched ${enriched} existing players. Coaches updated. Unmatched teams: ${unmatched.join(', ') || 'none'}`,
       inserted,
+      enriched,
       skipped,
       unmatched,
       byTeam: teamResults,

@@ -84,10 +84,10 @@ export async function POST() {
   const report: Array<{ team: string; resolved: number; skipped: string[] }> = []
 
   for (const team of teams ?? []) {
-    // Unlinked players for this team
+    // Unlinked players for this team (include age + club so we can carry them across)
     const { data: unlinked } = await supabase
       .from('players')
-      .select('id, name')
+      .select('id, name, age, club')
       .eq('team_id', team.id)
       .is('api_id', null)
 
@@ -143,14 +143,18 @@ export async function POST() {
       if (existingLinked) {
         // The Wikipedia player is a duplicate of an already-linked squad-sync player.
         // Strategy:
-        //   1. Promote the Wikipedia full name onto the linked player (better display name).
+        //   1. Promote the Wikipedia full name + age + club onto the linked player.
         //   2. Try to delete the Wikipedia duplicate.
         //   3. If deletion is blocked (FK refs like scorer_picks), reverse:
         //      delete the squad-sync duplicate and link the Wikipedia player instead.
 
+        const enrichment: Record<string, any> = { name: player.name }
+        if ((player as any).age  != null) enrichment.age  = (player as any).age
+        if ((player as any).club != null) enrichment.club = (player as any).club
+
         await supabase
           .from('players')
-          .update({ name: player.name })
+          .update(enrichment)
           .eq('id', existingLinked.id)
 
         const { error: delWikiErr } = await supabase

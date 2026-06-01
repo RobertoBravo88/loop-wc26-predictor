@@ -162,7 +162,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const [playersRes, teamMatchesRes, groupTeamsRes, allGroupMatchesRes] = await Promise.all([
     supabase
       .from('players')
-      .select('id, name, position, shirt_number')
+      .select('id, name, position, shirt_number, photo_url, age, club')
       .eq('team_id', id)
       .order('name'),
     supabase
@@ -454,35 +454,77 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                 <div key={pos} style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
                   {/* Position header */}
                   <div
-                    className="flex items-center justify-between px-4 py-2"
+                    className="flex items-center justify-between px-4 py-2.5"
                     style={{ background: '#141414', borderBottom: '1px solid #2a2a2a' }}
                   >
                     <span className="text-xs font-bold uppercase tracking-widest text-white" style={{ fontFamily: sans }}>
                       {POSITION_SHORT[pos]}
                     </span>
                     <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-                      {pos}s
+                      {group.length} {pos.toLowerCase()}s
                     </span>
                   </div>
-                  {/* Players */}
-                  {group.map((p, i) => (
+
+                  {/* Player cards */}
+                  {group.map(p => (
                     <div
                       key={p.id}
-                      className="flex items-center gap-2 px-3 py-2"
-                      style={{
-                        borderBottom: '1px solid #e0dbd3',
-                        background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                      }}
+                      className="flex items-center gap-2.5 px-3 py-2"
+                      style={{ borderBottom: '1px solid #f0ede8' }}
                     >
-                      <span
-                        className="w-5 text-center text-xs font-mono flex-shrink-0"
-                        style={{ color: '#b0a99f', fontFamily: sans }}
+                      {/* Photo / initials avatar */}
+                      <div
+                        className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+                        style={{
+                          width: 32, height: 32,
+                          background: (p as any).photo_url ? 'transparent' : '#e0dbd3',
+                        }}
                       >
-                        {p.shirt_number ?? ''}
-                      </span>
-                      <span className="text-xs flex-1 leading-tight" style={{ color: '#141414', fontFamily: sans }}>
-                        {p.name}
-                      </span>
+                        {(p as any).photo_url ? (
+                          <img
+                            src={(p as any).photo_url}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold" style={{ color: '#6b6b6b', fontFamily: sans }}>
+                            {p.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Name + club */}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-xs font-semibold leading-tight truncate"
+                          style={{ color: '#141414', fontFamily: sans }}
+                        >
+                          {p.shirt_number != null && (
+                            <span className="mr-1 font-normal" style={{ color: '#b0a99f' }}>
+                              {p.shirt_number}
+                            </span>
+                          )}
+                          {p.name}
+                        </div>
+                        {(p as any).club && (
+                          <div
+                            className="text-xs truncate leading-tight mt-0.5"
+                            style={{ color: '#6b6b6b', fontFamily: sans }}
+                          >
+                            {(p as any).club}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Age */}
+                      {(p as any).age && (
+                        <span
+                          className="flex-shrink-0 text-xs font-mono"
+                          style={{ color: '#b0a99f', fontFamily: sans }}
+                        >
+                          {(p as any).age}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
