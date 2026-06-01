@@ -55,11 +55,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     .order('created_at', { ascending: false })
     .limit(20)
 
-  const { data: finalistPick } = await supabase
-    .from('finalist_picks')
-    .select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)')
-    .eq('user_id', id)
-    .single()
+  const [finalistPickRes, scorerPicksRes, secretGoalEventsRes] = await Promise.all([
+    supabase.from('finalist_picks').select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)').eq('user_id', id).single(),
+    supabase.from('scorer_picks').select('*, player:players(name, position, shirt_number), team:teams(name, flag_url)').eq('user_id', id).order('created_at'),
+    supabase.from('point_events').select('points').eq('user_id', id).eq('type', 'favourite_player_goal'),
+  ])
+
+  const finalistPick = finalistPickRes.data
+  const scorerPicks  = (scorerPicksRes.data ?? []) as any[]
+  const secretGoals  = secretGoalEventsRes.data?.length ?? 0
+  const secretPoints = (secretGoalEventsRes.data ?? []).reduce((sum: number, e: any) => sum + (e.points ?? 0), 0)
 
   const stats = {
     rank: leaderboardEntry?.rank ?? '—',
@@ -180,6 +185,85 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 {profile.favourite_player?.name ?? '—'}
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* My Squad */}
+      {(tournamentStarted || isMe) && (scorerPicks.length > 0 || profile.favourite_player) && (
+        <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-5">
+          <h2
+            className="text-lg mb-3 pb-2 flex items-center gap-2"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
+          >
+            👟 My Squad
+          </h2>
+          <div className="space-y-2">
+
+            {/* Secret player — gold highlight */}
+            {profile.favourite_player && (
+              <div
+                className="flex items-center gap-3 px-3 py-2.5"
+                style={{ background: '#fefce8', borderLeft: '3px solid #eab308' }}
+              >
+                {profile.favourite_team?.flag_url && (
+                  <img src={profile.favourite_team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                      {profile.favourite_player.name}
+                    </span>
+                    <span className="text-xs flex-shrink-0">⭐</span>
+                  </div>
+                  <span className="text-xs" style={{ color: '#eab308', fontFamily: 'Inter, sans-serif' }}>
+                    12th Man · 20 pts/goal
+                  </span>
+                </div>
+                {secretGoals > 0 && (
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{secretPoints} pts</div>
+                    <div className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{secretGoals} goal{secretGoals !== 1 ? 's' : ''}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Golden Boots picks */}
+            {scorerPicks.map((pick: any, i: number) => (
+              <div
+                key={pick.id}
+                className="flex items-center gap-3 px-3 py-2.5"
+                style={{ background: '#fff8f0', borderLeft: '3px solid #ff5c35' }}
+              >
+                {pick.team?.flag_url && (
+                  <img src={pick.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                      {pick.player?.name ?? '—'}
+                    </span>
+                    <span className="text-xs flex-shrink-0">👟</span>
+                  </div>
+                  <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    {pick.team?.name ?? '—'} · 10 pts/goal
+                  </span>
+                </div>
+                {(pick.goals_counted ?? 0) > 0 && (
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{pick.points_awarded} pts</div>
+                    <div className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{pick.goals_counted} goal{pick.goals_counted !== 1 ? 's' : ''}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {scorerPicks.length === 0 && !profile.favourite_player && (
+              <p className="text-sm py-2" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                No squad picked yet.
+              </p>
+            )}
           </div>
         </div>
       )}
