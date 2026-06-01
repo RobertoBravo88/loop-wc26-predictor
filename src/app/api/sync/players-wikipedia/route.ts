@@ -13,7 +13,14 @@ const NAME_ALIASES: Record<string, string> = {
   'Bosnia and Herzegovina': 'Bosnia-Herzegovina',
   'IR Iran':                'Iran',
   'Korea Republic':         'South Korea',
+  'United States':          'USA',
 }
+
+// Wikipedia section titles that are NOT teams — skip them
+const NON_TEAM_SECTIONS = new Set([
+  'Age', 'Coach representation by country', 'Notes', 'References', 'External links',
+  'Squads', 'Key', 'Legend',
+])
 
 const POSITION_MAP: Record<string, string> = {
   'GK': 'Goalkeeper',
@@ -68,8 +75,13 @@ export async function POST() {
       if (gtIdx === -1) continue
       const nameEnd = part.indexOf('</h3>', gtIdx + 2)
       if (nameEnd === -1) continue
-      const teamName = decodeEntities(part.slice(gtIdx + 2, nameEnd))
+      // Strip any inline HTML tags (e.g. <span id="Cura.C3.A7ao"></span>) before the visible text
+      const rawInner = part.slice(gtIdx + 2, nameEnd)
+      const teamName = decodeEntities(rawInner.replace(/<[^>]+>/g, '')).trim()
       if (!teamName) continue
+
+      // Skip known non-team Wikipedia sections
+      if (NON_TEAM_SECTIONS.has(teamName)) continue
 
       const teamId = findTeamId(teamName)
       if (!teamId) {
