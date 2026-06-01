@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatKickoff, isMatchLocked } from '@/lib/utils'
 import { Lock, Check, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function PredictionCard({ match, prediction, userId, distribution }: Props) {
+  const router = useRouter()
   const locked = isMatchLocked(match.kickoff_at) || match.status !== 'scheduled'
   const finished = match.status === 'finished'
 
@@ -41,7 +43,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
           .eq('match_id', match.id)
         setSaving(false)
         if (error) { setSaveError(true); setTimeout(() => setSaveError(false), 4000) }
-        else        { setSaved(true);    setTimeout(() => setSaved(false), 2000) }
+        else        { setSaved(true); router.refresh(); setTimeout(() => setSaved(false), 2000) }
       }, 600)
       return
     }

@@ -14,9 +14,9 @@ export default async function StatsPage() {
     { data: scorerPicks },
   ] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
-    supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, is_correct_outcome, points_total').not('processed_at', 'is', null),
-    supabase.from('profiles').select('id, display_name, total_points, current_streak, max_streak, favourite_team:teams(name, flag_url)'),
-    supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(name, flag_url), second_team:teams!second_team_id(name, flag_url), third_team:teams!third_team_id(name, flag_url)'),
+    supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, processed_at'),
+    supabase.from('profiles').select('id, display_name, total_points, current_streak, max_streak, favourite_team:teams(id, name, flag_url)'),
+    supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(id, name, flag_url), second_team:teams!second_team_id(id, name, flag_url), third_team:teams!third_team_id(id, name, flag_url)'),
     supabase.from('scorer_picks').select('player_id, player:players(name, team:teams(name, flag_url))'),
   ])
 
@@ -52,7 +52,8 @@ export default async function StatsPage() {
     if (!u) continue
     u.totalGoalsPredicted += (pred.predicted_home ?? 0) + (pred.predicted_away ?? 0)
     u.totalPredictions++
-    if (pred.is_exact) u.exactScores++
+    // Only count exact scores once a result has been processed
+    if (pred.processed_at && pred.is_exact) u.exactScores++
   }
 
   const users = Array.from(userStats.values()).filter(u => u.totalPredictions > 0)
@@ -68,25 +69,25 @@ export default async function StatsPage() {
   const totalPredictions = (allPredictions ?? []).length
 
   // --- Top supported teams (favourite team counts) ---
-  const teamSupportMap = new Map<string, { name: string; flag: string | null; count: number }>()
+  const teamSupportMap = new Map<string, { id: string | null; name: string; flag: string | null; count: number }>()
   for (const p of profiles ?? []) {
     const team = (p.favourite_team as any)
     if (!team) continue
     const existing = teamSupportMap.get(team.name)
     if (existing) existing.count++
-    else teamSupportMap.set(team.name, { name: team.name, flag: team.flag_url, count: 1 })
+    else teamSupportMap.set(team.name, { id: team.id ?? null, name: team.name, flag: team.flag_url, count: 1 })
   }
   const topSupportedTeams = Array.from(teamSupportMap.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
 
   // --- Highest rated teams (finalist picks: 1st=3, 2nd=2, 3rd=1) ---
-  const teamRatingMap = new Map<string, { name: string; flag: string | null; score: number }>()
+  const teamRatingMap = new Map<string, { id: string | null; name: string; flag: string | null; score: number }>()
   function addTeamRating(team: any, pts: number) {
     if (!team) return
     const existing = teamRatingMap.get(team.name)
     if (existing) existing.score += pts
-    else teamRatingMap.set(team.name, { name: team.name, flag: team.flag_url, score: pts })
+    else teamRatingMap.set(team.name, { id: team.id ?? null, name: team.name, flag: team.flag_url, score: pts })
   }
   for (const pick of finalistPicks ?? []) {
     addTeamRating((pick as any).first_team, 3)
@@ -116,7 +117,7 @@ export default async function StatsPage() {
     .slice(0, 5)
 
   // --- Best fan bases (avg total_points per team's fans) ---
-  const fanbaseMap = new Map<string, { name: string; flag: string | null; totalPoints: number; count: number }>()
+  const fanbaseMap = new Map<string, { id: string | null; name: string; flag: string | null; totalPoints: number; count: number }>()
   for (const p of profiles ?? []) {
     const team = (p.favourite_team as any)
     if (!team) continue
@@ -126,7 +127,7 @@ export default async function StatsPage() {
       existing.totalPoints += pts
       existing.count++
     } else {
-      fanbaseMap.set(team.name, { name: team.name, flag: team.flag_url, totalPoints: pts, count: 1 })
+      fanbaseMap.set(team.name, { id: team.id ?? null, name: team.name, flag: team.flag_url, totalPoints: pts, count: 1 })
     }
   }
   const bestFanbases = Array.from(fanbaseMap.values())
@@ -303,32 +304,30 @@ export default async function StatsPage() {
             <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
               No data yet
             </p>
-          ) : topSupportedTeams.map((team, i) => (
-            <div
-              key={team.name}
-              className="flex items-center gap-3 px-4 py-2.5"
-              style={{
-                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none',
-              }}
-            >
-              <span
-                className="w-4 text-xs font-bold text-center flex-shrink-0"
-                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-              >
-                {i + 1}
-              </span>
-              {team.flag && (
-                <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
-              )}
-              <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                {team.name}
-              </span>
-              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                {team.count} {team.count === 1 ? 'fan' : 'fans'}
-              </span>
-            </div>
-          ))}
+          ) : topSupportedTeams.map((team, i) => {
+            const inner = (
+              <>
+                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                  {i + 1}
+                </span>
+                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
+                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                  {team.count} {team.count === 1 ? 'fan' : 'fans'}
+                </span>
+              </>
+            )
+            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            return team.id ? (
+              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>
+                {inner}
+              </div>
+            )
+          })}
         </div>
 
         {/* Highest Rated Teams */}
@@ -348,32 +347,30 @@ export default async function StatsPage() {
             <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
               No picks locked in yet
             </p>
-          ) : topRatedTeams.map((team, i) => (
-            <div
-              key={team.name}
-              className="flex items-center gap-3 px-4 py-2.5"
-              style={{
-                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderBottom: i < topRatedTeams.length - 1 ? '1px solid #e0dbd3' : 'none',
-              }}
-            >
-              <span
-                className="w-4 text-xs font-bold text-center flex-shrink-0"
-                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-              >
-                {i + 1}
-              </span>
-              {team.flag && (
-                <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
-              )}
-              <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                {team.name}
-              </span>
-              <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                {team.score} pts
-              </span>
-            </div>
-          ))}
+          ) : topRatedTeams.map((team, i) => {
+            const inner = (
+              <>
+                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                  {i + 1}
+                </span>
+                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
+                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                  {team.score} pts
+                </span>
+              </>
+            )
+            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topRatedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            return team.id ? (
+              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>
+                {inner}
+              </div>
+            )
+          })}
         </div>
 
         {/* Highest Rated Top Scorers */}
@@ -457,44 +454,38 @@ export default async function StatsPage() {
           <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
             No data yet — points will appear once predictions are processed
           </p>
-        ) : bestFanbases.map((fb, i) => (
-          <div
-            key={fb.name}
-            className="grid items-center px-4 py-3"
-            style={{
-              gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem',
-              background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-              borderTop: '1px solid #e0dbd3',
-            }}
-          >
-            <span
-              className="text-xs font-bold"
-              style={{ color: i === 0 ? '#ff5c35' : '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-            >
-              {i + 1}
-            </span>
-            <div className="flex items-center gap-2 min-w-0">
-              {fb.flag && (
-                <img src={fb.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
-              )}
-              <span className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                {fb.name}
+        ) : bestFanbases.map((fb, i) => {
+          const inner = (
+            <>
+              <span className="text-xs font-bold" style={{ color: i === 0 ? '#ff5c35' : '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                {i + 1}
               </span>
+              <div className="flex items-center gap-2 min-w-0">
+                {fb.flag && <img src={fb.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
+                <span className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{fb.name}</span>
+              </div>
+              <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                {fb.count} {fb.count === 1 ? 'fan' : 'fans'}
+              </span>
+              <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                {fb.totalPoints}
+              </span>
+              <span className="text-sm font-bold text-right" style={{ color: i === 0 ? '#ff5c35' : '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {fb.avgPoints.toFixed(1)}
+              </span>
+            </>
+          )
+          const rowStyle = { gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem', background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderTop: '1px solid #e0dbd3' }
+          return fb.id ? (
+            <Link key={fb.name} href={`/teams/${fb.id}`} className="grid items-center px-4 py-3 hover:opacity-80 transition-opacity" style={rowStyle}>
+              {inner}
+            </Link>
+          ) : (
+            <div key={fb.name} className="grid items-center px-4 py-3" style={rowStyle}>
+              {inner}
             </div>
-            <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              {fb.count} {fb.count === 1 ? 'fan' : 'fans'}
-            </span>
-            <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              {fb.totalPoints}
-            </span>
-            <span
-              className="text-sm font-bold text-right"
-              style={{ color: i === 0 ? '#ff5c35' : '#141414', fontFamily: 'Inter, sans-serif' }}
-            >
-              {fb.avgPoints.toFixed(1)}
-            </span>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
     </div>
