@@ -347,19 +347,29 @@ function AllMatchesTab({
               )}
             </div>
 
-            {/* Score or time */}
-            <div className="flex-shrink-0 mx-1">
+            {/* Score or time + date */}
+            <div className="flex-shrink-0 mx-1 text-center">
               {finished && match.home_score !== null ? (
-                <span
-                  className="text-xs font-bold px-2 py-1"
-                  style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-                >
-                  {match.home_score} – {match.away_score}
-                </span>
+                <>
+                  <span
+                    className="text-xs font-bold px-2 py-1 block"
+                    style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {match.home_score} – {match.away_score}
+                  </span>
+                  <span className="text-xs block mt-0.5" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+                    <LocalTime date={match.kickoff_at} fmt="d MMM" />
+                  </span>
+                </>
               ) : (
-                <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  <LocalTime date={match.kickoff_at} fmt="HH:mm" />
-                </span>
+                <>
+                  <span className="text-xs font-semibold block" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                    <LocalTime date={match.kickoff_at} fmt="d MMM" />
+                  </span>
+                  <span className="text-xs block" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    <LocalTime date={match.kickoff_at} fmt="HH:mm" />
+                  </span>
+                </>
               )}
             </div>
 
