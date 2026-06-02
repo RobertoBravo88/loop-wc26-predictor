@@ -52,13 +52,24 @@ function computeStatus(
   currentHome: number,
   currentAway: number,
 ): 'on_ball' | 'happy' | 'still_in' | 'out' {
+  // Exact score match right now
   if (predictedHome === currentHome && predictedAway === currentAway) return 'on_ball'
 
   const predOutcome = Math.sign(predictedHome - predictedAway)
   const currOutcome = Math.sign(currentHome - currentAway)
 
+  // Exact score still mathematically achievable (scores can only go up)
+  // e.g. predicted 2-0, current 1-0 → still possible
+  const exactStillAchievable = predictedHome >= currentHome && predictedAway >= currentAway
+
+  // Correct outcome direction → Happy Fans (getting +50, might upgrade)
   if (predOutcome === currOutcome) return 'happy'
 
+  // Wrong outcome currently BUT exact score still achievable → Still in it
+  // e.g. predicted 2-1, current 0-1 → home can still score twice, away stays at 1
+  if (exactStillAchievable) return 'still_in'
+
+  // Wrong outcome AND exact not achievable — can the outcome still change?
   if (currentHome === 0 && currentAway === 0) return 'still_in'
   if (predOutcome === 1 && currentHome >= currentAway) return 'still_in'
   if (predOutcome === -1 && currentAway >= currentHome) return 'still_in'

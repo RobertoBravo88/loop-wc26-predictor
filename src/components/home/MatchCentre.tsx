@@ -334,6 +334,31 @@ export default function MatchCentre({ data }: MatchCentreProps) {
           )}
         </div>
 
+        {/* Prediction distribution bar — always visible */}
+        {predictions.length > 0 && (() => {
+          const homeWins = predictions.filter(p => p.predictedHome > p.predictedAway).length
+          const draws    = predictions.filter(p => p.predictedHome === p.predictedAway).length
+          const awayWins = predictions.filter(p => p.predictedHome < p.predictedAway).length
+          const total    = predictions.length
+          const homePct  = Math.round(homeWins / total * 100)
+          const drawPct  = Math.round(draws    / total * 100)
+          const awayPct  = Math.round(awayWins / total * 100)
+          return (
+            <div style={{ padding: '8px 16px', borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+              <div style={{ height: 6, display: 'flex', overflow: 'hidden', borderRadius: 2, marginBottom: 5 }}>
+                <div style={{ width: `${homePct}%`, background: '#141414', transition: 'width 0.5s' }} />
+                <div style={{ width: `${drawPct}%`, background: '#d4cfc8', transition: 'width 0.5s' }} />
+                <div style={{ width: `${awayPct}%`, background: '#ff5c35', transition: 'width 0.5s' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontFamily: sans, color: '#6b6b6b' }}>
+                <span><strong style={{ color: '#141414' }}>{homePct}%</strong> {match.home_team.name}</span>
+                <span><strong style={{ color: '#6b6b6b' }}>{drawPct}%</strong> Draw</span>
+                <span>{match.away_team.name} <strong style={{ color: '#ff5c35' }}>{awayPct}%</strong></span>
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Blurred section: fans + predictions */}
         <div style={{ ...blurStyle, ...revealTransition }}>
           {/* Fan bases */}
