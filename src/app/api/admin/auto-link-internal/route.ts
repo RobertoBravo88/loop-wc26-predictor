@@ -4,20 +4,6 @@ import { createServiceClient } from '@/lib/supabase/server'
 export const dynamic    = 'force-dynamic'
 export const maxDuration = 300
 
-/**
- * DB-to-DB auto-link — no API calls needed.
- *
- * Matches text-file players (api_id = null, full names like "Brian Brobbey")
- * against squad-sync players (api_id set, abbreviated names like "B. Brobbey")
- * within the same team using the same 4-tier name normalisation.
- *
- * On match: enriches the squad-sync player with the full name/position/club
- * from the text-file player, transfers all scorer_picks + favourite_player_id
- * + goal_events references, then deletes the now-redundant text-file record.
- *
- * Run after: Reset & Import WC26 Squads → Sync squads → this button.
- */
-
 function norm(s: string): string {
   return s
     .toLowerCase()
@@ -32,138 +18,144 @@ function norm(s: string): string {
 }
 
 export async function POST() {
-  const supabase = createServiceClient()
+  try {
+    const supabase = createServiceClient()
 
-  // All teams
-  const { data: teams } = await supabase.from('teams').select('id, name')
+    // ── Load ALL players in 2 bulk queries (not 2 × 48 team queries) ──
+    const [{ data: allUnlinked }, { data: allLinked }] = await Promise.all([
+      supabase.from('players').select('id, name, position, club, team_id').is('api_id', null),
+      supabase.from('players').select('id, name, api_id, team_id').not('api_id', 'is', null),
+    ])
 
-  let totalMerged  = 0
-  let totalSkipped = 0
-  const report: Array<{ team: string; merged: string[]; skipped: string[] }> = []
-
-  for (const team of teams ?? []) {
-    // Unlinked players (text file import)
-    const { data: unlinked } = await supabase
-      .from('players')
-      .select('id, name, position, club')
-      .eq('team_id', team.id)
-      .is('api_id', null)
-
-    // Linked players (squad sync — have api_id and abbreviated names)
-    const { data: linked } = await supabase
-      .from('players')
-      .select('id, name, api_id')
-      .eq('team_id', team.id)
-      .not('api_id', 'is', null)
-
-    if (!unlinked?.length || !linked?.length) continue
-
-    // Build lookup maps from squad-sync (abbreviated) names
-    const byExact          = new Map<string, { id: string; apiId: number }>()
-    const lastCount        = new Map<string, number>()
-    const byLast           = new Map<string, { id: string; apiId: number }>()
-    const byInitialSurname = new Map<string, { id: string; apiId: number }>()
-    const initialCollisions = new Set<string>()
-
-    for (const lp of linked) {
-      const n     = norm(lp.name)
-      const words = n.split(' ')
-      const last  = words[words.length - 1]
-
-      byExact.set(n, { id: lp.id, apiId: lp.api_id as number })
-      lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
-      byLast.set(last, { id: lp.id, apiId: lp.api_id as number })
-
-      if (words.length >= 2 && words[0].length === 1) {
-        const key = `${words[0]}.${last}`
-        if (byInitialSurname.has(key)) {
-          initialCollisions.add(key)
-        } else {
-          byInitialSurname.set(key, { id: lp.id, apiId: lp.api_id as number })
-        }
-      }
+    if (!allUnlinked?.length) {
+      return NextResponse.json({ message: 'No unlinked players found — nothing to merge.', totalMerged: 0, totalSkipped: 0 })
+    }
+    if (!allLinked?.length) {
+      return NextResponse.json({ message: 'No squad-sync players found — run Sync squads first.', totalMerged: 0, totalSkipped: 0 })
     }
 
-    const merged:  string[] = []
+    // Group linked players by team_id
+    const linkedByTeam = new Map<string, typeof allLinked>()
+    for (const lp of allLinked) {
+      if (!linkedByTeam.has(lp.team_id)) linkedByTeam.set(lp.team_id, [])
+      linkedByTeam.get(lp.team_id)!.push(lp)
+    }
+
+    // ── Build per-team lookup maps and find all matches ──────────────
+    type MergeJob = {
+      unlinkedId: string
+      linkedId: string
+      fullName: string
+      position: string | null
+      club: string | null
+      originalLinkedName: string
+    }
+
+    const jobs: MergeJob[] = []
     const skipped: string[] = []
 
-    for (const up of unlinked) {
-      const n     = norm(up.name)
-      const words = n.split(' ')
-      const last  = words[words.length - 1]
-      const first = words[0] ?? ''
+    // Group unlinked by team
+    const unlinkedByTeam = new Map<string, typeof allUnlinked>()
+    for (const up of allUnlinked) {
+      if (!unlinkedByTeam.has(up.team_id)) unlinkedByTeam.set(up.team_id, [])
+      unlinkedByTeam.get(up.team_id)!.push(up)
+    }
 
-      // Tier 1: exact normalised name
-      let match = byExact.get(n) ?? null
-
-      // Tier 2: unique surname
-      if (!match && (lastCount.get(last) ?? 0) === 1) {
-        match = byLast.get(last) ?? null
-      }
-
-      // Tier 3: first initial + surname ("Brian Brobbey" → "b.brobbey")
-      if (!match && first.length > 0) {
-        const key = `${first[0]}.${last}`
-        if (!initialCollisions.has(key)) {
-          match = byInitialSurname.get(key) ?? null
-        }
-      }
-
-      // Tier 4: reversed ("Park Jin-seob" ↔ "J. Park")
-      if (!match && words.length >= 2 && last.length > 0) {
-        const key = `${last[0]}.${first}`
-        if (!initialCollisions.has(key)) {
-          match = byInitialSurname.get(key) ?? null
-        }
-      }
-
-      if (!match) {
-        skipped.push(`${up.name} [no_match]`)
-        totalSkipped++
+    for (const [teamId, unlinked] of unlinkedByTeam) {
+      const linked = linkedByTeam.get(teamId)
+      if (!linked?.length) {
+        for (const up of unlinked) skipped.push(`${up.name} [no_squad_sync_players]`)
         continue
       }
 
-      // ── Merge: update squad-sync player with full name/position/club ──
-      const originalName = linked.find((l: any) => l.id === match.id)?.name ?? ''
-      const enrichment: Record<string, any> = { name: up.name }
-      if (up.position) enrichment.position = up.position
-      if (up.club)     enrichment.club      = up.club
-      await supabase.from('players').update(enrichment).eq('id', match.id)
+      const byExact           = new Map<string, (typeof linked)[0]>()
+      const lastCount         = new Map<string, number>()
+      const byLast            = new Map<string, (typeof linked)[0]>()
+      const byInitialSurname  = new Map<string, (typeof linked)[0]>()
+      const initialCollisions = new Set<string>()
 
-      // Transfer scorer_picks
-      await supabase.from('scorer_picks').update({ player_id: match.id }).eq('player_id', up.id)
+      for (const lp of linked) {
+        const n     = norm(lp.name)
+        const words = n.split(' ')
+        const last  = words[words.length - 1]
+        byExact.set(n, lp)
+        lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
+        byLast.set(last, lp)
+        if (words.length >= 2 && words[0].length === 1) {
+          const key = `${words[0]}.${last}`
+          if (byInitialSurname.has(key)) initialCollisions.add(key)
+          else byInitialSurname.set(key, lp)
+        }
+      }
 
-      // Transfer favourite_player_id
-      await supabase.from('profiles').update({ favourite_player_id: match.id }).eq('favourite_player_id', up.id)
+      for (const up of unlinked) {
+        const n     = norm(up.name)
+        const words = n.split(' ')
+        const last  = words[words.length - 1]
+        const first = words[0] ?? ''
 
-      // Transfer goal_events
-      await supabase.from('goal_events').update({ player_id: match.id }).eq('player_id', up.id)
+        let match = byExact.get(n)
+          ?? ((lastCount.get(last) ?? 0) === 1 ? byLast.get(last) : undefined)
+          ?? (first.length > 0 && !initialCollisions.has(`${first[0]}.${last}`) ? byInitialSurname.get(`${first[0]}.${last}`) : undefined)
+          ?? (words.length >= 2 && !initialCollisions.has(`${last[0]}.${first}`) ? byInitialSurname.get(`${last[0]}.${first}`) : undefined)
 
-      // Delete the text-file duplicate
-      const { error: delErr } = await supabase.from('players').delete().eq('id', up.id)
+        if (!match) { skipped.push(`${up.name} [no_match]`); continue }
+
+        jobs.push({
+          unlinkedId:        up.id,
+          linkedId:          match.id,
+          fullName:          up.name,
+          position:          up.position,
+          club:              up.club,
+          originalLinkedName: match.name,
+        })
+      }
+    }
+
+    // ── Execute merges — parallel transfers per job ──────────────────
+    let totalMerged = 0
+
+    for (const job of jobs) {
+      // 1. Enrich squad-sync player with full name/position/club
+      const enrichment: Record<string, any> = { name: job.fullName }
+      if (job.position) enrichment.position = job.position
+      if (job.club)     enrichment.club      = job.club
+      await supabase.from('players').update(enrichment).eq('id', job.linkedId)
+
+      // 2. Transfer all FK references in parallel
+      await Promise.all([
+        supabase.from('scorer_picks').update({ player_id: job.linkedId }).eq('player_id', job.unlinkedId),
+        supabase.from('profiles').update({ favourite_player_id: job.linkedId }).eq('favourite_player_id', job.unlinkedId),
+        supabase.from('goal_events').update({ player_id: job.linkedId }).eq('player_id', job.unlinkedId),
+      ])
+
+      // 3. Delete unlinked duplicate
+      const { error: delErr } = await supabase.from('players').delete().eq('id', job.unlinkedId)
       if (delErr) {
-        // Revert on failure
-        await supabase.from('scorer_picks').update({ player_id: up.id }).eq('player_id', match.id)
-        await supabase.from('profiles').update({ favourite_player_id: up.id }).eq('favourite_player_id', match.id)
-        await supabase.from('goal_events').update({ player_id: up.id }).eq('player_id', match.id)
-        await supabase.from('players').update({ name: originalName }).eq('id', match.id)
-        skipped.push(`${up.name} [del_failed:${delErr.code}]`)
-        totalSkipped++
+        // Revert
+        await Promise.all([
+          supabase.from('scorer_picks').update({ player_id: job.unlinkedId }).eq('player_id', job.linkedId),
+          supabase.from('profiles').update({ favourite_player_id: job.unlinkedId }).eq('favourite_player_id', job.linkedId),
+          supabase.from('goal_events').update({ player_id: job.unlinkedId }).eq('player_id', job.linkedId),
+          supabase.from('players').update({ name: job.originalLinkedName }).eq('id', job.linkedId),
+        ])
+        skipped.push(`${job.fullName} [del_failed:${delErr.code}]`)
       } else {
-        merged.push(up.name)
         totalMerged++
       }
     }
 
-    if (merged.length || skipped.length) {
-      report.push({ team: team.name, merged, skipped })
-    }
-  }
+    return NextResponse.json({
+      message: `Merged ${totalMerged} players. ${skipped.length} could not be matched.`,
+      totalMerged,
+      totalSkipped: skipped.length,
+      skipped: skipped.slice(0, 50), // cap report size
+    })
 
-  return NextResponse.json({
-    message: `Merged ${totalMerged} players. ${totalSkipped} could not be matched.`,
-    totalMerged,
-    totalSkipped,
-    report,
-  })
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err?.message ?? 'Unknown error', message: 'Auto-link failed — see error field' },
+      { status: 500 }
+    )
+  }
 }
