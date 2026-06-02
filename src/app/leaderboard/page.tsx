@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { format } from 'date-fns'
 import { isTournamentStarted } from '@/lib/utils'
+import LocalTime from '@/components/ui/LocalTime'
 import type { LeaderboardEntry } from '@/types'
 
 export const revalidate = 60
@@ -45,7 +45,7 @@ export default async function LeaderboardPage() {
         </h1>
         <p className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           {lastSynced
-            ? `Last updated · ${format(new Date(lastSynced), 'd MMM · HH:mm')}`
+            ? <>Last updated · <LocalTime date={lastSynced} fmt="d MMM · HH:mm" /></>
             : 'No results synced yet'}
         </p>
       </div>

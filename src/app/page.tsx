@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { formatKickoff, isTournamentStarted, stageName } from '@/lib/utils'
+import { isTournamentStarted, stageName } from '@/lib/utils'
+import LocalTime from '@/components/ui/LocalTime'
 import { ChevronRight } from 'lucide-react'
 import type { Match, LeaderboardEntry, NewsPost } from '@/types'
 import NewsCarousel from '@/components/home/NewsCarousel'
@@ -238,7 +239,7 @@ export default async function HomePage() {
                           {match.group_letter ? `Group ${match.group_letter}` : stageName(match.stage)}
                         </span>
                         <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                          {formatKickoff(match.kickoff_at)}
+                          <LocalTime date={match.kickoff_at} />
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -315,7 +316,7 @@ export default async function HomePage() {
                       {match.group_letter ? `Group ${match.group_letter}` : stageName(match.stage)}
                     </span>
                     <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                      {formatKickoff(match.kickoff_at)}
+                      <LocalTime date={match.kickoff_at} />
                     </span>
                   </div>
                   <div className="flex items-center gap-3">

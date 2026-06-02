@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { formatKickoff, isTournamentStarted } from '@/lib/utils'
+import { isTournamentStarted } from '@/lib/utils'
 import { Trophy, Star } from 'lucide-react'
 import Link from 'next/link'
 import type { PointEvent } from '@/types'

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { stageName, isTournamentStarted } from '@/lib/utils'
+import LocalTime from '@/components/ui/LocalTime'
 import type { Match, Team, GroupStanding } from '@/types'
 
 export const revalidate = 60
@@ -72,7 +73,7 @@ function MatchCard({ match, teamId }: { match: Match; teamId: string }) {
             : stageName(match.stage)}
         </span>
         <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-          {format(new Date(match.kickoff_at), 'd MMM · HH:mm')}
+          <LocalTime date={match.kickoff_at} fmt="d MMM · HH:mm" />
         </span>
       </div>
 
