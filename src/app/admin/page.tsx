@@ -234,12 +234,11 @@ export default async function AdminPage() {
           <div className="flex flex-wrap gap-3 mb-2">
             <AdminSyncButton endpoint="/api/admin/import-squads" label="1. Reset & Import WC26 Squads" variant="primary" />
             <AdminSyncButton endpoint="/api/sync/squads"         label="2. Sync squads" batched />
-            <AdminSyncButton endpoint="/api/admin/auto-link-internal" label="3. Auto-link (internal)" variant="primary" />
           </div>
           <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
             <strong>Step 1</strong> — wipes all players + picks, imports full names from built-in squad list into the players table.<br />
             <strong>Step 2</strong> — syncs api-football squad data into the separate api_players table (abbreviated names, shirt numbers, photos).<br />
-            <strong>Step 3</strong> — matches text-file players to api_players by name and sets players.api_id. No API calls needed.
+            <strong>Step 3</strong> — use the "Auto-link" button in the Player links section below to match players to api_players.
           </p>
         </div>
 
