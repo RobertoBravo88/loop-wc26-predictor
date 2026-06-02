@@ -182,7 +182,7 @@ export default function SignupPage() {
         setGlobalError(result.error ?? 'Something went wrong. Please try again.')
         return
       }
-      router.push('/auth/verify')
+      router.push('/auth/login')
     } catch {
       setGlobalError('Network error. Please try again.')
     } finally {

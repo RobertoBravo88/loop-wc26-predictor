@@ -23,12 +23,11 @@ export default function LoginPage() {
   const [showCreatePrompt, setShowCreatePrompt] = useState(false)
   const [failedEmail, setFailedEmail]           = useState('')
 
-  // If a session already exists (e.g. from clicking the confirmation email link),
-  // redirect immediately without needing to log in again
+  // If a session already exists, redirect immediately
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email_confirmed_at) {
+      if (session?.user) {
         window.location.replace(redirectTo)
       }
     })
@@ -54,13 +53,6 @@ export default function LoginPage() {
       } else {
         setError(error.message)
       }
-      return
-    }
-
-    // Block unconfirmed users — sign them back out and prompt to check email
-    if (!data.user?.email_confirmed_at) {
-      await supabase.auth.signOut()
-      setError('Please confirm your email before signing in. Check your inbox for the confirmation link.')
       return
     }
 
