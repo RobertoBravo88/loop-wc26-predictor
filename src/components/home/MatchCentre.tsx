@@ -11,10 +11,83 @@ export type { MatchCentreData }
 
 interface MatchCentreProps {
   data: MatchCentreData | null
+  currentUserId?: string | null
 }
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans = 'Inter, sans-serif'
+
+// ============================================================
+// Team colors
+// ============================================================
+
+const TEAM_COLORS: Record<string, { bg: string; accent: string }> = {
+  // Group A
+  'Mexico':             { bg: 'rgba(0,104,71,0.08)',    accent: '#006847' },
+  'South Africa':       { bg: 'rgba(0,122,77,0.08)',    accent: '#007A4D' },
+  'South Korea':        { bg: 'rgba(0,52,120,0.08)',    accent: '#003478' },
+  'Czech Republic':     { bg: 'rgba(215,20,26,0.08)',   accent: '#D7141A' },
+  // Group B
+  'Canada':             { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000' },
+  'Bosnia and Herzegovina': { bg: 'rgba(0,47,108,0.08)', accent: '#002F6C' },
+  'Qatar':              { bg: 'rgba(141,27,61,0.08)',   accent: '#8D1B3D' },
+  'Switzerland':        { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000' },
+  // Group C
+  'Brazil':             { bg: 'rgba(0,156,59,0.08)',    accent: '#009C3B' },
+  'Morocco':            { bg: 'rgba(193,39,45,0.08)',   accent: '#C1272D' },
+  'Haiti':              { bg: 'rgba(0,32,159,0.08)',    accent: '#00209F' },
+  'Scotland':           { bg: 'rgba(0,94,184,0.08)',    accent: '#005EB8' },
+  // Group D
+  'United States':      { bg: 'rgba(191,10,48,0.08)',   accent: '#BF0A30' },
+  'Australia':          { bg: 'rgba(0,0,139,0.08)',     accent: '#00008B' },
+  'Paraguay':           { bg: 'rgba(213,43,30,0.08)',   accent: '#D52B1E' },
+  'Turkey':             { bg: 'rgba(227,10,23,0.08)',   accent: '#E30A17' },
+  // Group E
+  'Germany':            { bg: 'rgba(30,30,30,0.07)',    accent: '#1a1a1a' },
+  'Curaçao':            { bg: 'rgba(0,61,165,0.08)',    accent: '#003DA5' },
+  "Côte d'Ivoire":      { bg: 'rgba(247,127,0,0.08)',   accent: '#F77F00' },
+  'Ecuador':            { bg: 'rgba(0,53,128,0.08)',    accent: '#003580' },
+  // Group F
+  'Netherlands':        { bg: 'rgba(255,99,0,0.08)',    accent: '#FF6300' },
+  'Japan':              { bg: 'rgba(188,0,45,0.08)',    accent: '#BC002D' },
+  'Sweden':             { bg: 'rgba(0,106,167,0.08)',   accent: '#006AA7' },
+  'Tunisia':            { bg: 'rgba(231,0,0,0.08)',     accent: '#E70000' },
+  // Group G
+  'Belgium':            { bg: 'rgba(239,51,64,0.08)',   accent: '#EF3340' },
+  'Egypt':              { bg: 'rgba(206,17,0,0.08)',    accent: '#CE1100' },
+  'Iran':               { bg: 'rgba(35,159,64,0.08)',   accent: '#239F40' },
+  'New Zealand':        { bg: 'rgba(0,36,125,0.08)',    accent: '#00247D' },
+  // Group H
+  'Spain':              { bg: 'rgba(170,21,27,0.08)',   accent: '#AA151B' },
+  'Cape Verde':         { bg: 'rgba(0,49,131,0.08)',    accent: '#003183' },
+  'Uruguay':            { bg: 'rgba(91,164,207,0.1)',   accent: '#1D6FA4' },
+  'Saudi Arabia':       { bg: 'rgba(0,98,51,0.08)',     accent: '#006233' },
+  // Group I
+  'France':             { bg: 'rgba(0,35,149,0.08)',    accent: '#002395' },
+  'Senegal':            { bg: 'rgba(0,133,63,0.08)',    accent: '#00853F' },
+  'Iraq':               { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D' },
+  'Norway':             { bg: 'rgba(239,43,45,0.08)',   accent: '#EF2B2D' },
+  // Group J
+  'Argentina':          { bg: 'rgba(116,172,223,0.1)',  accent: '#74ACDF' },
+  'Algeria':            { bg: 'rgba(0,98,51,0.08)',     accent: '#006233' },
+  'Austria':            { bg: 'rgba(237,40,0,0.08)',    accent: '#ED2800' },
+  'Jordan':             { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D' },
+  // Group K
+  'Portugal':           { bg: 'rgba(0,102,0,0.08)',     accent: '#006600' },
+  'Congo DR':           { bg: 'rgba(0,127,255,0.08)',   accent: '#007FFF' },
+  'Uzbekistan':         { bg: 'rgba(30,181,58,0.08)',   accent: '#1EB53A' },
+  'Colombia':           { bg: 'rgba(252,209,22,0.1)',   accent: '#003087' },
+  // Group L
+  'England':            { bg: 'rgba(207,8,31,0.08)',    accent: '#CF081F' },
+  'Croatia':            { bg: 'rgba(23,23,150,0.08)',   accent: '#171796' },
+  'Ghana':              { bg: 'rgba(252,209,22,0.08)',  accent: '#006B3F' },
+  'Panama':             { bg: 'rgba(213,20,26,0.08)',   accent: '#D5141A' },
+}
+
+function getTeamColors(name: string | null | undefined): { bg: string; accent: string } {
+  if (!name) return { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b' }
+  return TEAM_COLORS[name] ?? { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b' }
+}
 
 // ============================================================
 // Helpers
@@ -31,31 +104,31 @@ function formatCountdown(minutes: number): string {
 
 type PredStatus = 'on_ball' | 'happy' | 'still_in' | 'out'
 
-function statusLabel(s: PredStatus): string {
-  if (s === 'on_ball') return 'On the Ball'
-  if (s === 'happy') return 'Happy Fans'
-  if (s === 'still_in') return 'Still in it'
-  return 'Out'
-}
-
-function statusEmoji(s: PredStatus): string {
-  if (s === 'on_ball') return '🎯'
-  if (s === 'happy') return '😊'
-  if (s === 'still_in') return '⏳'
-  return '💔'
+function statusLabel(s: PredStatus, matchState?: string): string {
+  if (s === 'on_ball') return 'ON THE BALL'
+  if (s === 'happy') return 'HAPPY FANS'
+  if (s === 'still_in') return 'REMONTADA?'
+  return matchState === 'finished' ? 'NO LUCK THIS TIME' : 'OUT'
 }
 
 function statusAccent(s: PredStatus): string {
   if (s === 'on_ball') return '#ff5c35'
-  if (s === 'happy') return '#16a34a'
+  if (s === 'happy') return '#22c55e'
+  if (s === 'still_in') return '#9ca3af'
   return '#9ca3af'
+}
+
+function statusBg(s: PredStatus): string {
+  if (s === 'on_ball') return 'rgba(255,92,53,0.05)'
+  if (s === 'happy') return 'rgba(34,197,94,0.05)'
+  return 'rgba(156,163,175,0.05)'
 }
 
 // ============================================================
 // Component
 // ============================================================
 
-export default function MatchCentre({ data }: MatchCentreProps) {
+export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
   const router = useRouter()
 
   // Auto-refresh every 2 minutes when live
@@ -132,10 +205,23 @@ export default function MatchCentre({ data }: MatchCentreProps) {
 
   const outPreds = predictions.filter(p => p.status === 'out')
 
+  // Sections: exclude 'out' (handled separately); hide 'out' section unless finished
   const sections: PredStatus[] = ['on_ball', 'happy', 'still_in']
 
   const blurStyle = revealed ? { filter: 'blur(0)' } : { filter: 'blur(6px)', userSelect: 'none' as const, pointerEvents: 'none' as const }
   const revealTransition = { transition: 'filter 0.8s ease-out' }
+
+  const homeColors = getTeamColors(match.home_team.name)
+  const awayColors = getTeamColors(match.away_team.name)
+
+  // Prediction distribution
+  const homeWins = predictions.filter(p => p.predictedHome > p.predictedAway).length
+  const draws    = predictions.filter(p => p.predictedHome === p.predictedAway).length
+  const awayWins = predictions.filter(p => p.predictedHome < p.predictedAway).length
+  const total    = predictions.length
+  const homePct  = total > 0 ? Math.round(homeWins / total * 100) : 0
+  const drawPct  = total > 0 ? Math.round(draws    / total * 100) : 0
+  const awayPct  = total > 0 ? Math.round(awayWins / total * 100) : 0
 
   return (
     <>
@@ -240,162 +326,203 @@ export default function MatchCentre({ data }: MatchCentreProps) {
           )}
         </div>
 
-        {/* Scoreboard */}
-        <div
-          style={{
-            padding: '16px 16px 12px',
-            borderBottom: '1px solid #e0dbd3',
-            background: '#faf9f6',
-          }}
-        >
-          {match.group_letter && (
-            <p
+        {/* Scoreboard — three-column layout */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e0dbd3' }}>
+
+          {/* Home team side */}
+          <div
+            style={{
+              flex: 1,
+              background: homeColors.bg,
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 6,
+            }}
+          >
+            {match.home_team.flag_url && (
+              <img src={match.home_team.flag_url} alt="" style={{ width: 56, height: 40, objectFit: 'contain' }} />
+            )}
+            <span
               style={{
                 fontFamily: sans,
-                fontSize: '0.65rem',
-                color: '#6b6b6b',
-                textAlign: 'center',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                color: homeColors.accent,
                 textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: 8,
+                letterSpacing: '0.06em',
+                lineHeight: 1.2,
               }}
             >
-              Group {match.group_letter}{match.venue ? ` · ${match.venue}` : ''}
-            </p>
-          )}
-
-          {/* Teams + score */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            {/* Home team */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 90, textAlign: 'center' }}>
-              {match.home_team.flag_url && (
-                <img src={match.home_team.flag_url} alt="" style={{ width: 36, height: 24, objectFit: 'contain' }} />
-              )}
-              <span style={{ fontFamily: sans, fontSize: '0.85rem', fontWeight: 700, color: '#141414' }}>
-                {match.home_team.name}
-              </span>
-            </div>
-
-            {/* Score */}
-            <div style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  fontFamily: serif,
-                  fontSize: '2rem',
-                  fontWeight: 900,
-                  color: '#141414',
-                  lineHeight: 1,
-                  minWidth: 80,
-                }}
-              >
-                {state === 'upcoming'
-                  ? <span style={{ color: '#9ca3af', fontSize: '1.2rem' }}>vs</span>
-                  : state === 'preview'
-                  ? '? – ?'
-                  : `${currentHome} – ${currentAway}`}
+              {match.home_team.name}
+            </span>
+            {homeFans.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                {homeFans.map(f => (
+                  <span
+                    key={f.userId}
+                    style={{
+                      display: 'block',
+                      fontFamily: sans,
+                      fontSize: '0.7rem',
+                      color: homeColors.accent,
+                      opacity: 0.75,
+                    }}
+                  >
+                    {f.displayName}
+                  </span>
+                ))}
               </div>
-              {state === 'upcoming' && (
-                <div style={{ fontFamily: sans, fontSize: '0.7rem', color: '#6b6b6b', marginTop: 4 }}>
-                  {new Date(match.kickoff_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              )}
-            </div>
-
-            {/* Away team */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 90, textAlign: 'center' }}>
-              {match.away_team.flag_url && (
-                <img src={match.away_team.flag_url} alt="" style={{ width: 36, height: 24, objectFit: 'contain' }} />
-              )}
-              <span style={{ fontFamily: sans, fontSize: '0.85rem', fontWeight: 700, color: '#141414' }}>
-                {match.away_team.name}
-              </span>
-            </div>
+            )}
           </div>
 
-          {/* Goal scorers — shown when state is live or finished */}
-          {(state === 'live' || state === 'finished') && goalEvents.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginTop: 8 }}>
-              <div style={{ minWidth: 120, textAlign: 'right' }}>
-                {allHomeGoals.map(g => (
-                  <span key={g.id} style={{ display: 'block', fontFamily: sans, fontSize: '0.7rem', color: '#6b6b6b' }}>
-                    {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''}
-                  </span>
-                ))}
-              </div>
-              <div style={{ minWidth: 20 }} />
-              <div style={{ minWidth: 120, textAlign: 'left' }}>
-                {allAwayGoals.map(g => (
-                  <span key={g.id} style={{ display: 'block', fontFamily: sans, fontSize: '0.7rem', color: '#6b6b6b' }}>
-                    {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Score center */}
+          <div
+            style={{
+              width: 160,
+              flexShrink: 0,
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '12px 8px',
+              gap: 4,
+              borderLeft: `1px solid ${homeColors.bg}`,
+              borderRight: `1px solid ${awayColors.bg}`,
+            }}
+          >
+            {/* Group + venue */}
+            {match.group_letter && (
+              <p
+                style={{
+                  fontFamily: sans,
+                  fontSize: '0.6rem',
+                  color: '#9ca3af',
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  margin: 0,
+                }}
+              >
+                Group {match.group_letter}{match.venue ? ` · ${match.venue}` : ''}
+              </p>
+            )}
 
-        {/* Prediction distribution bar — always visible */}
-        {predictions.length > 0 && (() => {
-          const homeWins = predictions.filter(p => p.predictedHome > p.predictedAway).length
-          const draws    = predictions.filter(p => p.predictedHome === p.predictedAway).length
-          const awayWins = predictions.filter(p => p.predictedHome < p.predictedAway).length
-          const total    = predictions.length
-          const homePct  = Math.round(homeWins / total * 100)
-          const drawPct  = Math.round(draws    / total * 100)
-          const awayPct  = Math.round(awayWins / total * 100)
-          return (
-            <div style={{ padding: '8px 16px', borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
-              <div style={{ height: 6, display: 'flex', overflow: 'hidden', borderRadius: 2, marginBottom: 5 }}>
-                <div style={{ width: `${homePct}%`, background: '#141414', transition: 'width 0.5s' }} />
-                <div style={{ width: `${drawPct}%`, background: '#d4cfc8', transition: 'width 0.5s' }} />
-                <div style={{ width: `${awayPct}%`, background: '#ff5c35', transition: 'width 0.5s' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontFamily: sans, color: '#6b6b6b' }}>
-                <span><strong style={{ color: '#141414' }}>{homePct}%</strong> {match.home_team.name}</span>
-                <span><strong style={{ color: '#6b6b6b' }}>{drawPct}%</strong> Draw</span>
-                <span>{match.away_team.name} <strong style={{ color: '#ff5c35' }}>{awayPct}%</strong></span>
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* Blurred section: fans + predictions */}
-        <div style={{ ...blurStyle, ...revealTransition }}>
-          {/* Fan bases */}
-          {(homeFans.length > 0 || awayFans.length > 0) && (
+            {/* Score */}
             <div
               style={{
-                padding: '10px 16px',
-                borderBottom: '1px solid #e0dbd3',
-                display: 'flex',
-                gap: 16,
-                flexWrap: 'wrap',
+                fontFamily: serif,
+                fontSize: '3rem',
+                fontWeight: 900,
+                color: '#141414',
+                lineHeight: 1,
+                textAlign: 'center',
               }}
             >
-              {homeFans.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  {match.home_team.flag_url && (
-                    <img src={match.home_team.flag_url} alt="" style={{ width: 18, height: 12, objectFit: 'contain', flexShrink: 0 }} />
-                  )}
-                  <span style={{ fontFamily: sans, fontSize: '0.75rem', color: '#141414', fontWeight: 600 }}>Fans:</span>
-                  <span style={{ fontFamily: sans, fontSize: '0.75rem', color: '#6b6b6b' }}>
-                    {homeFans.map(f => f.displayName).join(' · ')}
-                  </span>
-                </div>
-              )}
-              {awayFans.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  {match.away_team.flag_url && (
-                    <img src={match.away_team.flag_url} alt="" style={{ width: 18, height: 12, objectFit: 'contain', flexShrink: 0 }} />
-                  )}
-                  <span style={{ fontFamily: sans, fontSize: '0.75rem', color: '#141414', fontWeight: 600 }}>Fans:</span>
-                  <span style={{ fontFamily: sans, fontSize: '0.75rem', color: '#6b6b6b' }}>
-                    {awayFans.map(f => f.displayName).join(' · ')}
-                  </span>
-                </div>
-              )}
+              {state === 'upcoming'
+                ? <span style={{ color: '#9ca3af', fontSize: '1.4rem' }}>vs</span>
+                : state === 'preview'
+                ? <span style={{ fontSize: '2rem' }}>? – ?</span>
+                : `${currentHome} – ${currentAway}`}
             </div>
-          )}
+
+            {state === 'upcoming' && (
+              <div style={{ fontFamily: sans, fontSize: '0.7rem', color: '#6b6b6b', textAlign: 'center' }}>
+                {new Date(match.kickoff_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+
+            {/* Goal scorers */}
+            {(state === 'live' || state === 'finished') && goalEvents.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 4, width: '100%' }}>
+                <div style={{ flex: 1, textAlign: 'right' }}>
+                  {allHomeGoals.map(g => (
+                    <span key={g.id} style={{ display: 'block', fontFamily: sans, fontSize: '0.62rem', color: '#6b6b6b', whiteSpace: 'nowrap' }}>
+                      {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  {allAwayGoals.map(g => (
+                    <span key={g.id} style={{ display: 'block', fontFamily: sans, fontSize: '0.62rem', color: '#6b6b6b', whiteSpace: 'nowrap' }}>
+                      {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Prediction distribution bar */}
+            {total > 0 && (
+              <div style={{ width: '100%', marginTop: 8 }}>
+                <div style={{ height: 5, display: 'flex', overflow: 'hidden', borderRadius: 2, marginBottom: 4 }}>
+                  <div style={{ width: `${homePct}%`, background: '#141414', transition: 'width 0.5s' }} />
+                  <div style={{ width: `${drawPct}%`, background: '#d4cfc8', transition: 'width 0.5s' }} />
+                  <div style={{ width: `${awayPct}%`, background: '#ff5c35', transition: 'width 0.5s' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontFamily: sans, color: '#9ca3af' }}>
+                  <span style={{ fontWeight: 700, color: '#141414' }}>{homePct}%</span>
+                  <span>{drawPct}% D</span>
+                  <span style={{ fontWeight: 700, color: '#ff5c35' }}>{awayPct}%</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Away team side */}
+          <div
+            style={{
+              flex: 1,
+              background: awayColors.bg,
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 6,
+            }}
+          >
+            {match.away_team.flag_url && (
+              <img src={match.away_team.flag_url} alt="" style={{ width: 56, height: 40, objectFit: 'contain' }} />
+            )}
+            <span
+              style={{
+                fontFamily: sans,
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                color: awayColors.accent,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                lineHeight: 1.2,
+                textAlign: 'right',
+              }}
+            >
+              {match.away_team.name}
+            </span>
+            {awayFans.length > 0 && (
+              <div style={{ marginTop: 4, textAlign: 'right' }}>
+                {awayFans.map(f => (
+                  <span
+                    key={f.userId}
+                    style={{
+                      display: 'block',
+                      fontFamily: sans,
+                      fontSize: '0.7rem',
+                      color: awayColors.accent,
+                      opacity: 0.75,
+                    }}
+                  >
+                    {f.displayName}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Blurred section: predictions */}
+        <div style={{ ...blurStyle, ...revealTransition }}>
 
           {/* Upcoming: prediction lock info */}
           {state === 'upcoming' && (
@@ -427,35 +554,47 @@ export default function MatchCentre({ data }: MatchCentreProps) {
                 }}
               >
                 <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Prediction</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>🎯</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>👟</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>⭐</span>
+                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Match</span>
+                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Squad</span>
+                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Team</span>
                 <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center', fontWeight: 700 }}>Pts</span>
               </div>
 
               {sections.map(sectionStatus => {
                 const sectionPreds = sortedPreds.filter(p => p.status === sectionStatus)
                 if (sectionPreds.length === 0) return null
+                const accent = statusAccent(sectionStatus)
+                const bg = statusBg(sectionStatus)
                 return (
                   <div key={sectionStatus}>
                     {/* Section header */}
                     <div
                       style={{
                         padding: '4px 16px',
-                        background: '#faf9f6',
+                        background: bg,
                         borderBottom: '1px solid #e0dbd3',
-                        borderLeft: `3px solid ${statusAccent(sectionStatus)}`,
+                        borderLeft: `3px solid ${accent}`,
                       }}
                     >
-                      <span style={{ fontFamily: sans, fontSize: '0.65rem', fontWeight: 700, color: statusAccent(sectionStatus), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        {statusEmoji(sectionStatus)} {statusLabel(sectionStatus)}
+                      <span
+                        style={{
+                          fontFamily: sans,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: accent,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                        }}
+                      >
+                        {statusLabel(sectionStatus, state)}
                       </span>
                     </div>
 
                     {/* Rows */}
                     {sectionPreds.map(pred => {
-                      const total = pred.matchPoints + pred.squadPoints + pred.teamPoints
+                      const totalPts = pred.matchPoints + pred.squadPoints + pred.teamPoints
                       const isRising = risingIds.has(pred.userId)
+                      const isMe = currentUserId != null && pred.userId === currentUserId
                       return (
                         <div
                           key={pred.userId}
@@ -466,11 +605,25 @@ export default function MatchCentre({ data }: MatchCentreProps) {
                             padding: '7px 16px',
                             borderBottom: '1px solid #f0ece6',
                             alignItems: 'center',
+                            ...(isMe
+                              ? {
+                                  borderLeft: '3px solid #ff5c35',
+                                  background: 'rgba(255, 92, 53, 0.04)',
+                                  paddingLeft: 13,
+                                }
+                              : {}),
                           }}
                         >
-                          <span style={{ fontFamily: sans, fontSize: '0.8rem', color: '#141414' }}>
+                          <span
+                            style={{
+                              fontFamily: sans,
+                              fontSize: '0.8rem',
+                              color: isMe ? '#ff5c35' : '#141414',
+                              fontWeight: isMe ? 700 : 400,
+                            }}
+                          >
                             {pred.displayName}
-                            <span style={{ color: '#9ca3af', marginLeft: 6 }}>
+                            <span style={{ color: '#9ca3af', marginLeft: 6, fontWeight: 400 }}>
                               {pred.predictedHome}–{pred.predictedAway}
                             </span>
                           </span>
@@ -484,7 +637,7 @@ export default function MatchCentre({ data }: MatchCentreProps) {
                             {pred.teamPoints}
                           </span>
                           <span style={{ fontFamily: sans, fontSize: '0.8rem', textAlign: 'center', fontWeight: 700, color: '#ff5c35' }}>
-                            {total}
+                            {totalPts}
                           </span>
                         </div>
                       )
@@ -495,8 +648,50 @@ export default function MatchCentre({ data }: MatchCentreProps) {
             </div>
           )}
 
-          {/* Out ticker */}
-          {outPreds.length > 0 && (
+          {/* Out section — only shown when finished */}
+          {state === 'finished' && outPreds.length > 0 && (
+            <div>
+              {/* Out section header */}
+              <div
+                style={{
+                  padding: '4px 16px',
+                  background: statusBg('out'),
+                  borderBottom: '1px solid #e0dbd3',
+                  borderLeft: `3px solid ${statusAccent('out')}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: sans,
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    color: statusAccent('out'),
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  {statusLabel('out', state)}
+                </span>
+              </div>
+              {/* Out rows */}
+              <div
+                style={{
+                  padding: '8px 16px',
+                  overflowX: 'auto',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {outPreds.map((p, i) => (
+                  <span key={p.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: i < outPreds.length - 1 ? 12 : 0 }}>
+                    {p.displayName} {p.predictedHome}–{p.predictedAway}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Out ticker for non-finished states */}
+          {state !== 'finished' && outPreds.length > 0 && (
             <div
               style={{
                 padding: '8px 16px',
@@ -507,7 +702,7 @@ export default function MatchCentre({ data }: MatchCentreProps) {
               }}
             >
               <span style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: 8 }}>
-                💔 Out of the match ·
+                Out of the match ·
               </span>
               {outPreds.map((p, i) => (
                 <span key={p.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: i < outPreds.length - 1 ? 12 : 0 }}>

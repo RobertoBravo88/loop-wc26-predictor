@@ -187,7 +187,7 @@ export default async function HomePage() {
 
       {/* Match Centre — admin only, above news */}
       {profile?.role === 'admin' && matchCentreData && (
-        <MatchCentre data={matchCentreData} />
+        <MatchCentre data={matchCentreData} currentUserId={user?.id ?? null} />
       )}
 
       {/* News — featured editorial section */}
