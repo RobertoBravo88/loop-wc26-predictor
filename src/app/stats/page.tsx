@@ -17,7 +17,7 @@ export default async function StatsPage() {
     supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, processed_at'),
     supabase.from('profiles').select('id, display_name, total_points, current_streak, max_streak, favourite_team:teams(id, name, flag_url)'),
     supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(id, name, flag_url), second_team:teams!second_team_id(id, name, flag_url), third_team:teams!third_team_id(id, name, flag_url)'),
-    supabase.from('scorer_picks').select('player_id, player:players(name, team:teams(name, flag_url))'),
+    supabase.from('scorer_picks').select('player_id, player:players(name, photo_url, team:teams(name, flag_url))'),
   ])
 
   // Compute fun stats
@@ -100,7 +100,7 @@ export default async function StatsPage() {
     .slice(0, 5)
 
   // --- Highest rated top scorers (scorer picks: each pick = 1) ---
-  const playerPickMap = new Map<string, { name: string; teamName: string | null; flag: string | null; count: number }>()
+  const playerPickMap = new Map<string, { name: string; teamName: string | null; flag: string | null; photo: string | null; count: number }>()
   for (const pick of scorerPicks ?? []) {
     const player = (pick as any).player
     if (!player) continue
@@ -110,6 +110,7 @@ export default async function StatsPage() {
       name: player.name,
       teamName: player.team?.name ?? null,
       flag: player.team?.flag_url ?? null,
+      photo: player.photo_url ?? null,
       count: 1,
     })
   }
@@ -401,6 +402,13 @@ export default async function StatsPage() {
               >
                 {i + 1}
               </span>
+              {/* Player photo avatar */}
+              <div className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 28, height: 28, background: player.photo ? 'transparent' : '#e0dbd3' }}>
+                {player.photo
+                  ? <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
+                  : <span style={{ fontSize: '10px', fontWeight: 700, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{player.name.charAt(0)}</span>
+                }
+              </div>
               {player.flag && (
                 <img src={player.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
               )}

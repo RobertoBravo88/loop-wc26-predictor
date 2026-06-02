@@ -317,6 +317,18 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
 
                 {pick ? (
                   <>
+                    {/* Player photo */}
+                    {(() => {
+                      const p = players.find(pl => pl.id === pick.playerId)
+                      return (
+                        <div className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 28, height: 28, background: (p as any)?.photo_url ? 'transparent' : '#e0dbd3' }}>
+                          {(p as any)?.photo_url
+                            ? <img src={(p as any).photo_url} alt="" className="w-full h-full object-cover" />
+                            : <span style={{ fontSize: '10px', fontWeight: 700, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{p?.name?.charAt(0) ?? '?'}</span>
+                          }
+                        </div>
+                      )
+                    })()}
                     {/* Flag */}
                     {team?.flag_url && (
                       <img src={team.flag_url} alt="" className="w-7 h-5 object-contain flex-shrink-0" />
@@ -527,6 +539,17 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                 className="flex items-center gap-3 px-3 py-2"
                 style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}
               >
+                {(() => {
+                  const p = players.find(x => x.id === favPlayer)
+                  return (
+                    <div className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 28, height: 28, background: (p as any)?.photo_url ? 'transparent' : '#e0dbd3' }}>
+                      {(p as any)?.photo_url
+                        ? <img src={(p as any).photo_url} alt="" className="w-full h-full object-cover" />
+                        : <span style={{ fontSize: '10px', fontWeight: 700, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{p?.name?.charAt(0) ?? '?'}</span>
+                      }
+                    </div>
+                  )
+                })()}
                 {getTeam(favTeam)?.flag_url && (
                   <img src={getTeam(favTeam)!.flag_url!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 )}

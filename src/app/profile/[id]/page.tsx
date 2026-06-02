@@ -7,6 +7,23 @@ import type { PointEvent } from '@/types'
 
 export const revalidate = 60
 
+function PlayerAvatar({ name, photo }: { name?: string | null; photo?: string | null }) {
+  return (
+    <div
+      className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+      style={{ width: 32, height: 32, background: photo ? 'transparent' : '#e0dbd3' }}
+    >
+      {photo ? (
+        <img src={photo} alt={name ?? ''} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-xs font-bold" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+          {name?.charAt(0).toUpperCase() ?? '?'}
+        </span>
+      )}
+    </div>
+  )
+}
+
 const EVENT_LABELS: Record<string, { label: string; bg: string; color: string }> = {
   exact_score:          { label: 'Exact score',        bg: '#dcfce7', color: '#15803d' },
   correct_outcome:      { label: 'Correct outcome',    bg: '#fef9c3', color: '#a16207' },
@@ -57,7 +74,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
 
   const [finalistPickRes, scorerPicksRes, secretGoalEventsRes] = await Promise.all([
     supabase.from('finalist_picks').select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)').eq('user_id', id).single(),
-    supabase.from('scorer_picks').select('*, player:players(name, position, shirt_number), team:teams(name, flag_url)').eq('user_id', id).order('created_at'),
+    supabase.from('scorer_picks').select('*, player:players(name, position, shirt_number, photo_url), team:teams(name, flag_url)').eq('user_id', id).order('created_at'),
     supabase.from('point_events').select('points').eq('user_id', id).in('type', ['favourite_player_goal', 'favourite_team_goal']),
   ])
 
@@ -216,6 +233,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 className="flex items-center gap-3 px-3 py-2.5"
                 style={{ background: '#fefce8', borderLeft: '3px solid #eab308' }}
               >
+                <PlayerAvatar name={profile.favourite_player.name} photo={(profile.favourite_player as any).photo_url} />
                 {profile.favourite_team?.flag_url && (
                   <img src={profile.favourite_team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
                 )}
@@ -246,6 +264,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 className="flex items-center gap-3 px-3 py-2.5"
                 style={{ background: '#fff8f0', borderLeft: '3px solid #ff5c35' }}
               >
+                <PlayerAvatar name={pick.player?.name} photo={pick.player?.photo_url} />
                 {pick.team?.flag_url && (
                   <img src={pick.team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
                 )}
