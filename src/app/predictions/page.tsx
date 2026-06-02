@@ -89,6 +89,13 @@ export default async function PredictionsPage({
   // Tab-specific data
   // ─────────────────────────────────────────────────────────────────────
 
+  // Compute lock-countdown set: indices of next 12 upcoming matches across all group + knockout
+  const allScheduledMatches = [...(groupMatchesRes.data ?? []), ...(knockoutMatchesRes.data ?? [])]
+    .filter(m => !isMatchLocked(m.kickoff_at))
+    .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
+    .slice(0, 12)
+  const lockCountdownIds = new Set(allScheduledMatches.map(m => m.id))
+
   // Group tab
   let groupMatches: Match[] = []
   let predictionMap  = new Map<string, Prediction>()
@@ -285,6 +292,7 @@ export default async function PredictionsPage({
               predictionMap={Object.fromEntries(predictionMap)}
               distMap={Object.fromEntries(distMap)}
               userId={user.id}
+              lockCountdownIds={lockCountdownIds}
             />
           ) : (
             <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
@@ -350,6 +358,7 @@ export default async function PredictionsPage({
                       prediction={knockoutPredMap.get(match.id) ?? null}
                       userId={user.id}
                       distribution={knockoutDistMap.get(match.id)}
+                      showLockCountdown={lockCountdownIds.has(match.id)}
                     />
                   ))}
                 </div>

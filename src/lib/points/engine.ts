@@ -1,5 +1,6 @@
 import { POINTS, type Match, type Prediction } from '@/types'
 import { createServiceClient } from '@/lib/supabase/server'
+import { checkAndAwardBadges, checkOracleBadge } from '@/lib/badges/engine'
 
 // ============================================================
 // Core scoring logic
@@ -148,6 +149,9 @@ export async function processMatchResult(matchId: string) {
     }
 
     processedCount++
+
+    // Check and award badges (non-blocking — errors are silently ignored)
+    checkAndAwardBadges(pred.user_id, matchId).catch(() => {})
   }
 
   // Process goal events for scorer / favourite bonuses
@@ -415,5 +419,8 @@ export async function processFinalistPicks(
         p_points: points,
       })
     }
+
+    // Check Oracle badge (non-blocking)
+    checkOracleBadge(pick.user_id).catch(() => {})
   }
 }

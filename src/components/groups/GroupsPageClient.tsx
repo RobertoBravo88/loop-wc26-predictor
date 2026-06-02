@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { stageName } from '@/lib/utils'
 import { format } from 'date-fns'
+import LocalTime from '@/components/ui/LocalTime'
 import type { Match, GroupStanding, MatchStage } from '@/types'
 
 // ============================================================
@@ -264,6 +265,121 @@ function MatchNode({ match, userPick, homeSlot, awaySlot }: {
 }
 
 // ============================================================
+// All Matches tab component
+// ============================================================
+
+function AllMatchesTab({
+  groupData,
+  knockoutData,
+  firstUpcomingRef,
+}: {
+  groupData: GroupData[]
+  knockoutData: KnockoutData[]
+  firstUpcomingRef: React.MutableRefObject<HTMLDivElement | null>
+}) {
+  // Combine all matches from group + knockout data
+  const allMatches: Array<Match & { displayLabel: string }> = []
+
+  for (const gd of groupData) {
+    for (const m of gd.matches) {
+      allMatches.push({ ...m, displayLabel: `Group ${gd.letter}` })
+    }
+  }
+  for (const kd of knockoutData) {
+    for (const m of kd.matches) {
+      allMatches.push({ ...m, displayLabel: stageName(kd.stage) })
+    }
+  }
+
+  // Sort chronologically
+  allMatches.sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
+
+  // Find first upcoming
+  const now = new Date()
+  const firstUpcomingIdx = allMatches.findIndex(m => m.status !== 'finished' && new Date(m.kickoff_at) >= now)
+
+  // Scroll to first upcoming when tab activates
+  useEffect(() => {
+    if (firstUpcomingRef.current) {
+      firstUpcomingRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [firstUpcomingRef])
+
+  if (allMatches.length === 0) {
+    return (
+      <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+        No matches loaded yet.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ border: '1px solid #e0dbd3', background: '#ffffff' }}>
+      {allMatches.map((match, idx) => {
+        const finished = match.status === 'finished'
+        const isFirstUpcoming = idx === firstUpcomingIdx
+        return (
+          <div
+            key={match.id}
+            ref={isFirstUpcoming ? firstUpcomingRef : undefined}
+            className="flex items-center gap-3 px-4 py-3"
+            style={{
+              borderBottom: '1px solid #e0dbd3',
+              borderLeft: finished ? '3px solid #22c55e' : '3px solid #e0dbd3',
+              background: isFirstUpcoming ? '#faf9f6' : idx % 2 === 0 ? '#ffffff' : '#faf9f6',
+            }}
+          >
+            {/* Label */}
+            <span
+              className="text-xs flex-shrink-0 w-24 truncate"
+              style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
+            >
+              {match.displayLabel}
+            </span>
+
+            {/* Home team */}
+            <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+              <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {match.home_team?.name ?? '—'}
+              </span>
+              {match.home_team?.flag_url && (
+                <img src={match.home_team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
+              )}
+            </div>
+
+            {/* Score or time */}
+            <div className="flex-shrink-0 mx-1">
+              {finished && match.home_score !== null ? (
+                <span
+                  className="text-xs font-bold px-2 py-1"
+                  style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+                >
+                  {match.home_score} – {match.away_score}
+                </span>
+              ) : (
+                <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                  <LocalTime date={match.kickoff_at} fmt="HH:mm" />
+                </span>
+              )}
+            </div>
+
+            {/* Away team */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              {match.away_team?.flag_url && (
+                <img src={match.away_team.flag_url} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
+              )}
+              <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                {match.away_team?.name ?? '—'}
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ============================================================
 // Main client component
 // ============================================================
 
@@ -276,12 +392,13 @@ export default function GroupsPageClient({
   mySquadIds,
   lastSynced,
 }: Props) {
-  const [tab, setTab] = useState<'groups' | 'finals' | 'scorers'>('groups')
+  const [tab, setTab] = useState<'groups' | 'finals' | 'scorers' | 'all'>('groups')
   const [standingsView, setStandingsView] = useState<'real' | 'predicted'>('real')
   const [scorerPage, setScorerPage] = useState(0)
   const [showMySquad, setShowMySquad] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTeam, setSelectedTeam] = useState('')
+  const firstUpcomingRef = useRef<HTMLDivElement | null>(null)
 
   const knockoutByStage = new Map<MatchStage, Match[]>()
   for (const kd of knockoutData) {
@@ -352,6 +469,9 @@ export default function GroupsPageClient({
         </button>
         <button style={tabStyle(tab === 'scorers')} onClick={() => setTab('scorers')}>
           Top Scorers
+        </button>
+        <button style={tabStyle(tab === 'all')} onClick={() => setTab('all')}>
+          All Matches
         </button>
       </div>
 
@@ -511,6 +631,15 @@ export default function GroupsPageClient({
             })}
           </div>
         </div>
+      )}
+
+      {/* ── All Matches tab ── */}
+      {tab === 'all' && (
+        <AllMatchesTab
+          groupData={groupData}
+          knockoutData={knockoutData}
+          firstUpcomingRef={firstUpcomingRef}
+        />
       )}
 
       {/* ── Top Scorers tab ── */}

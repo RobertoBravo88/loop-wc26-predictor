@@ -12,9 +12,10 @@ interface Props {
   predictionMap: Record<string, Prediction | null>
   distMap: Record<string, { home: number; draw: number; away: number; total: number }>
   userId: string
+  lockCountdownIds?: Set<string>
 }
 
-export default function GroupMatchesList({ matches, predictionMap, distMap, userId }: Props) {
+export default function GroupMatchesList({ matches, predictionMap, distMap, userId, lockCountdownIds }: Props) {
   const [sort, setSort] = useState<'group' | 'date'>('group')
 
   const btnStyle = (active: boolean): React.CSSProperties => ({
@@ -48,6 +49,7 @@ export default function GroupMatchesList({ matches, predictionMap, distMap, user
               prediction={predictionMap[match.id] ?? null}
               userId={userId}
               distribution={distMap[match.id]}
+              showLockCountdown={lockCountdownIds?.has(match.id)}
             />
           ))}
         </div>

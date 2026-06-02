@@ -2,9 +2,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isTournamentStarted, stageName } from '@/lib/utils'
 import LocalTime from '@/components/ui/LocalTime'
+import CountdownTimer from '@/components/ui/CountdownTimer'
 import { ChevronRight } from 'lucide-react'
 import type { Match, LeaderboardEntry, NewsPost } from '@/types'
 import NewsCarousel from '@/components/home/NewsCarousel'
+import PlayerScoredBanner, { type ScoredGoal } from '@/components/home/PlayerScoredBanner'
+import AchievementToast from '@/components/ui/AchievementToast'
 
 export const revalidate = 60
 
@@ -58,8 +61,57 @@ export default async function HomePage() {
 
   const tournamentStarted = isTournamentStarted()
 
+  // Fetch recently earned badges for achievement toast (last 1h)
+  let recentBadges: Array<{ badge_id: string; earned_at: string; user_id: string }> = []
+  if (user) {
+    const { data: badgeData } = await supabase
+      .from('user_badges')
+      .select('badge_id, earned_at')
+      .eq('user_id', user.id)
+      .gte('earned_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .order('earned_at', { ascending: false })
+    recentBadges = (badgeData ?? []).map(b => ({ ...b, user_id: user.id }))
+  }
+
+  // Fetch recent (last 48h) goal bonuses for this user
+  let scoredGoals: ScoredGoal[] = []
+  if (user) {
+    const { data: recentBonuses } = await supabase
+      .from('point_events')
+      .select('id, type, points, goal_event_id, goal_event:goal_events(id, player:players(name), team:teams(flag_url))')
+      .eq('user_id', user.id)
+      .in('type', ['scorer_bonus', 'favourite_player_goal', 'favourite_team_goal'])
+      .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+
+    scoredGoals = (recentBonuses ?? []).map((ev: any) => {
+      const goalEvent = Array.isArray(ev.goal_event) ? ev.goal_event[0] : ev.goal_event
+      const type: ScoredGoal['type'] =
+        ev.type === 'scorer_bonus' ? 'scorer' :
+        ev.type === 'favourite_player_goal' ? 'player' :
+        'team'
+      const player = Array.isArray(goalEvent?.player) ? goalEvent.player[0] : goalEvent?.player
+      const team = Array.isArray(goalEvent?.team) ? goalEvent.team[0] : goalEvent?.team
+      return {
+        playerName: player?.name ?? 'Player',
+        teamFlag: team?.flag_url ?? null,
+        points: ev.points,
+        type,
+        goalEventId: ev.goal_event_id ?? ev.id,
+      } satisfies ScoredGoal
+    })
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+      {/* Recent goal bonuses banner */}
+      {scoredGoals.length > 0 && (
+        <PlayerScoredBanner goals={scoredGoals} />
+      )}
+
+      {/* Achievement toast */}
+      {recentBadges.length > 0 && <AchievementToast recentBadges={recentBadges} />}
 
       {/* Hero — compact editorial masthead */}
       <section style={{ background: '#141414' }} className="relative overflow-hidden">
@@ -70,9 +122,13 @@ export default async function HomePage() {
           >
             Loop WC26<br />Predictor
           </h1>
-          <p className="text-sm mb-5 max-w-lg" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+          <p className="text-sm mb-3 max-w-lg" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
             Predict every match, earn points, climb the table. Let&apos;s bring the noise.
           </p>
+          {!tournamentStarted && (
+            <CountdownTimer targetDate={process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z'} />
+          )}
+          <div className="mt-5" />
           {!user ? (
             <div className="flex flex-col gap-2">
               <Link

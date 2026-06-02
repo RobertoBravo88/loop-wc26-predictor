@@ -4,6 +4,8 @@ import { isTournamentStarted } from '@/lib/utils'
 import { Trophy, Star } from 'lucide-react'
 import Link from 'next/link'
 import type { PointEvent } from '@/types'
+import BadgeDisplay from '@/components/ui/BadgeDisplay'
+import { BADGE_DEFS, BADGE_MAP, RARITY_ORDER } from '@/lib/badges/definitions'
 
 export const revalidate = 60
 
@@ -71,6 +73,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     .not('processed_at', 'is', null)
     .order('created_at', { ascending: false })
     .limit(20)
+
+  const { data: userBadges } = await supabase
+    .from('user_badges')
+    .select('badge_id, earned_at')
+    .eq('user_id', id)
+    .order('earned_at', { ascending: false })
 
   const [finalistPickRes, scorerPicksRes, secretGoalEventsRes] = await Promise.all([
     supabase.from('finalist_picks').select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)').eq('user_id', id).single(),
@@ -346,6 +354,53 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Badges */}
+      {userBadges && userBadges.length > 0 && (
+        <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="p-5">
+          <h2
+            className="text-lg mb-4 pb-2"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
+          >
+            Badges
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[...userBadges].sort((a, b) => {
+              const aDef = BADGE_MAP[a.badge_id]
+              const bDef = BADGE_MAP[b.badge_id]
+              const aOrder = aDef ? RARITY_ORDER[aDef.rarity] : 99
+              const bOrder = bDef ? RARITY_ORDER[bDef.rarity] : 99
+              if (aOrder !== bOrder) return aOrder - bOrder
+              return new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime()
+            }).map(b => {
+              const def = BADGE_MAP[b.badge_id]
+              if (!def) return null
+              const isTwelfthMan = b.badge_id === 'twelfth_man'
+              return (
+                <div
+                  key={b.badge_id}
+                  className="flex items-center gap-2 px-3 py-2.5"
+                  style={{ background: '#faf9f6', border: '1px solid #e0dbd3' }}
+                >
+                  <span className="text-xl flex-shrink-0">
+                    {isTwelfthMan && profile.favourite_team?.flag_url ? (
+                      <img src={profile.favourite_team.flag_url} alt={def.name} className="w-6 h-4 object-contain" />
+                    ) : def.emoji}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                      {def.name}
+                    </div>
+                    <div className="text-xs truncate" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      {def.desc}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

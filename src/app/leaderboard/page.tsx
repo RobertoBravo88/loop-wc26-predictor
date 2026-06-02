@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { isTournamentStarted } from '@/lib/utils'
 import LocalTime from '@/components/ui/LocalTime'
 import type { LeaderboardEntry } from '@/types'
+import BadgeDisplay from '@/components/ui/BadgeDisplay'
 
 export const revalidate = 60
 
@@ -15,10 +16,11 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [entriesRes, lastSyncRes, shirtsRes] = await Promise.all([
+  const [entriesRes, lastSyncRes, shirtsRes, badgesRes] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('profiles').select('id, favourite_player:players(shirt_number)'),
+    supabase.from('user_badges').select('user_id, badge_id, earned_at'),
   ])
 
   const leaderboard       = (entriesRes.data ?? []) as LeaderboardEntry[]
@@ -30,6 +32,13 @@ export default async function LeaderboardPage() {
   for (const p of shirtsRes.data ?? []) {
     const shirt = (p as any).favourite_player?.shirt_number ?? null
     shirtMap.set(p.id, shirt)
+  }
+
+  // Build badge lookup: userId → badges[]
+  const badgeMap = new Map<string, Array<{ badge_id: string; earned_at: string }>>()
+  for (const b of badgesRes.data ?? []) {
+    if (!badgeMap.has(b.user_id)) badgeMap.set(b.user_id, [])
+    badgeMap.get(b.user_id)!.push({ badge_id: b.badge_id, earned_at: b.earned_at })
   }
 
   return (
@@ -201,6 +210,16 @@ export default async function LeaderboardPage() {
                     {streak}
                   </span>
                 ) : null}
+
+                {/* Badges */}
+                {(badgeMap.get(entry.id)?.length ?? 0) > 0 && (
+                  <BadgeDisplay
+                    badges={badgeMap.get(entry.id)!}
+                    userFlagUrl={entry.favourite_team_flag}
+                    max={3}
+                    size="sm"
+                  />
+                )}
               </div>
 
               {/* Predicted — desktop only (match predictions + tournament picks) */}
@@ -248,6 +267,19 @@ export default async function LeaderboardPage() {
               >
                 {entry.total_points}
               </span>
+
+              {/* Compare — only shown when user is logged in and it's not their own row */}
+              {user && !isMe && (
+                <Link
+                  href={`/compare/${entry.id}`}
+                  onClick={e => e.stopPropagation()}
+                  className="hidden sm:flex col-span-0 items-center justify-center text-xs hover:opacity-70 transition-opacity"
+                  title={`Compare with ${entry.display_name}`}
+                  style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', textDecoration: 'none', marginLeft: '4px' }}
+                >
+                  ⚔
+                </Link>
+              )}
             </Link>
           )
         })}

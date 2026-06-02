@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: 'Loop WC26 Predictor',
   description: 'Predict the 2026 FIFA World Cup and compete with your Loop colleagues.',
   icons: { icon: '/favicon.ico' },
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Loop WC26' },
+  other: { 'mobile-web-app-capable': 'yes' },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

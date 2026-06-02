@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { format } from 'date-fns'
+import { BADGE_DEFS, RARITY_ORDER } from '@/lib/badges/definitions'
 
 export const metadata: Metadata = {
   title: 'How to Play — Loop WC26 Predictor',
@@ -158,7 +159,47 @@ export default function HowToPlayPage() {
             </ul>
           </section>
 
-          {/* Section 6 — Quick Reference Table */}
+          {/* Section 6 — Achievement Badges */}
+          <section style={{ borderLeft: '3px solid #e0dbd3', paddingLeft: '1rem' }}>
+            <h2
+              className="text-xl mb-1 pb-2"
+              style={{ fontFamily: serif, fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
+            >
+              Achievement Badges
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed" style={{ fontFamily: sans, color: '#141414' }}>
+              Badges are awarded automatically as you hit milestones. They&apos;re shown on your profile and next to your name on the leaderboard.
+            </p>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[...BADGE_DEFS].sort((a, b) => RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity]).map(badge => (
+                <div
+                  key={badge.id}
+                  className="flex items-start gap-3 px-3 py-2.5"
+                  style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}
+                >
+                  <span className="text-xl flex-shrink-0 mt-0.5">{badge.emoji}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: sans }}>{badge.name}</span>
+                      <span
+                        className="text-xs px-1.5 py-0.5 font-semibold uppercase tracking-wider"
+                        style={{
+                          fontFamily: sans,
+                          background: badge.rarity === 'very_rare' ? '#fef9c3' : badge.rarity === 'rare' ? '#dbeafe' : badge.rarity === 'uncommon' ? '#f3e8ff' : '#f3f4f6',
+                          color: badge.rarity === 'very_rare' ? '#a16207' : badge.rarity === 'rare' ? '#1d4ed8' : badge.rarity === 'uncommon' ? '#7e22ce' : '#6b6b6b',
+                        }}
+                      >
+                        {badge.rarity.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#6b6b6b', fontFamily: sans }}>{badge.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Section 7 — Quick Reference Table */}
           <section>
             <h2
               className="text-xl mb-1 pb-2"

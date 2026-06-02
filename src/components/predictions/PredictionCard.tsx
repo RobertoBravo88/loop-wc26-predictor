@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatKickoff, isMatchLocked } from '@/lib/utils'
+import { formatKickoff, isMatchLocked, getNow } from '@/lib/utils'
 import { Lock, Check, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -13,9 +13,28 @@ interface Props {
   prediction: Prediction | null
   userId: string
   distribution?: { home: number; draw: number; away: number; total: number }
+  showLockCountdown?: boolean
 }
 
-export default function PredictionCard({ match, prediction, userId, distribution }: Props) {
+function getLockCountdownText(kickoffAt: string): string | null {
+  const now = getNow()
+  const kickoff = new Date(kickoffAt)
+  const diffMs = kickoff.getTime() - now.getTime()
+  if (diffMs <= 0) return null
+  const diffHours = diffMs / (1000 * 60 * 60)
+  if (diffHours <= 48) {
+    const hours = Math.floor(diffHours)
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+    return `Locks in ${hours}h ${minutes}m`
+  }
+  const diffDays = diffMs / (1000 * 60 * 60 * 24)
+  if (diffDays <= 7) {
+    return `Locks in ${Math.floor(diffDays)} days`
+  }
+  return null
+}
+
+export default function PredictionCard({ match, prediction, userId, distribution, showLockCountdown }: Props) {
   const router = useRouter()
   const locked = isMatchLocked(match.kickoff_at) || match.status !== 'scheduled'
   const finished = match.status === 'finished'
@@ -101,8 +120,19 @@ export default function PredictionCard({ match, prediction, userId, distribution
     >
       {/* Match meta */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+        <span className="text-xs flex items-center gap-2" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
           {match.venue ? `${match.venue} · ` : ''}{formatKickoff(match.kickoff_at)}
+          {showLockCountdown && !locked && !finished && (() => {
+            const text = getLockCountdownText(match.kickoff_at)
+            return text ? (
+              <span
+                className="text-xs font-semibold px-1.5 py-0.5"
+                style={{ background: '#ff5c35', color: '#ffffff', fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', letterSpacing: '0.01em' }}
+              >
+                {text}
+              </span>
+            ) : null
+          })()}
         </span>
         <div className="flex items-center gap-2">
           {finished && prediction?.points_total != null && (
