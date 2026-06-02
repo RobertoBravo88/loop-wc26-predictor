@@ -166,15 +166,29 @@ export default async function LeaderboardPage() {
           const streak = entry.current_streak ?? 0
 
           return (
+            <div key={entry.id} style={{ position: 'relative', borderBottom: '1px solid #e0dbd3' }}>
+            {/* Compare button — sibling to row Link, no nesting */}
+            {user && !isMe && (
+              <Link
+                href={`/compare/${entry.id}`}
+                className="hidden sm:flex items-center justify-center text-xs hover:opacity-70 transition-opacity"
+                title={`Compare with ${entry.display_name}`}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  color: '#9ca3af', fontFamily: 'Inter, sans-serif', textDecoration: 'none',
+                  zIndex: 1, width: 24, height: 24,
+                }}
+              >
+                ⚔
+              </Link>
+            )}
             <Link
-              key={entry.id}
               href={`/profile/${entry.id}`}
               className={`${ROW_CLASS} py-3 items-center transition-colors hover:opacity-80`}
               style={{
                 background: isMe
                   ? 'rgba(255, 92, 53, 0.04)'
                   : i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderBottom: '1px solid #e0dbd3',
                 borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
               }}
             >
@@ -276,19 +290,8 @@ export default async function LeaderboardPage() {
                 {entry.total_points}
               </span>
 
-              {/* Compare — only shown when user is logged in and it's not their own row */}
-              {user && !isMe && (
-                <Link
-                  href={`/compare/${entry.id}`}
-                  onClick={e => e.stopPropagation()}
-                  className="hidden sm:flex col-span-0 items-center justify-center text-xs hover:opacity-70 transition-opacity"
-                  title={`Compare with ${entry.display_name}`}
-                  style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif', textDecoration: 'none', marginLeft: '4px' }}
-                >
-                  ⚔
-                </Link>
-              )}
             </Link>
+            </div>
           )
         })}
 
