@@ -16,12 +16,18 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [entriesRes, lastSyncRes, shirtsRes, badgesRes] = await Promise.all([
+  const [entriesRes, lastSyncRes, shirtsRes] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('profiles').select('id, favourite_player:players(shirt_number)'),
-    supabase.from('user_badges').select('user_id, badge_id, earned_at'),
   ])
+
+  // Fetch badges separately — if the table doesn't exist yet it fails silently
+  const { data: badgesData } = await supabase
+    .from('user_badges')
+    .select('user_id, badge_id, earned_at')
+    .then(r => r)
+    .catch(() => ({ data: null }))
 
   const leaderboard       = (entriesRes.data ?? []) as LeaderboardEntry[]
   const lastSynced        = lastSyncRes.data?.result_fetched_at ?? null
@@ -36,7 +42,7 @@ export default async function LeaderboardPage() {
 
   // Build badge lookup: userId → badges[]
   const badgeMap = new Map<string, Array<{ badge_id: string; earned_at: string }>>()
-  for (const b of badgesRes.data ?? []) {
+  for (const b of badgesData ?? []) {
     if (!badgeMap.has(b.user_id)) badgeMap.set(b.user_id, [])
     badgeMap.get(b.user_id)!.push({ badge_id: b.badge_id, earned_at: b.earned_at })
   }
