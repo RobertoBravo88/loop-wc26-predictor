@@ -29,7 +29,8 @@ export default async function HomePage() {
   }
 
   // Match Centre data — admin only
-  const matchCentreData = profile?.role === 'admin' ? await getMatchCentreData() : null
+  const isAdmin = profile?.role === 'admin'
+  const matchCentreData = isAdmin ? await getMatchCentreData(true) : null
 
   const { data: upcomingMatches } = await supabase
     .from('matches')

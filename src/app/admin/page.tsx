@@ -7,7 +7,7 @@ import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
 import AdminApiPlayerLinker from '@/components/admin/AdminApiPlayerLinker'
-import AdminMatchSimulator from '@/components/admin/AdminMatchSimulator'
+import AdminMatchCentreSimulator from '@/components/admin/AdminMatchCentreSimulator'
 import { format } from 'date-fns'
 
 const serif = "'Playfair Display', Georgia, serif"
@@ -94,7 +94,7 @@ export default async function AdminPage() {
   // Matches for the simulator — all matches with teams known
   const { data: simMatches } = await supabase
     .from('matches')
-    .select('id, kickoff_at, group_letter, stage, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)')
+    .select('id, kickoff_at, group_letter, stage, home_team_id, away_team_id, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)')
     .not('home_team_id', 'is', null)
     .not('away_team_id', 'is', null)
     .order('kickoff_at')
@@ -102,6 +102,10 @@ export default async function AdminPage() {
   const simMatchList = (simMatches ?? []).map((m: any) => ({
     id: m.id,
     label: `${m.group_letter ? `Group ${m.group_letter}` : m.stage?.replace(/_/g, ' ')} — ${m.home_team?.name} vs ${m.away_team?.name} (${format(new Date(m.kickoff_at), 'd MMM')})`,
+    homeTeamId:   m.home_team_id,
+    awayTeamId:   m.away_team_id,
+    homeTeamName: m.home_team?.name ?? '?',
+    awayTeamName: m.away_team?.name ?? '?',
   }))
 
   const simDate = process.env.NEXT_PUBLIC_SIMULATION_DATE
@@ -153,22 +157,7 @@ export default async function AdminPage() {
         ))}
       </div>
 
-      {/* ── 2. Match simulator ───────────────────────────── */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
-          <div>
-            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-              ⏰ Match Simulator
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: '#6b6b6b', fontFamily: sans }}>
-              Dry run — pick any match, enter a hypothetical score, see who earns what. No data is written.
-            </p>
-          </div>
-        </div>
-        <AdminMatchSimulator matches={simMatchList} />
-      </section>
-
-      {/* ── 3. News posts ─────────────────────────────────── */}
+      {/* ── 2. News posts ─────────────────────────────────── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
         <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <FileText className="w-4 h-4" style={{ color: '#6b6b6b' }} />
@@ -284,6 +273,21 @@ export default async function AdminPage() {
           pickedPlayerIds={[...pickedPlayerIds]}
           scoredPlayerIds={[...scoredPlayerIds]}
         />
+      </section>
+
+      {/* ── Match Centre Simulator ────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <div>
+            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+              🎬 Match Centre Simulator
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: '#6b6b6b', fontFamily: sans }}>
+              Preview the Match Centre card on the home page with simulated live data — only visible to admin.
+            </p>
+          </div>
+        </div>
+        <AdminMatchCentreSimulator matches={simMatchList} />
       </section>
 
     </div>

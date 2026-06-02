@@ -95,7 +95,7 @@ function computeMatchPoints(
 // Main data fetcher
 // ============================================================
 
-export async function getMatchCentreData(): Promise<MatchCentreData | null> {
+export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreData | null> {
   const supabase = await createClient()
   const now = getNow()
 
@@ -183,6 +183,43 @@ export async function getMatchCentreData(): Promise<MatchCentreData | null> {
     }
   }
 
+  // Admin preview — override with simulation data if active
+  let previewGoalEvents: MatchCentreData['goalEvents'] | null = null
+  if (isAdmin) {
+    const { createServiceClient } = await import('@/lib/supabase/server')
+    const service = createServiceClient()
+    const { data: preview } = await service
+      .from('match_centre_preview')
+      .select('*')
+      .limit(1)
+      .maybeSingle()
+
+    if (preview) {
+      // Load the preview match (overrides whatever match was found above)
+      const { data: prevMatch } = await supabase
+        .from('matches')
+        .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .eq('id', preview.match_id)
+        .single()
+
+      if (prevMatch) {
+        currentMatch = {
+          ...prevMatch,
+          home_score: preview.home_score,
+          away_score: preview.away_score,
+        }
+        state = preview.state as MatchCentreData['state']
+        previewGoalEvents = (preview.goal_events ?? []).map((g: any, i: number) => ({
+          id: `preview-${i}`,
+          minute: g.minute ?? null,
+          player_name: g.player_name ?? null,
+          team_id: g.team_id ?? prevMatch.home_team_id,
+          is_own_goal: g.is_own_goal ?? false,
+        }))
+      }
+    }
+  }
+
   if (!currentMatch) return null
 
   const homeTeamId: string = currentMatch.home_team_id
@@ -220,8 +257,8 @@ export async function getMatchCentreData(): Promise<MatchCentreData | null> {
   const rawProfiles: any[] = profilesRes.data ?? []
   const rawScorerPicks: any[] = scorerPicksRes.data ?? []
 
-  // Build goal events output
-  const goalEvents: MatchCentreData['goalEvents'] = rawGoalEvents.map((ge: any) => {
+  // Build goal events — use preview override if set, otherwise from DB
+  const goalEvents: MatchCentreData['goalEvents'] = previewGoalEvents ?? rawGoalEvents.map((ge: any) => {
     const player = Array.isArray(ge.player) ? ge.player[0] : ge.player
     return {
       id: ge.id,
