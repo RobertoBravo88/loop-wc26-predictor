@@ -89,9 +89,9 @@ export default async function PredictionsPage({
   // Tab-specific data
   // ─────────────────────────────────────────────────────────────────────
 
-  // Compute lock-countdown set: indices of next 12 upcoming matches across all group + knockout
+  // Compute lock-countdown set: next 12 upcoming matches the user hasn't predicted yet
   const allScheduledMatches = [...(groupMatchesRes.data ?? []), ...(knockoutMatchesRes.data ?? [])]
-    .filter(m => !isMatchLocked(m.kickoff_at))
+    .filter(m => !isMatchLocked(m.kickoff_at) && !predSet.has(m.id))
     .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
     .slice(0, 12)
   const lockCountdownIds = new Set(allScheduledMatches.map(m => m.id))

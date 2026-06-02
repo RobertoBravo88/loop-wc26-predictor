@@ -8,12 +8,28 @@ import type { Match, LeaderboardEntry, NewsPost } from '@/types'
 import NewsCarousel from '@/components/home/NewsCarousel'
 import PlayerScoredBanner, { type ScoredGoal } from '@/components/home/PlayerScoredBanner'
 import AchievementToast from '@/components/ui/AchievementToast'
+import MatchCentre from '@/components/home/MatchCentre'
+import { getMatchCentreData } from '@/lib/matchCentre'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch profile to check role
+  let profile: { role: string } | null = null
+  if (user) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    profile = profileData
+  }
+
+  // Match Centre data — admin only
+  const matchCentreData = profile?.role === 'admin' ? await getMatchCentreData() : null
 
   const { data: upcomingMatches } = await supabase
     .from('matches')
@@ -167,6 +183,11 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Match Centre — admin only, above news */}
+      {profile?.role === 'admin' && matchCentreData && (
+        <MatchCentre data={matchCentreData} />
+      )}
 
       {/* News — featured editorial section */}
       <section>
