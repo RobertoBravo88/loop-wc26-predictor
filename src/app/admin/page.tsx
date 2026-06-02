@@ -192,12 +192,23 @@ export default async function AdminPage() {
         <p className="text-xs mb-4" style={{ color: '#6b6b6b', fontFamily: sans }}>
           <strong>Sync team IDs</strong> — links our teams to api-football IDs. Run once at setup.<br />
           <strong>Sync fixtures</strong> — imports all 104 match schedules from api-football.<br />
-          <strong>Sync squads</strong> — enriches players with shirt numbers and photos from api-football.
+          <strong>Sync squads</strong> — adds squad players with api_id and shirt numbers from api-football.
         </p>
-        <div className="flex flex-wrap items-center gap-3" style={{ borderTop: '1px solid #f0ede8', paddingTop: '0.75rem' }}>
-          <AdminSyncButton endpoint="/api/admin/import-squads" label="⚠️ Reset & Import WC26 Squads" variant="primary" />
+
+        {/* Clean player setup sequence */}
+        <div className="p-4 mb-1" style={{ background: '#f7f4ef', border: '1px solid #e0dbd3' }}>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#141414', fontFamily: sans }}>
+            🧹 Clean player setup — run in order
+          </p>
+          <div className="flex flex-wrap gap-3 mb-2">
+            <AdminSyncButton endpoint="/api/admin/import-squads" label="1. Reset & Import WC26 Squads" variant="primary" />
+            <AdminSyncButton endpoint="/api/sync/squads"         label="2. Sync squads" batched />
+            <AdminSyncButton endpoint="/api/admin/auto-link-internal" label="3. Auto-link (internal)" variant="primary" />
+          </div>
           <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Wipes all players and squad picks, then reimports from the built-in WC 2026 squad list. Run once before the tournament to reset dirty data.
+            <strong>Step 1</strong> — wipes all players + picks, imports full names from built-in squad list.<br />
+            <strong>Step 2</strong> — adds api-football players with api_ids (abbreviated names — duplicates intentional at this stage).<br />
+            <strong>Step 3</strong> — merges them: full names get api_ids, abbreviated duplicates are deleted. No API calls needed.
           </p>
         </div>
 

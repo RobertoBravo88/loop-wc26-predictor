@@ -516,7 +516,7 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
 
             {locked ? (
               <p className="text-xs uppercase tracking-wider py-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                {favPlayerId ? players.find(p => p.id === favPlayerId)?.name ?? '—' : 'Not set'}
+                {favPlayerId ? (() => { const p = players.find(x => x.id === favPlayerId); return p ? `${p.name}${p.position ? ` · ${p.position}` : ''}` : '—' })() : 'Not set'}
               </p>
             ) : !favTeam ? (
               <p className="text-xs py-2" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
@@ -530,9 +530,14 @@ export default function TournamentPicksClient({ userId, teams, players, finalist
                 {getTeam(favTeam)?.flag_url && (
                   <img src={getTeam(favTeam)!.flag_url!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 )}
-                <span className="flex-1 text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                  {players.find(p => p.id === favPlayer)?.name ?? '—'}
-                </span>
+                <div className="flex-1 min-w-0">
+                  {(() => { const p = players.find(x => x.id === favPlayer); return p ? (
+                    <>
+                      <span className="block text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{p.name}</span>
+                      <span className="block truncate" style={{ fontSize: '11px', color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{p.position ?? ''}</span>
+                    </>
+                  ) : <span className="text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span> })()}
+                </div>
                 <button
                   onClick={() => { setFavPlayer(''); triggerSecretsSave(favTeam, '') }}
                   className="flex-shrink-0"
