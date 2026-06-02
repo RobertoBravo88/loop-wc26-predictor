@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -22,6 +22,17 @@ export default function LoginPage() {
   const [error, setError]                   = useState('')
   const [showCreatePrompt, setShowCreatePrompt] = useState(false)
   const [failedEmail, setFailedEmail]           = useState('')
+
+  // If a session already exists (e.g. from clicking the confirmation email link),
+  // redirect immediately without needing to log in again
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email_confirmed_at) {
+        window.location.replace(redirectTo)
+      }
+    })
+  }, [redirectTo])
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -53,7 +64,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push(redirectTo)
+    window.location.replace(redirectTo)
     router.refresh()
   }
 
