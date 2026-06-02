@@ -124,7 +124,7 @@ export async function POST() {
       }
 
       // ── Merge: update squad-sync player with full name/position/club ──
-      const originalName = linked.find(l => l.id === match.id)?.name ?? ''
+      const originalName = linked.find((l: any) => l.id === match.id)?.name ?? ''
       const enrichment: Record<string, any> = { name: up.name }
       if (up.position) enrichment.position = up.position
       if (up.club)     enrichment.club      = up.club
