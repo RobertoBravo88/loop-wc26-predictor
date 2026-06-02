@@ -124,6 +124,7 @@ export async function POST() {
       }
 
       // ── Merge: update squad-sync player with full name/position/club ──
+      const originalName = linked.find(l => l.id === match.id)?.name ?? ''
       const enrichment: Record<string, any> = { name: up.name }
       if (up.position) enrichment.position = up.position
       if (up.club)     enrichment.club      = up.club
@@ -145,7 +146,7 @@ export async function POST() {
         await supabase.from('scorer_picks').update({ player_id: up.id }).eq('player_id', match.id)
         await supabase.from('profiles').update({ favourite_player_id: up.id }).eq('favourite_player_id', match.id)
         await supabase.from('goal_events').update({ player_id: up.id }).eq('player_id', match.id)
-        await supabase.from('players').update({ name: lp.name }).eq('id', match.id)
+        await supabase.from('players').update({ name: originalName }).eq('id', match.id)
         skipped.push(`${up.name} [del_failed:${delErr.code}]`)
         totalSkipped++
       } else {
