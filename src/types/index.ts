@@ -212,6 +212,7 @@ export interface LeaderboardEntry {
   prediction_points: number
   streak_points: number
   bonus_points: number
+  tournament_picks_done: number
 }
 
 // ============================================================

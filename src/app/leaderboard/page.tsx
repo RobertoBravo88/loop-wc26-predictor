@@ -203,12 +203,12 @@ export default async function LeaderboardPage() {
                 ) : null}
               </div>
 
-              {/* Predicted — desktop only */}
+              {/* Predicted — desktop only (match predictions + tournament picks) */}
               <span
                 className="hidden sm:block sm:col-span-1 text-center text-sm"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
               >
-                {entry.matches_predicted}
+                {(entry.matches_predicted ?? 0) + (entry.tournament_picks_done ?? 0)}
               </span>
 
               {/* Prediction points */}
