@@ -296,98 +296,63 @@ export default async function StatsPage() {
 
         {/* Highest Rated Teams */}
         <div style={{ border: '1px solid #e0dbd3' }}>
-          <div
-            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-          >
+          <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
             🏆 Highest Rated Teams
           </div>
           <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
-            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-              Winner=3 pts · Runner-up=2 pts · 3rd=1 pt
-            </p>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Winner=3 pts · Runner-up=2 pts · 3rd=1 pt</p>
           </div>
           {topRatedTeams.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              No picks locked in yet
-            </p>
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>No picks locked in yet</p>
           ) : topRatedTeams.map((team, i) => {
             const inner = (
               <>
-                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  {i + 1}
-                </span>
-                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
-                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
-                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                  {team.score} pts
-                </span>
+                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
+                <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full" style={{ background: '#f0ede8' }}>
+                  {team.flag && <img src={team.flag} alt="" className="w-5 h-3.5 object-contain" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
+                  <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Crystal Ball pick</span>
+                </div>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>{team.score} pts</span>
               </>
             )
-            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topRatedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            const rowStyle = { minHeight: 52, background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topRatedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
             return team.id ? (
-              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>
-                {inner}
-              </Link>
+              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 hover:opacity-80 transition-opacity" style={rowStyle}>{inner}</Link>
             ) : (
-              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>
-                {inner}
-              </div>
+              <div key={team.name} className="flex items-center gap-3 px-4" style={rowStyle}>{inner}</div>
             )
           })}
         </div>
 
-        {/* Highest Rated Top Scorers */}
+        {/* Most Picked Scorers */}
         <div style={{ border: '1px solid #e0dbd3' }}>
-          <div
-            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-          >
+          <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
             ⚽ Most Picked Scorers
           </div>
           <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
-            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-              Golden Boot picks across all Loopers
-            </p>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Golden Boot picks across all Loopers</p>
           </div>
           {topRatedScorers.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              No picks yet
-            </p>
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>No picks yet</p>
           ) : topRatedScorers.map((player, i) => (
             <div
               key={player.name}
-              className="flex items-center gap-3 px-4 py-2.5"
-              style={{
-                background: i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderBottom: i < topRatedScorers.length - 1 ? '1px solid #e0dbd3' : 'none',
-              }}
+              className="flex items-center gap-3 px-4"
+              style={{ minHeight: 52, background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topRatedScorers.length - 1 ? '1px solid #e0dbd3' : 'none' }}
             >
-              <span
-                className="w-4 text-xs font-bold text-center flex-shrink-0"
-                style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
-              >
-                {i + 1}
-              </span>
-              {/* Player photo avatar */}
+              <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
               <div className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 28, height: 28, background: player.photo ? 'transparent' : '#e0dbd3' }}>
                 {player.photo
                   ? <img src={player.photo} alt={player.name} className="w-full h-full object-cover" />
-                  : <span style={{ fontSize: '10px', fontWeight: 700, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{player.name.charAt(0)}</span>
-                }
+                  : <span style={{ fontSize: '10px', fontWeight: 700, color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{player.name.charAt(0)}</span>}
               </div>
-              {player.flag && (
-                <img src={player.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
-              )}
+              {player.flag && <img src={player.flag} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />}
               <div className="flex-1 min-w-0">
-                <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                  {player.name}
-                </span>
-                {player.teamName && (
-                  <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-                    {player.teamName}
-                  </span>
-                )}
+                <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{player.name}</span>
+                {player.teamName && <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>{player.teamName}</span>}
               </div>
               <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
                 {player.count} {player.count === 1 ? 'pick' : 'picks'}
@@ -415,99 +380,70 @@ export default async function StatsPage() {
 
         {/* Top Supported Teams */}
         <div style={{ border: '1px solid #e0dbd3' }}>
-          <div
-            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-          >
+          <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
             🏴 Top Supported Teams
           </div>
+          <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Which country has the most Loopers rooting for them?</p>
+          </div>
           {topSupportedTeams.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              No data yet
-            </p>
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>No data yet</p>
           ) : topSupportedTeams.map((team, i) => {
             const inner = (
               <>
                 <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
-                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
-                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
-                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                  {team.count} {team.count === 1 ? 'fan' : 'fans'}
-                </span>
+                <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full" style={{ background: '#f0ede8' }}>
+                  {team.flag && <img src={team.flag} alt="" className="w-5 h-3.5 object-contain" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
+                  <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Favourite team</span>
+                </div>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>{team.count} {team.count === 1 ? 'fan' : 'fans'}</span>
               </>
             )
-            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            const rowStyle = { minHeight: 52, background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
             return team.id ? (
-              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>{inner}</Link>
+              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 hover:opacity-80 transition-opacity" style={rowStyle}>{inner}</Link>
             ) : (
-              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>{inner}</div>
+              <div key={team.name} className="flex items-center gap-3 px-4" style={rowStyle}>{inner}</div>
             )
           })}
         </div>
 
-        {/* Best Fan Bases table */}
-        <div>
+        {/* Best Fan Bases — avg pts per fan */}
         <div style={{ border: '1px solid #e0dbd3' }}>
-          <div
-            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-          >
+          <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
             📊 Avg prediction points per fan
           </div>
           <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
-            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-              Which country has the most football knowledge?
-            </p>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Which country has the most football knowledge?</p>
           </div>
-        <div
-          className="grid px-4 py-2 text-xs font-semibold uppercase tracking-wider"
-          style={{ background: '#f0ede8', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', gridTemplateColumns: '2rem 1fr 4rem 5rem 5rem', borderBottom: '1px solid #e0dbd3' }}
-        >
-          <span>#</span>
-          <span>Country</span>
-          <span className="text-center">Fans</span>
-          <span className="text-right">Total pts</span>
-          <span className="text-right">Avg/fan</span>
+          {bestFanbases.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>No data yet — points will appear once predictions are processed</p>
+          ) : bestFanbases.map((fb, i) => {
+            const inner = (
+              <>
+                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: i === 0 ? '#ff5c35' : '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
+                <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full" style={{ background: '#f0ede8' }}>
+                  {fb.flag && <img src={fb.flag} alt="" className="w-5 h-3.5 object-contain" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm block truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{fb.name}</span>
+                  <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>{fb.count} {fb.count === 1 ? 'fan' : 'fans'} · {fb.totalPoints} total pts</span>
+                </div>
+                <span className="text-sm font-bold flex-shrink-0" style={{ color: i === 0 ? '#ff5c35' : '#141414', fontFamily: 'Inter, sans-serif' }}>{fb.avgPoints.toFixed(1)} avg</span>
+              </>
+            )
+            const rowStyle = { minHeight: 52, background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < bestFanbases.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            return fb.id ? (
+              <Link key={fb.name} href={`/teams/${fb.id}`} className="flex items-center gap-3 px-4 hover:opacity-80 transition-opacity" style={rowStyle}>{inner}</Link>
+            ) : (
+              <div key={fb.name} className="flex items-center gap-3 px-4" style={rowStyle}>{inner}</div>
+            )
+          })}
         </div>
 
-        {bestFanbases.length === 0 ? (
-          <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            No data yet — points will appear once predictions are processed
-          </p>
-        ) : bestFanbases.map((fb, i) => {
-          const inner = (
-            <>
-              <span className="text-xs font-bold" style={{ color: i === 0 ? '#ff5c35' : '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                {i + 1}
-              </span>
-              <div className="flex items-center gap-2 min-w-0">
-                {fb.flag && <img src={fb.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
-                <span className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{fb.name}</span>
-              </div>
-              <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                {fb.count} {fb.count === 1 ? 'fan' : 'fans'}
-              </span>
-              <span className="text-xs text-right" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                {fb.totalPoints}
-              </span>
-              <span className="text-sm font-bold text-right" style={{ color: i === 0 ? '#ff5c35' : '#141414', fontFamily: 'Inter, sans-serif' }}>
-                {fb.avgPoints.toFixed(1)}
-              </span>
-            </>
-          )
-          const rowStyle = { gridTemplateColumns: '2rem 1fr 4rem 5rem 5rem', background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderTop: '1px solid #e0dbd3' }
-          return fb.id ? (
-            <Link key={fb.name} href={`/teams/${fb.id}`} className="grid items-center px-4 py-3 hover:opacity-80 transition-opacity" style={rowStyle}>
-              {inner}
-            </Link>
-          ) : (
-            <div key={fb.name} className="grid items-center px-4 py-3" style={rowStyle}>
-              {inner}
-            </div>
-          )
-        })}
-      </div>
-        </div> {/* end Best Fan Bases table col */}
       </div> {/* end 2-col grid */}
 
     </div>
