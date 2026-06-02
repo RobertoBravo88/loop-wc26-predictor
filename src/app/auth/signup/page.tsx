@@ -556,11 +556,13 @@ function Step2({
               <option value="">
                 {loadingPlayers ? 'Loading squad…' : 'Select a player…'}
               </option>
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}{p.position ? ` · ${p.position}` : ''}
-                </option>
-              ))}
+              {players
+                .filter(p => !Object.values(formData.scorer_picks).includes(p.id))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.position ? ` · ${p.position}` : ''}
+                  </option>
+                ))}
             </select>
           )}
         </div>
