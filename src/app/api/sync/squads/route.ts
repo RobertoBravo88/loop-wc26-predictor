@@ -28,19 +28,18 @@ export async function POST(request: Request) {
         const squadData = await fetchSquad(team.api_id!)
         const squad = squadData[0]?.players ?? []
 
-        // (M2) Warn if API returned no players — squad may not be registered yet
+        // Warn if API returned no players — squad may not be registered yet
         if (squad.length === 0) {
           errors.push(`${team.name}: API returned empty squad (squad may not be registered yet)`)
         }
 
         for (const p of squad) {
-          await supabase.from('players').upsert({
+          await supabase.from('api_players').upsert({
             api_id:       p.id,
-            team_id:      team.id,
             name:         p.name,
-            position:     p.position,
-            photo_url:    p.photo ?? null,
+            team_id:      team.id,
             shirt_number: p.number ?? null,
+            photo_url:    p.photo ?? null,
           }, { onConflict: 'api_id' })
           totalPlayers++
         }
@@ -54,7 +53,7 @@ export async function POST(request: Request) {
     const hasMore = nextOffset < total
 
     return NextResponse.json({
-      message: `Synced ${totalPlayers} players (teams ${offset + 1}–${Math.min(offset + batchSize, total)} of ${total})${hasMore ? ` — run again with offset=${nextOffset} for next batch` : ' — all done!'}`,
+      message: `Synced ${totalPlayers} api_players (teams ${offset + 1}–${Math.min(offset + batchSize, total)} of ${total})${hasMore ? ` — run again with offset=${nextOffset} for next batch` : ' — all done!'}`,
       errors,
     })
   } catch (err: any) {

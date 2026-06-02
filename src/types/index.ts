@@ -53,6 +53,16 @@ export interface Player {
   team?: Team
 }
 
+export interface ApiPlayer {
+  api_id: number
+  name: string
+  team_id: string
+  shirt_number: number | null
+  photo_url: string | null
+  created_at: string
+  team?: Team
+}
+
 export interface Profile {
   id: string
   display_name: string
@@ -146,6 +156,7 @@ export interface GoalEvent {
   api_id: number | null
   match_id: string
   player_id: string | null
+  api_player_api_id: number | null
   team_id: string
   minute: number | null
   is_own_goal: boolean

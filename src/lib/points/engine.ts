@@ -216,12 +216,29 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
   }
 
   for (const goal of goals) {
-    if (goal.player_id) {
+    // Resolve player_id — may be null if player wasn't linked when goal was recorded.
+    // If api_player_api_id is set, try to find the link now (retroactive resolution).
+    let resolvedPlayerId: string | null = goal.player_id ?? null
+
+    if (!resolvedPlayerId && goal.api_player_api_id) {
+      const { data: linked } = await supabase
+        .from('players')
+        .select('id')
+        .eq('api_id', goal.api_player_api_id)
+        .maybeSingle()
+      if (linked) {
+        resolvedPlayerId = linked.id
+        // Update the goal_event so future runs are faster
+        await supabase.from('goal_events').update({ player_id: linked.id }).eq('id', goal.id)
+      }
+    }
+
+    if (resolvedPlayerId) {
       // 1. Scorer picks — who picked this player?
       const { data: scorerPicks } = await supabase
         .from('scorer_picks')
         .select('user_id')
-        .eq('player_id', goal.player_id)
+        .eq('player_id', resolvedPlayerId)
         .eq('team_id', goal.team_id)
 
       for (const pick of scorerPicks ?? []) {
@@ -238,7 +255,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
       const { data: favPlayerUsers } = await supabase
         .from('profiles')
         .select('id')
-        .eq('favourite_player_id', goal.player_id)
+        .eq('favourite_player_id', resolvedPlayerId)
 
       for (const user of favPlayerUsers ?? []) {
         await awardIfNew(

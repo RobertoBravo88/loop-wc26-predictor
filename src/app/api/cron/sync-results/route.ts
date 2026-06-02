@@ -89,41 +89,35 @@ async function runSync() {
 
           if (!team) continue
 
-          // Look up player — auto-create if not in DB yet (handles late squad additions
-          // and the June 11+ switch to stats-based player IDs)
+          // Always upsert scorer into api_players (records who scored even if unlinked)
+          if (event.player?.id) {
+            await supabase.from('api_players').upsert({
+              api_id:  event.player.id,
+              name:    event.player.name ?? '',
+              team_id: team.id,
+            }, { onConflict: 'api_id' })
+          }
+
+          // Look up the text-file player via the link (players.api_id)
           let playerDbId: string | null = null
           if (event.player?.id) {
-            const { data: existingPlayer } = await supabase
+            const { data: linkedPlayer } = await supabase
               .from('players')
               .select('id')
               .eq('api_id', event.player.id)
-              .single()
-
-            if (existingPlayer) {
-              playerDbId = existingPlayer.id
-            } else if (event.player?.name) {
-              // Player not in DB — create them so the goal is always linked
-              const { data: newPlayer } = await supabase
-                .from('players')
-                .upsert({
-                  api_id: event.player.id,
-                  name: event.player.name,
-                  team_id: team.id,
-                }, { onConflict: 'api_id' })
-                .select('id')
-                .single()
-              playerDbId = newPlayer?.id ?? null
-            }
+              .maybeSingle()
+            playerDbId = linkedPlayer?.id ?? null
           }
 
           await supabase.from('goal_events').upsert({
-            api_id: event.id,
-            match_id: match.id,
-            player_id: playerDbId,
-            team_id: team.id,
-            minute: event.time?.elapsed ?? null,
-            is_own_goal: event.detail === 'Own Goal',
-            is_penalty: event.detail === 'Penalty',
+            api_id:           event.id,
+            match_id:         match.id,
+            player_id:        playerDbId,                        // null if player not yet linked
+            api_player_api_id: event.player?.id ?? null,         // always stored
+            team_id:          team.id,
+            minute:           event.time?.elapsed ?? null,
+            is_own_goal:      event.detail === 'Own Goal',
+            is_penalty:       event.detail === 'Penalty',
           }, { onConflict: 'api_id', ignoreDuplicates: true })
         }
 

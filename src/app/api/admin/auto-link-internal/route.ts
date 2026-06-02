@@ -21,141 +21,108 @@ export async function POST() {
   try {
     const supabase = createServiceClient()
 
-    // ── Load ALL players in 2 bulk queries (not 2 × 48 team queries) ──
-    const [{ data: allUnlinked }, { data: allLinked }] = await Promise.all([
-      supabase.from('players').select('id, name, position, club, team_id').is('api_id', null),
-      supabase.from('players').select('id, name, api_id, team_id').not('api_id', 'is', null),
-    ])
+    // Load all text-file players that are not yet linked
+    const { data: allPlayers } = await supabase
+      .from('players')
+      .select('id, name, team_id')
+      .is('api_id', null)
 
-    if (!allUnlinked?.length) {
-      return NextResponse.json({ message: 'No unlinked players found — nothing to merge.', totalMerged: 0, totalSkipped: 0 })
-    }
-    if (!allLinked?.length) {
-      return NextResponse.json({ message: 'No squad-sync players found — run Sync squads first.', totalMerged: 0, totalSkipped: 0 })
-    }
+    // Load all api_players
+    const { data: allApiPlayers } = await supabase
+      .from('api_players')
+      .select('api_id, name, team_id, shirt_number, photo_url')
 
-    // Group linked players by team_id
-    const linkedByTeam = new Map<string, typeof allLinked>()
-    for (const lp of allLinked) {
-      if (!linkedByTeam.has(lp.team_id)) linkedByTeam.set(lp.team_id, [])
-      linkedByTeam.get(lp.team_id)!.push(lp)
+    if (!allPlayers?.length) {
+      return NextResponse.json({ message: 'No unlinked players found.', totalLinked: 0 })
+    }
+    if (!allApiPlayers?.length) {
+      return NextResponse.json({ message: 'No api_players found — run Sync squads first.', totalLinked: 0 })
     }
 
-    // ── Build per-team lookup maps and find all matches ──────────────
-    type MergeJob = {
-      unlinkedId: string
-      linkedId: string
-      fullName: string
-      position: string | null
-      club: string | null
-      originalLinkedName: string
+    // Group api_players by team_id
+    const apiByTeam = new Map<string, typeof allApiPlayers>()
+    for (const ap of allApiPlayers) {
+      if (!ap.team_id) continue
+      if (!apiByTeam.has(ap.team_id)) apiByTeam.set(ap.team_id, [])
+      apiByTeam.get(ap.team_id)!.push(ap)
     }
 
-    const jobs: MergeJob[] = []
+    // Group players by team_id
+    const playersByTeam = new Map<string, typeof allPlayers>()
+    for (const p of allPlayers) {
+      if (!playersByTeam.has(p.team_id)) playersByTeam.set(p.team_id, [])
+      playersByTeam.get(p.team_id)!.push(p)
+    }
+
+    let totalLinked = 0
     const skipped: string[] = []
 
-    // Group unlinked by team
-    const unlinkedByTeam = new Map<string, typeof allUnlinked>()
-    for (const up of allUnlinked) {
-      if (!unlinkedByTeam.has(up.team_id)) unlinkedByTeam.set(up.team_id, [])
-      unlinkedByTeam.get(up.team_id)!.push(up)
-    }
-
-    for (const [teamId, unlinked] of unlinkedByTeam) {
-      const linked = linkedByTeam.get(teamId)
-      if (!linked?.length) {
-        for (const up of unlinked) skipped.push(`${up.name} [no_squad_sync_players]`)
+    for (const [teamId, players] of playersByTeam) {
+      const apiPlayers = apiByTeam.get(teamId)
+      if (!apiPlayers?.length) {
+        for (const p of players) skipped.push(`${p.name} [no_api_players_for_team]`)
         continue
       }
 
-      const byExact           = new Map<string, (typeof linked)[0]>()
+      // Build per-team lookup maps (4-tier normalization)
+      const byExact           = new Map<string, typeof allApiPlayers[0]>()
       const lastCount         = new Map<string, number>()
-      const byLast            = new Map<string, (typeof linked)[0]>()
-      const byInitialSurname  = new Map<string, (typeof linked)[0]>()
+      const byLast            = new Map<string, typeof allApiPlayers[0]>()
+      const byInitialSurname  = new Map<string, typeof allApiPlayers[0]>()
       const initialCollisions = new Set<string>()
 
-      for (const lp of linked) {
-        const n     = norm(lp.name)
+      for (const ap of apiPlayers) {
+        const n     = norm(ap.name)
         const words = n.split(' ')
         const last  = words[words.length - 1]
-        byExact.set(n, lp)
+        byExact.set(n, ap)
         lastCount.set(last, (lastCount.get(last) ?? 0) + 1)
-        byLast.set(last, lp)
+        byLast.set(last, ap)
         if (words.length >= 2 && words[0].length === 1) {
           const key = `${words[0]}.${last}`
           if (byInitialSurname.has(key)) initialCollisions.add(key)
-          else byInitialSurname.set(key, lp)
+          else byInitialSurname.set(key, ap)
         }
       }
 
-      for (const up of unlinked) {
-        const n     = norm(up.name)
+      for (const player of players) {
+        const n     = norm(player.name)
         const words = n.split(' ')
         const last  = words[words.length - 1]
         const first = words[0] ?? ''
 
-        let match = byExact.get(n)
+        const match = byExact.get(n)
           ?? ((lastCount.get(last) ?? 0) === 1 ? byLast.get(last) : undefined)
           ?? (first.length > 0 && !initialCollisions.has(`${first[0]}.${last}`) ? byInitialSurname.get(`${first[0]}.${last}`) : undefined)
           ?? (words.length >= 2 && !initialCollisions.has(`${last[0]}.${first}`) ? byInitialSurname.get(`${last[0]}.${first}`) : undefined)
 
-        if (!match) { skipped.push(`${up.name} [no_match]`); continue }
+        if (!match) {
+          skipped.push(`${player.name} [no_match]`)
+          continue
+        }
 
-        jobs.push({
-          unlinkedId:        up.id,
-          linkedId:          match.id,
-          fullName:          up.name,
-          position:          up.position,
-          club:              up.club,
-          originalLinkedName: match.name,
-        })
-      }
-    }
+        // Set players.api_id = matched api_player.api_id, and copy shirt_number + photo_url
+        const { error: updateErr } = await supabase.from('players').update({
+          api_id:       match.api_id,
+          shirt_number: match.shirt_number ?? null,
+          photo_url:    match.photo_url ?? null,
+        }).eq('id', player.id)
 
-    // ── Execute merges — parallel transfers per job ──────────────────
-    let totalMerged = 0
-
-    for (const job of jobs) {
-      // 1. Enrich squad-sync player with full name/position/club
-      const enrichment: Record<string, any> = { name: job.fullName }
-      if (job.position) enrichment.position = job.position
-      if (job.club)     enrichment.club      = job.club
-      await supabase.from('players').update(enrichment).eq('id', job.linkedId)
-
-      // 2. Transfer all FK references in parallel
-      await Promise.all([
-        supabase.from('scorer_picks').update({ player_id: job.linkedId }).eq('player_id', job.unlinkedId),
-        supabase.from('profiles').update({ favourite_player_id: job.linkedId }).eq('favourite_player_id', job.unlinkedId),
-        supabase.from('goal_events').update({ player_id: job.linkedId }).eq('player_id', job.unlinkedId),
-      ])
-
-      // 3. Delete unlinked duplicate
-      const { error: delErr } = await supabase.from('players').delete().eq('id', job.unlinkedId)
-      if (delErr) {
-        // Revert
-        await Promise.all([
-          supabase.from('scorer_picks').update({ player_id: job.unlinkedId }).eq('player_id', job.linkedId),
-          supabase.from('profiles').update({ favourite_player_id: job.unlinkedId }).eq('favourite_player_id', job.linkedId),
-          supabase.from('goal_events').update({ player_id: job.unlinkedId }).eq('player_id', job.linkedId),
-          supabase.from('players').update({ name: job.originalLinkedName }).eq('id', job.linkedId),
-        ])
-        skipped.push(`${job.fullName} [del_failed:${delErr.code}]`)
-      } else {
-        totalMerged++
+        if (updateErr) {
+          skipped.push(`${player.name} [update_failed:${updateErr.code}]`)
+        } else {
+          totalLinked++
+        }
       }
     }
 
     return NextResponse.json({
-      message: `Merged ${totalMerged} players. ${skipped.length} could not be matched.`,
-      totalMerged,
-      totalSkipped: skipped.length,
-      skipped: skipped.slice(0, 50), // cap report size
+      message: `Linked ${totalLinked} players. ${skipped.length} could not be matched.`,
+      totalLinked,
+      skipped: skipped.slice(0, 50),
     })
 
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message ?? 'Unknown error', message: 'Auto-link failed — see error field' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: err?.message ?? 'Unknown error' }, { status: 500 })
   }
 }

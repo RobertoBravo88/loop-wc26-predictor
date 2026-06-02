@@ -6,6 +6,7 @@ import AdminUserTable from '@/components/admin/AdminUserTable'
 import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
+import AdminApiPlayerLinker from '@/components/admin/AdminApiPlayerLinker'
 import AdminMatchSimulator from '@/components/admin/AdminMatchSimulator'
 import { format } from 'date-fns'
 
@@ -42,11 +43,13 @@ export default async function AdminPage() {
     .order('name')
     .limit(2000)
 
-  const [unlinkedRes, scorerPicksRes, favPlayerRes, goalEventsRes] = await Promise.all([
+  const [unlinkedRes, scorerPicksRes, favPlayerRes, goalEventsRes, playersForLinkerRes, apiPlayersRes] = await Promise.all([
     supabase.from('players').select('id, name, position, team:teams(id, name, flag_url, api_id)').is('api_id', null).order('name').limit(2000),
     supabase.from('scorer_picks').select('player_id'),
     supabase.from('profiles').select('favourite_player_id').not('favourite_player_id', 'is', null),
     supabase.from('goal_events').select('player_id').not('player_id', 'is', null),
+    supabase.from('players').select('id, name, position, api_id, team:teams(name, flag_url)').order('name').limit(2000),
+    supabase.from('api_players').select('api_id, name, team_id, shirt_number').order('name').limit(2000),
   ])
   const unlinkedPlayers = unlinkedRes.data
 
@@ -57,6 +60,34 @@ export default async function AdminPage() {
   const scoredPlayerIds = new Set(
     (goalEventsRes.data ?? []).map(r => r.player_id).filter(Boolean)
   )
+
+  // Build api_players lookup map for the linker (api_id → name + shirt)
+  const apiPlayersMap = new Map<number, { name: string; shirt_number: number | null }>()
+  for (const ap of apiPlayersRes.data ?? []) {
+    apiPlayersMap.set(ap.api_id, { name: ap.name, shirt_number: ap.shirt_number })
+  }
+
+  // Enrich players with api_player name + shirt for the linker
+  const playersForLinker = (playersForLinkerRes.data ?? []).map((p: any) => ({
+    id:               p.id,
+    name:             p.name,
+    position:         p.position ?? null,
+    team_name:        (p.team as any)?.name ?? null,
+    team_flag:        (p.team as any)?.flag_url ?? null,
+    api_id:           p.api_id ?? null,
+    api_player_name:  p.api_id != null ? (apiPlayersMap.get(p.api_id)?.name ?? null) : null,
+    api_player_shirt: p.api_id != null ? (apiPlayersMap.get(p.api_id)?.shirt_number ?? null) : null,
+  }))
+
+  const apiPlayersForLinker = (apiPlayersRes.data ?? []).map((ap: any) => ({
+    api_id:       ap.api_id,
+    name:         ap.name,
+    team_id:      ap.team_id,
+    shirt_number: ap.shirt_number ?? null,
+  }))
+
+  const linkedCount   = playersForLinker.filter(p => p.api_id !== null).length
+  const apiPlayerCount = apiPlayersRes.data?.length ?? 0
 
   const { data: matchStats } = await supabase.from('matches').select('status')
 
@@ -206,9 +237,9 @@ export default async function AdminPage() {
             <AdminSyncButton endpoint="/api/admin/auto-link-internal" label="3. Auto-link (internal)" variant="primary" />
           </div>
           <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            <strong>Step 1</strong> — wipes all players + picks, imports full names from built-in squad list.<br />
-            <strong>Step 2</strong> — adds api-football players with api_ids (abbreviated names — duplicates intentional at this stage).<br />
-            <strong>Step 3</strong> — merges them: full names get api_ids, abbreviated duplicates are deleted. No API calls needed.
+            <strong>Step 1</strong> — wipes all players + picks, imports full names from built-in squad list into the players table.<br />
+            <strong>Step 2</strong> — syncs api-football squad data into the separate api_players table (abbreviated names, shirt numbers, photos).<br />
+            <strong>Step 3</strong> — matches text-file players to api_players by name and sets players.api_id. No API calls needed.
           </p>
         </div>
 
@@ -235,13 +266,13 @@ export default async function AdminPage() {
         <AdminPlayersSection players={(allPlayers ?? []) as any} />
       </section>
 
-      {/* ── 6. Unlinked players ───────────────────────────── */}
+      {/* ── 6. Unlinked players (legacy api-football search) ───── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" style={{ color: '#ff5c35' }} />
             <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-              Unlinked players ({unlinkedPlayers?.length ?? 0})
+              Unlinked players — api-football search ({unlinkedPlayers?.length ?? 0})
             </h2>
           </div>
           <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
@@ -252,6 +283,25 @@ export default async function AdminPage() {
           players={(unlinkedPlayers ?? []) as any}
           pickedPlayerIds={[...pickedPlayerIds]}
           scoredPlayerIds={[...scoredPlayerIds]}
+        />
+      </section>
+
+      {/* ── 7. Api player linker ─────────────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" style={{ color: '#3b82f6' }} />
+            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+              Player — Api player links ({linkedCount} / {playersForLinker.length} linked · {apiPlayerCount} api_players)
+            </h2>
+          </div>
+          <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
+            Links text-file players to api-football squad data
+          </span>
+        </div>
+        <AdminApiPlayerLinker
+          players={playersForLinker}
+          apiPlayers={apiPlayersForLinker}
         />
       </section>
 
