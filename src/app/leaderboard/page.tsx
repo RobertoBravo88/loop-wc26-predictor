@@ -171,15 +171,16 @@ export default async function LeaderboardPage() {
             {user && !isMe && (
               <Link
                 href={`/compare/${entry.id}`}
-                className="hidden sm:flex items-center justify-center text-xs hover:opacity-70 transition-opacity"
+                className="hidden sm:flex items-center gap-0.5 text-xs hover:opacity-100 transition-all group"
                 title={`Compare with ${entry.display_name}`}
                 style={{
-                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                  color: '#9ca3af', fontFamily: 'Inter, sans-serif', textDecoration: 'none',
-                  zIndex: 1, width: 24, height: 24,
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  fontFamily: 'Inter, sans-serif', textDecoration: 'none', zIndex: 1,
+                  color: '#9ca3af', fontWeight: 600, letterSpacing: '0.03em',
                 }}
               >
-                ⚔
+                <span className="group-hover:text-[#ff5c35] transition-colors">H2H</span>
+                <span className="group-hover:text-[#ff5c35] transition-colors" style={{ fontSize: '0.6rem' }}>→</span>
               </Link>
             )}
             <Link
