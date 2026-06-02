@@ -22,13 +22,15 @@ export interface ApiPlayerRow {
 interface Props {
   players: PlayerRow[]
   apiPlayers: ApiPlayerRow[]
+  pickedPlayerIds?: string[]
+  scoredPlayerIds?: string[]
 }
 
 const sans = 'Inter, sans-serif'
 
-type Filter = 'all' | 'unlinked'
+type Filter = 'all' | 'unlinked' | 'picked'
 
-export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlayers }: Props) {
+export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlayers, pickedPlayerIds = [], scoredPlayerIds = [] }: Props) {
   const [players, setPlayers] = useState(initialPlayers)
   const [filter, setFilter] = useState<Filter>('unlinked')
   const [search, setSearch] = useState<Record<string, string>>({})
@@ -39,14 +41,28 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
   const [autoLinking, setAutoLinking] = useState(false)
   const [autoResult, setAutoResult] = useState<string | null>(null)
 
+  const pickedSet = new Set(pickedPlayerIds)
+  const scoredSet = new Set(scoredPlayerIds)
+
   const linked   = players.filter(p => p.api_id !== null).length
   const total    = players.length
   const unlinked = total - linked
 
+  // Sort: 🔴 picked unlinked first, then ⚽ scored unlinked, then other unlinked, then linked
+  function priority(p: PlayerRow) {
+    if (p.api_id !== null) return 3          // linked — bottom
+    if (pickedSet.has(p.id)) return 0        // picked + unlinked — top
+    if (scoredSet.has(p.id)) return 1        // scored + unlinked
+    return 2                                  // unlinked, no picks/goals
+  }
+
+  const sorted = [...players].sort((a, b) => priority(a) - priority(b) || a.name.localeCompare(b.name))
+
   const visible = filter === 'unlinked'
-    ? [...players].sort((a, b) => (a.api_id !== null ? 1 : 0) - (b.api_id !== null ? 1 : 0) || a.name.localeCompare(b.name))
-        .filter(p => p.api_id === null)
-    : [...players].sort((a, b) => (a.api_id !== null ? 1 : 0) - (b.api_id !== null ? 1 : 0) || a.name.localeCompare(b.name))
+    ? sorted.filter(p => p.api_id === null)
+    : filter === 'picked'
+    ? sorted.filter(p => p.api_id === null && pickedSet.has(p.id))
+    : sorted
 
   function getApiOptions(player: PlayerRow): ApiPlayerRow[] {
     const q = (search[player.id] ?? '').toLowerCase().trim()
@@ -156,8 +172,9 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
             outline: 'none', cursor: 'pointer',
           }}
         >
-          <option value="all">Show all</option>
-          <option value="unlinked">Unlinked only</option>
+          <option value="all">Show all ({total})</option>
+          <option value="unlinked">Unlinked ({unlinked})</option>
+          <option value="picked">🔴 Picked + unlinked ({sorted.filter(p => p.api_id === null && pickedSet.has(p.id)).length})</option>
         </select>
 
         {/* Auto-link */}
@@ -199,14 +216,22 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
           return (
             <div key={player.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5" style={{ background: '#ffffff' }}>
 
-              {/* Left: flag + name + position */}
+              {/* Left: flag + name + position + priority badges */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {player.team_flag && (
                   <img src={player.team_flag} alt="" className="w-5 h-3.5 object-contain flex-shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: sans }}>
-                    {player.name}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium truncate" style={{ color: '#141414', fontFamily: sans }}>
+                      {player.name}
+                    </span>
+                    {pickedSet.has(player.id) && (
+                      <span className="text-xs flex-shrink-0 font-bold px-1 py-0.5" style={{ background: '#fee2e2', color: '#dc2626', fontFamily: sans }}>🔴</span>
+                    )}
+                    {scoredSet.has(player.id) && (
+                      <span className="text-xs flex-shrink-0 font-bold px-1 py-0.5" style={{ background: '#fef9c3', color: '#92400e', fontFamily: sans }}>⚽</span>
+                    )}
                   </div>
                   <div className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
                     {player.position ?? '—'}{player.team_name ? ` · ${player.team_name}` : ''}

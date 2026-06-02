@@ -266,42 +266,24 @@ export default async function AdminPage() {
         <AdminPlayersSection players={(allPlayers ?? []) as any} />
       </section>
 
-      {/* ── 6. Unlinked players (legacy api-football search) ───── */}
-      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" style={{ color: '#ff5c35' }} />
-            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-              Unlinked players — api-football search ({unlinkedPlayers?.length ?? 0})
-            </h2>
-          </div>
-          <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            🔴 = picked by a Looper · ⚽ = has scored a goal — link these first
-          </span>
-        </div>
-        <AdminPlayerLinker
-          players={(unlinkedPlayers ?? []) as any}
-          pickedPlayerIds={[...pickedPlayerIds]}
-          scoredPlayerIds={[...scoredPlayerIds]}
-        />
-      </section>
-
-      {/* ── 7. Api player linker ─────────────────────────────────── */}
+      {/* ── 6. Player ↔ Api player linker ───────────────────────── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" style={{ color: '#3b82f6' }} />
             <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
-              Player — Api player links ({linkedCount} / {playersForLinker.length} linked · {apiPlayerCount} api_players)
+              Player links — {linkedCount} / {playersForLinker.length} linked
             </h2>
           </div>
           <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: sans }}>
-            Links text-file players to api-football squad data
+            🔴 = picked by a Looper · ⚽ = has scored · {apiPlayerCount} api players available
           </span>
         </div>
         <AdminApiPlayerLinker
           players={playersForLinker}
           apiPlayers={apiPlayersForLinker}
+          pickedPlayerIds={[...pickedPlayerIds]}
+          scoredPlayerIds={[...scoredPlayerIds]}
         />
       </section>
 
