@@ -28,7 +28,7 @@ interface Props {
 
 const sans = 'Inter, sans-serif'
 
-type Filter = 'all' | 'unlinked' | 'picked'
+type Filter = 'all' | 'unlinked' | 'picked' | 'picked-linked'
 
 export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlayers, pickedPlayerIds = [], scoredPlayerIds = [] }: Props) {
   const [players, setPlayers] = useState(initialPlayers)
@@ -69,6 +69,8 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
     ? filtered.filter(p => p.api_id === null)
     : filter === 'picked'
     ? filtered.filter(p => p.api_id === null && pickedSet.has(p.id))
+    : filter === 'picked-linked'
+    ? filtered.filter(p => p.api_id !== null && pickedSet.has(p.id))
     : filtered
 
   function getApiOptions(player: PlayerRow): ApiPlayerRow[] {
@@ -196,6 +198,7 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
           <option value="all">All ({total})</option>
           <option value="unlinked">Unlinked ({unlinked})</option>
           <option value="picked">🔴 Picked + unlinked ({sorted.filter(p => p.api_id === null && pickedSet.has(p.id)).length})</option>
+          <option value="picked-linked">✅ Picked + linked ({sorted.filter(p => p.api_id !== null && pickedSet.has(p.id)).length})</option>
         </select>
 
         {/* Auto-link */}
