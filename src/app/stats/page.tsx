@@ -345,6 +345,11 @@ export default async function StatsPage() {
           >
             ⚽ Most Picked Scorers
           </div>
+          <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+              Golden Boot picks across all Loopers
+            </p>
+          </div>
           {topRatedScorers.length === 0 ? (
             <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
               No picks yet
@@ -442,20 +447,27 @@ export default async function StatsPage() {
 
         {/* Best Fan Bases table */}
         <div>
-        <p className="text-xs mb-3" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-        Average prediction points per fan — which country has the most football knowledge?
-      </p>
-
-      <div style={{ border: '1px solid #e0dbd3' }}>
+        <div style={{ border: '1px solid #e0dbd3' }}>
+          <div
+            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            📊 Avg prediction points per fan
+          </div>
+          <div className="px-4 py-1.5" style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
+              Which country has the most football knowledge?
+            </p>
+          </div>
         <div
           className="grid px-4 py-2 text-xs font-semibold uppercase tracking-wider"
-          style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem' }}
+          style={{ background: '#f0ede8', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', gridTemplateColumns: '2rem 1fr 4rem 5rem 5rem', borderBottom: '1px solid #e0dbd3' }}
         >
           <span>#</span>
           <span>Country</span>
-          <span className="text-right">Fans</span>
+          <span className="text-center">Fans</span>
           <span className="text-right">Total pts</span>
-          <span className="text-right">Avg pts/fan</span>
+          <span className="text-right">Avg/fan</span>
         </div>
 
         {bestFanbases.length === 0 ? (
@@ -483,7 +495,7 @@ export default async function StatsPage() {
               </span>
             </>
           )
-          const rowStyle = { gridTemplateColumns: '2rem 1fr 5rem 5rem 6rem', background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderTop: '1px solid #e0dbd3' }
+          const rowStyle = { gridTemplateColumns: '2rem 1fr 4rem 5rem 5rem', background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderTop: '1px solid #e0dbd3' }
           return fb.id ? (
             <Link key={fb.name} href={`/teams/${fb.id}`} className="grid items-center px-4 py-3 hover:opacity-80 transition-opacity" style={rowStyle}>
               {inner}
