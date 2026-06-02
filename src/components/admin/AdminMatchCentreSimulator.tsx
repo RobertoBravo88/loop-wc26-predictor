@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface SimMatch {
   id: string
@@ -41,16 +42,38 @@ export default function AdminMatchCentreSimulator({ matches }: { matches: SimMat
 
   // New goal form
   const [newMin,     setNewMin]     = useState<number | ''>('')
-  const [newPlayer,  setNewPlayer]  = useState('')
+  const [newPlayer,  setNewPlayer]  = useState('')  // player name (from dropdown or typed)
+  const [newPlayerId, setNewPlayerId] = useState('') // player id for auto-team assignment
   const [newTeam,    setNewTeam]    = useState('')
   const [newOG,      setNewOG]      = useState(false)
 
+  // Players for the selected match's teams
+  const [players, setPlayers] = useState<Array<{ id: string; name: string; team_id: string; position: string | null }>>([])
+  const [loadingPlayers, setLoadingPlayers] = useState(false)
+
   const selectedMatch = matches.find(m => m.id === matchId)
+
+  // Load players when match changes
+  useEffect(() => {
+    if (!selectedMatch) { setPlayers([]); return }
+    setLoadingPlayers(true)
+    const supabase = createClient()
+    supabase
+      .from('players')
+      .select('id, name, team_id, position')
+      .in('team_id', [selectedMatch.homeTeamId, selectedMatch.awayTeamId])
+      .order('name')
+      .limit(200)
+      .then(({ data }) => {
+        setPlayers(data ?? [])
+        setLoadingPlayers(false)
+      })
+  }, [matchId])
 
   function addGoal() {
     if (!newTeam) return
     setGoals(prev => [...prev, { minute: newMin, player_name: newPlayer, team_id: newTeam, is_own_goal: newOG }])
-    setNewMin(''); setNewPlayer(''); setNewOG(false)
+    setNewMin(''); setNewPlayer(''); setNewPlayerId(''); setNewOG(false)
   }
 
   function removeGoal(i: number) {
@@ -99,7 +122,7 @@ export default function AdminMatchCentreSimulator({ matches }: { matches: SimMat
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#6b6b6b', fontFamily: sans }}>Match</label>
-          <select style={{ ...inputStyle, width: '100%' }} value={matchId} onChange={e => { setMatchId(e.target.value); setNewTeam('') }}>
+          <select style={{ ...inputStyle, width: '100%' }} value={matchId} onChange={e => { setMatchId(e.target.value); setNewTeam(''); setNewPlayerId(''); setNewPlayer('') }}>
             <option value="">Select a match…</option>
             {matches.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
@@ -163,16 +186,31 @@ export default function AdminMatchCentreSimulator({ matches }: { matches: SimMat
               <input type="number" min="1" max="120" value={newMin} onChange={e => setNewMin(e.target.value ? parseInt(e.target.value) : '')}
                 placeholder="45" style={{ ...inputStyle, width: 52, textAlign: 'center' }} />
             </div>
-            <div style={{ flex: 1, minWidth: 120 }}>
-              <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', color: '#9ca3af', fontFamily: sans, marginBottom: 4 }}>Player name</label>
-              <input value={newPlayer} onChange={e => setNewPlayer(e.target.value)} placeholder="Mbappé" style={{ ...inputStyle, width: '100%' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', color: '#9ca3af', fontFamily: sans, marginBottom: 4 }}>Team</label>
-              <select value={newTeam} onChange={e => setNewTeam(e.target.value)} style={{ ...inputStyle }}>
-                <option value="">Pick team…</option>
-                <option value={selectedMatch.homeTeamId}>{selectedMatch.homeTeamName}</option>
-                <option value={selectedMatch.awayTeamId}>{selectedMatch.awayTeamName}</option>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', color: '#9ca3af', fontFamily: sans, marginBottom: 4 }}>
+                Player {loadingPlayers ? '(loading…)' : ''}
+              </label>
+              <select
+                value={newPlayerId}
+                onChange={e => {
+                  const selected = players.find(p => p.id === e.target.value)
+                  setNewPlayerId(e.target.value)
+                  setNewPlayer(selected?.name ?? '')
+                  if (selected) setNewTeam(selected.team_id)
+                }}
+                style={{ ...inputStyle, width: '100%' }}
+              >
+                <option value="">Select player…</option>
+                <optgroup label={selectedMatch.homeTeamName}>
+                  {players.filter(p => p.team_id === selectedMatch.homeTeamId).map(p => (
+                    <option key={p.id} value={p.id}>{p.name}{p.position ? ` · ${p.position}` : ''}</option>
+                  ))}
+                </optgroup>
+                <optgroup label={selectedMatch.awayTeamName}>
+                  {players.filter(p => p.team_id === selectedMatch.awayTeamId).map(p => (
+                    <option key={p.id} value={p.id}>{p.name}{p.position ? ` · ${p.position}` : ''}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div className="flex items-center gap-1.5 pb-1">
