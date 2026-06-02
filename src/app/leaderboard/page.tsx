@@ -133,31 +133,25 @@ export default async function LeaderboardPage() {
 
         {/* Header row */}
         <div
-          className={`${ROW_CLASS} py-2 items-center text-xs font-semibold uppercase tracking-wider`}
+          className="flex items-center py-2 text-xs font-semibold uppercase tracking-wider"
           style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif', borderBottom: '1px solid #e0dbd3' }}
         >
-          <span className="col-span-1 text-center">#</span>
-
-          {/* Looper — 🔥# hint explains the streak badge */}
-          <span className="col-span-5 sm:col-span-3 flex items-center gap-1.5">
-            Looper
-            <span className="font-normal normal-case tracking-normal" style={{ color: '#ff5c35' }}>🔥#</span>
-          </span>
-
-          {/* Predicted — desktop only */}
-          <span className="hidden sm:block sm:col-span-1 text-center">Pred.</span>
-
-          {/* Prediction points */}
-          <span className="col-span-2 text-center">Pred. pts</span>
-
-          {/* Hot streak — desktop only */}
-          <span className="hidden sm:block sm:col-span-2 text-center">🔥 Streak</span>
-
-          {/* Bonus — desktop only */}
-          <span className="hidden sm:block sm:col-span-2 text-center">Bonus</span>
-
-          {/* Total */}
-          <span className="col-span-4 sm:col-span-1 text-center">Total</span>
+          <div className={`${ROW_CLASS} flex-1 items-center`}>
+            <span className="col-span-1 text-center">#</span>
+            <span className="col-span-5 sm:col-span-3 flex items-center gap-1.5">
+              Looper
+              <span className="font-normal normal-case tracking-normal" style={{ color: '#ff5c35' }}>🔥#</span>
+            </span>
+            <span className="hidden sm:block sm:col-span-1 text-center">Pred.</span>
+            <span className="col-span-2 text-center">Pred. pts</span>
+            <span className="hidden sm:block sm:col-span-2 text-center">🔥 Streak</span>
+            <span className="hidden sm:block sm:col-span-2 text-center">Bonus</span>
+            <span className="col-span-4 sm:col-span-1 text-center">Total</span>
+          </div>
+          {/* H2H column header */}
+          <div className="hidden sm:flex items-center justify-center flex-shrink-0" style={{ width: 52 }}>
+            <span>H2H</span>
+          </div>
         </div>
 
         {leaderboard.map((entry, i) => {
@@ -165,33 +159,18 @@ export default async function LeaderboardPage() {
           const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
           const streak = entry.current_streak ?? 0
 
+          const rowBg = isMe ? 'rgba(255, 92, 53, 0.04)' : i % 2 === 0 ? '#ffffff' : '#faf9f6'
+
           return (
-            <div key={entry.id} style={{ position: 'relative', borderBottom: '1px solid #e0dbd3' }}>
-            {/* Compare button — sibling to row Link, no nesting */}
-            {user && !isMe && (
-              <Link
-                href={`/compare/${entry.id}`}
-                className="hidden sm:flex items-center gap-0.5 text-xs hover:opacity-100 transition-all group"
-                title={`Compare with ${entry.display_name}`}
-                style={{
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  fontFamily: 'Inter, sans-serif', textDecoration: 'none', zIndex: 1,
-                  color: '#9ca3af', fontWeight: 600, letterSpacing: '0.03em',
-                }}
-              >
-                <span className="group-hover:text-[#ff5c35] transition-colors">H2H</span>
-                <span className="group-hover:text-[#ff5c35] transition-colors" style={{ fontSize: '0.6rem' }}>→</span>
-              </Link>
-            )}
+            <div
+              key={entry.id}
+              className="flex items-stretch transition-colors"
+              style={{ borderBottom: '1px solid #e0dbd3', background: rowBg, borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent' }}
+            >
             <Link
               href={`/profile/${entry.id}`}
-              className={`${ROW_CLASS} py-3 items-center transition-colors hover:opacity-80`}
-              style={{
-                background: isMe
-                  ? 'rgba(255, 92, 53, 0.04)'
-                  : i % 2 === 0 ? '#ffffff' : '#faf9f6',
-                borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
-              }}
+              className={`${ROW_CLASS} flex-1 py-3 items-center hover:opacity-80`}
+              style={{ textDecoration: 'none', background: 'transparent' }}
             >
               {/* Rank */}
               <span
@@ -292,6 +271,21 @@ export default async function LeaderboardPage() {
               </span>
 
             </Link>
+
+            {/* H2H column */}
+            <div className="hidden sm:flex items-center justify-center flex-shrink-0" style={{ width: 52 }}>
+              {user && !isMe && (
+                <Link
+                  href={`/compare/${entry.id}`}
+                  className="text-xs font-semibold hover:text-[#ff5c35] transition-colors"
+                  title={`Compare with ${entry.display_name}`}
+                  style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif', textDecoration: 'none', letterSpacing: '0.03em' }}
+                >
+                  H2H
+                </Link>
+              )}
+            </div>
+
             </div>
           )
         })}
