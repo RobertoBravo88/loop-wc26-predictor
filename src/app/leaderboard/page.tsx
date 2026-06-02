@@ -22,12 +22,14 @@ export default async function LeaderboardPage() {
     supabase.from('profiles').select('id, favourite_player:players(shirt_number)'),
   ])
 
-  // Fetch badges separately — if the table doesn't exist yet it fails silently
-  const { data: badgesData } = await supabase
-    .from('user_badges')
-    .select('user_id, badge_id, earned_at')
-    .then(r => r)
-    .catch(() => ({ data: null }))
+  // Fetch badges separately — fail silently if table doesn't exist yet
+  let badgesData: Array<{ user_id: string; badge_id: string; earned_at: string }> | null = null
+  try {
+    const badgesRes = await supabase.from('user_badges').select('user_id, badge_id, earned_at')
+    badgesData = badgesRes.data
+  } catch {
+    // Table may not exist yet — skip badges
+  }
 
   const leaderboard       = (entriesRes.data ?? []) as LeaderboardEntry[]
   const lastSynced        = lastSyncRes.data?.result_fetched_at ?? null
