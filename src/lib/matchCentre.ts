@@ -37,6 +37,8 @@ export interface MatchCentreData {
     squadPoints: number
     teamPoints: number
     status: 'on_ball' | 'happy' | 'still_in' | 'out'
+    scorerPickName: string | null
+    scorerPickPhoto: string | null
   }>
   homeFans: Array<{ userId: string; displayName: string }>
   awayFans: Array<{ userId: string; displayName: string }>
@@ -248,7 +250,7 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
     supabase
       .from('scorer_picks')
-      .select('user_id, player_id, team_id')
+      .select('user_id, player_id, team_id, player:players(name, photo_url)')
       .in('team_id', [homeTeamId, awayTeamId]),
   ])
 
@@ -274,6 +276,13 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
   for (const sp of rawScorerPicks) {
     if (!scorerPicksByUser.has(sp.user_id)) scorerPicksByUser.set(sp.user_id, new Set())
     scorerPicksByUser.get(sp.user_id)!.add(sp.player_id)
+  }
+
+  // Build map: userId -> { playerName, photoUrl } for picks in this match
+  const scorerPickInMatch = new Map<string, { playerName: string; photoUrl: string | null }>()
+  for (const sp of rawScorerPicks) {
+    const player = Array.isArray(sp.player) ? sp.player[0] : sp.player
+    if (player) scorerPickInMatch.set(sp.user_id, { playerName: player.name, photoUrl: player.photo_url ?? null })
   }
 
   // Count goals by player and by team in this match
@@ -331,6 +340,8 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
       squadPoints,
       teamPoints,
       status,
+      scorerPickName: scorerPickInMatch.get(userId)?.playerName ?? null,
+      scorerPickPhoto: scorerPickInMatch.get(userId)?.photoUrl ?? null,
     }
   })
 

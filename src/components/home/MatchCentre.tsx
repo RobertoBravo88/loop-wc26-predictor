@@ -18,7 +18,6 @@ interface MatchCentreProps {
   onNext?: () => void
 }
 
-const serif = "'Playfair Display', Georgia, serif"
 const sans = 'Inter, sans-serif'
 
 // ============================================================
@@ -106,27 +105,9 @@ function formatCountdown(minutes: number): string {
   return `${h}h ${m}m`
 }
 
-type PredStatus = 'on_ball' | 'happy' | 'still_in' | 'out'
-
-function statusLabel(s: PredStatus, matchState?: string): string {
-  if (s === 'on_ball') return 'ON THE BALL'
-  if (s === 'happy') return 'HAPPY FANS'
-  if (s === 'still_in') return 'REMONTADA?'
-  return matchState === 'finished' ? 'NO LUCK THIS TIME' : 'OUT'
-}
-
-function statusAccent(s: PredStatus): string {
-  if (s === 'on_ball') return '#ff5c35'
-  if (s === 'happy') return '#22c55e'
-  if (s === 'still_in') return '#9ca3af'
-  return '#9ca3af'
-}
-
 // ============================================================
 // Component
 // ============================================================
-
-const CARD_SHOW = 5
 
 export default function MatchCentre({
   data,
@@ -205,12 +186,13 @@ export default function MatchCentre({
   const allHomeGoals = [...homeGoals, ...ownGoalsHome]
   const allAwayGoals = [...awayGoals, ...ownGoalsAway]
 
-  // Sort predictions by total points desc, exclude out
-  const sortedPreds = [...predictions]
-    .filter(p => p.status !== 'out')
-    .sort((a, b) => (b.matchPoints + b.squadPoints + b.teamPoints) - (a.matchPoints + a.squadPoints + a.teamPoints))
-
-  const outPreds = predictions.filter(p => p.status === 'out')
+  // Unified sorted prediction list
+  const statusOrder: Record<string, number> = { on_ball: 0, happy: 1, still_in: 2, out: 3 }
+  const allSortedPreds = [...predictions].sort((a, b) => {
+    const so = statusOrder[a.status] - statusOrder[b.status]
+    if (so !== 0) return so
+    return (b.matchPoints + b.squadPoints + b.teamPoints) - (a.matchPoints + a.squadPoints + a.teamPoints)
+  }).filter(p => state === 'finished' || p.status !== 'out')
 
   const blurStyle = revealed
     ? { filter: 'blur(0)' }
@@ -228,9 +210,6 @@ export default function MatchCentre({
   const homePct  = total > 0 ? Math.round(homeWins / total * 100) : 0
   const drawPct  = total > 0 ? Math.round(draws    / total * 100) : 0
   const awayPct  = total > 0 ? Math.round(awayWins / total * 100) : 0
-
-  // Card sections: On the Ball | Happy Fans | Remontada?
-  const cardOrder: PredStatus[] = ['on_ball', 'happy', 'still_in']
 
   // Nav button style
   const navBtnStyle: React.CSSProperties = {
@@ -277,16 +256,19 @@ export default function MatchCentre({
             justifyContent: 'space-between',
           }}
         >
+          {/* Left: group + venue */}
           <span
             style={{
-              fontFamily: serif,
-              fontWeight: 700,
-              fontSize: '1rem',
-              color: '#ffffff',
-              letterSpacing: '0.02em',
+              fontFamily: sans,
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              color: '#9ca3af',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
             }}
           >
-            Loop Match Centre
+            {match.group_letter ? `GROUP ${match.group_letter}` : ''}
+            {match.venue ? ` · ${match.venue}` : ''}
           </span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -365,284 +347,123 @@ export default function MatchCentre({
           </div>
         </div>
 
-        {/* ── Scoreboard: diagonal split ── */}
-        <div
-          style={{
-            background: '#0d0d0d',
-            position: 'relative',
-            overflow: 'hidden',
-            minHeight: 180,
-          }}
-        >
-          {/* Left panel — home team */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '50%',
-              height: '100%',
+        {/* ── Scoreboard: badge overflow + score in panels ── */}
+        <div style={{ position: 'relative', overflow: 'visible' }}>
+
+          {/* Home badge — overflows left edge */}
+          <div style={{ position: 'absolute', left: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+            {match.home_team.flag_url && (
+              <img
+                src={match.home_team.flag_url}
+                alt=""
+                style={{ width: 90, height: 90, objectFit: 'contain', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}
+              />
+            )}
+          </div>
+
+          {/* Away badge — overflows right edge */}
+          <div style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+            {match.away_team.flag_url && (
+              <img
+                src={match.away_team.flag_url}
+                alt=""
+                style={{ width: 90, height: 90, objectFit: 'contain', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}
+              />
+            )}
+          </div>
+
+          {/* Main scoreboard — inset from edges to make room for badges */}
+          <div style={{ margin: '0 55px', position: 'relative', overflow: 'hidden', minHeight: 160 }}>
+
+            {/* Left panel — home team color, diagonal clip */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              clipPath: 'polygon(0 0, 55% 0, 45% 100%, 0 100%)',
               background: homeColors.accent,
-              clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)',
-            }}
-          >
-            {/* Glow behind flag */}
-            <div
-              style={{
-                position: 'absolute',
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
-                top: '50%',
-                left: 80,
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none',
-              }}
-            />
-            {/* Content */}
-            <div
-              style={{
-                position: 'relative',
-                zIndex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                height: '100%',
-                padding: '20px 20px 20px 20px',
-                gap: 8,
-              }}
-            >
-              {match.home_team.flag_url && (
-                <img
-                  src={match.home_team.flag_url}
-                  alt=""
-                  style={{
-                    height: 80,
-                    width: 'auto',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
-                    maxWidth: 120,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  fontFamily: sans,
-                  fontSize: '1.4rem',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  lineHeight: 1.1,
-                }}
-              >
-                {match.home_team.name}
-              </div>
-              {homeFans.length > 0 && (
-                <div
-                  style={{
-                    fontFamily: sans,
-                    fontSize: '0.65rem',
-                    color: 'rgba(255,255,255,0.7)',
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  {homeFans.map(f => f.displayName).join(' · ')}
-                </div>
-              )}
+            }}>
+              {/* Stadium glow behind badge area */}
+              <div style={{ position: 'absolute', left: 30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
             </div>
-          </div>
 
-          {/* Right panel — away team */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: '50%',
-              height: '100%',
+            {/* Right panel — away team color, diagonal clip */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)',
               background: awayColors.accent,
-              clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 0 100%)',
-            }}
-          >
-            {/* Glow behind flag */}
-            <div
-              style={{
-                position: 'absolute',
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
-                top: '50%',
-                right: 80,
-                transform: 'translate(50%, -50%)',
-                pointerEvents: 'none',
-              }}
-            />
-            {/* Content */}
-            <div
-              style={{
-                position: 'relative',
-                zIndex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                height: '100%',
-                padding: '20px 20px 20px 20px',
-                gap: 8,
-              }}
-            >
-              {match.away_team.flag_url && (
-                <img
-                  src={match.away_team.flag_url}
-                  alt=""
-                  style={{
-                    height: 80,
-                    width: 'auto',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
-                    maxWidth: 120,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  fontFamily: sans,
-                  fontSize: '1.4rem',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  lineHeight: 1.1,
-                  textAlign: 'right',
-                }}
-              >
-                {match.away_team.name}
-              </div>
-              {awayFans.length > 0 && (
-                <div
-                  style={{
-                    fontFamily: sans,
-                    fontSize: '0.65rem',
-                    color: 'rgba(255,255,255,0.7)',
-                    letterSpacing: '0.02em',
-                    textAlign: 'right',
-                  }}
-                >
-                  {awayFans.map(f => f.displayName).join(' · ')}
+            }}>
+              {/* Stadium glow */}
+              <div style={{ position: 'absolute', right: 30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            </div>
+
+            {/* Content overlay */}
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', height: '100%', padding: '20px 0' }}>
+
+              {/* Home: team name + fans + score */}
+              <div style={{ flex: 1, paddingLeft: 80, display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div>
+                  <div style={{ fontFamily: sans, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+                    {match.home_team.name}
+                  </div>
+                  {(state !== 'upcoming') && homeFans.length > 0 && (
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
+                      {homeFans.map(f => (
+                        <span key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                          {f.displayName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+                {/* Home score — inside home panel, pushed to the right */}
+                <div style={{ marginLeft: 'auto', paddingRight: 24 }}>
+                  <span style={{ fontFamily: sans, fontSize: '5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+                    {state === 'upcoming' ? '?' : currentHome}
+                  </span>
+                </div>
+              </div>
 
-          {/* Center overlay — score */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2,
-              padding: '16px 0',
-              background: 'radial-gradient(ellipse 200px 100% at center, rgba(0,0,0,0.7) 0%, transparent 100%)',
-              minWidth: 160,
-            }}
-          >
-            {/* Group / venue */}
-            <div
-              style={{
-                fontFamily: sans,
-                fontSize: '0.6rem',
-                color: 'rgba(255,255,255,0.45)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                marginBottom: 6,
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {match.group_letter ? `Group ${match.group_letter}` : ''}
-              {match.venue ? ` · ${match.venue}` : ''}
+              {/* Center: thin divider line — NO score, NO dash */}
+              <div style={{ width: 3, height: 60, background: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+
+              {/* Away: score + team name + fans */}
+              <div style={{ flex: 1, paddingRight: 80, display: 'flex', alignItems: 'center', gap: 20, justifyContent: 'flex-end' }}>
+                {/* Away score — inside away panel, pushed to the left */}
+                <div style={{ paddingLeft: 24, marginRight: 'auto' }}>
+                  <span style={{ fontFamily: sans, fontSize: '5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+                    {state === 'upcoming' ? '?' : currentAway}
+                  </span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: sans, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+                    {match.away_team.name}
+                  </div>
+                  {(state !== 'upcoming') && awayFans.length > 0 && (
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: '2px 8px', justifyContent: 'flex-end' }}>
+                      {awayFans.map(f => (
+                        <span key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                          {f.displayName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Score */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <span
-                style={{
-                  fontFamily: sans,
-                  fontSize: '5rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  lineHeight: 1,
-                }}
-              >
-                {state === 'upcoming' ? '–' : currentHome}
-              </span>
-              <span
-                style={{
-                  fontFamily: sans,
-                  fontSize: '2rem',
-                  color: 'rgba(255,255,255,0.3)',
-                  fontWeight: 300,
-                }}
-              >
-                –
-              </span>
-              <span
-                style={{
-                  fontFamily: sans,
-                  fontSize: '5rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  lineHeight: 1,
-                }}
-              >
-                {state === 'upcoming' ? '–' : currentAway}
-              </span>
-            </div>
-
-            {/* Goal scorers */}
-            {(state === 'live' || state === 'finished' || state === 'preview') && goalEvents.length > 0 && (
-              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 20 }}>
+            {/* Goal scorers strip */}
+            {(state === 'live' || state === 'finished') && goalEvents.length > 0 && (
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center', gap: 32, paddingBottom: 12 }}>
                 <div style={{ textAlign: 'right' }}>
                   {allHomeGoals.map(g => (
-                    <div
-                      key={g.id}
-                      style={{
-                        fontFamily: sans,
-                        fontSize: '0.65rem',
-                        color: 'rgba(255,255,255,0.65)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}
-                      {g.is_own_goal ? ' (og)' : ''}
+                    <div key={g.id} style={{ fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)' }}>
+                      {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''}
                     </div>
                   ))}
                 </div>
-                {allHomeGoals.length > 0 && allAwayGoals.length > 0 && (
-                  <div style={{ width: 1, background: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
-                )}
                 <div style={{ textAlign: 'left' }}>
                   {allAwayGoals.map(g => (
-                    <div
-                      key={g.id}
-                      style={{
-                        fontFamily: sans,
-                        fontSize: '0.65rem',
-                        color: 'rgba(255,255,255,0.65)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {g.player_name ?? '—'}
-                      {g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
+                    <div key={g.id} style={{ fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)' }}>
+                      {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
                     </div>
                   ))}
                 </div>
@@ -651,330 +472,103 @@ export default function MatchCentre({
           </div>
         </div>
 
-        {/* ── Prediction distribution bar — three solid blocks ── */}
+        {/* ── Distribution bar — dynamic blocks, min-width, disappears when 0% ── */}
         {predictions.length > 0 && (
-          <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #e0dbd3' }}>
-            <div
-              style={{
-                flex: homePct || 1,
-                background: homeColors.accent,
-                padding: '8px 12px',
-                minWidth: homePct > 0 ? 60 : 0,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
-                {homePct}%
-              </span>
-              <span
-                style={{
-                  fontSize: '0.6rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginLeft: 6,
-                  textTransform: 'uppercase',
-                  fontFamily: sans,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {match.home_team.name} WIN
-              </span>
-            </div>
-            {drawPct > 0 && (
-              <div
-                style={{
-                  flex: drawPct,
-                  background: 'rgba(80,80,80,0.85)',
-                  padding: '8px 12px',
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
-                  {drawPct}%
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.6rem',
-                    color: 'rgba(255,255,255,0.6)',
-                    marginLeft: 6,
-                    textTransform: 'uppercase',
-                    fontFamily: sans,
-                  }}
-                >
-                  DRAW
-                </span>
+          <div style={{ display: 'flex', gap: 2, margin: '8px 0' }}>
+            {homePct > 0 && (
+              <div style={{ flex: homePct, minWidth: 90, background: homeColors.accent, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: sans, fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>{homePct}%</span>
+                <span style={{ fontFamily: sans, fontSize: '0.6rem', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{match.home_team.name} Win</span>
               </div>
             )}
-            <div
-              style={{
-                flex: awayPct || 1,
-                background: awayColors.accent,
-                padding: '8px 12px',
-                textAlign: 'right',
-                minWidth: awayPct > 0 ? 60 : 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '0.6rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginRight: 6,
-                  textTransform: 'uppercase',
-                  fontFamily: sans,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {match.away_team.name} WIN
-              </span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
-                {awayPct}%
-              </span>
-            </div>
+            {drawPct > 0 && (
+              <div style={{ flex: drawPct, minWidth: 90, background: '#374151', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontFamily: sans, fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>{drawPct}%</span>
+                <span style={{ fontFamily: sans, fontSize: '0.6rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Draw</span>
+              </div>
+            )}
+            {awayPct > 0 && (
+              <div style={{ flex: awayPct, minWidth: 90, background: awayColors.accent, padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                <span style={{ fontFamily: sans, fontSize: '0.6rem', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{match.away_team.name} Win</span>
+                <span style={{ fontFamily: sans, fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>{awayPct}%</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── Blurred section: predictions ── */}
+        {/* ── Unified prediction list ── */}
         <div style={{ ...blurStyle, ...revealTransition }}>
 
-          {/* Upcoming: prediction lock info */}
-          {state === 'upcoming' && (
-            <div
-              style={{
-                padding: '10px 16px',
-                borderBottom: '1px solid #e0dbd3',
-                background: '#faf9f6',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{ fontFamily: sans, fontSize: '0.75rem', color: '#9ca3af' }}>
-                Predictions reveal in {formatCountdown(minutesUntilKickoff)} · Locks in {formatCountdown(minutesUntilKickoff)}
-              </span>
-            </div>
-          )}
+          {/* Column headers */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            <span style={{ flex: 1, fontFamily: sans, fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Looper</span>
+            <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Points</span>
+          </div>
 
-          {/* Three-card prediction layout */}
-          {sortedPreds.length > 0 && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 0,
-                borderTop: '1px solid #e0dbd3',
-              }}
-            >
-              {cardOrder.map((sectionStatus, colIdx) => {
-                const accent = statusAccent(sectionStatus)
-                const sectionPreds = sortedPreds.filter(p => p.status === sectionStatus)
-                const shown = sectionPreds.slice(0, CARD_SHOW)
-                const overflow = sectionPreds.length - CARD_SHOW
+          {/* All predictions in one list */}
+          {allSortedPreds.map(pred => {
+            const dotColor = pred.status === 'on_ball' ? '#ff5c35' : pred.status === 'happy' ? '#22c55e' : '#9ca3af'
+            const total = pred.matchPoints + pred.squadPoints + pred.teamPoints
+            const isMe = pred.userId === currentUserId
 
-                // For the Remontada card, append out preds at bottom when finished
-                const isRemontadaCard = sectionStatus === 'still_in'
+            return (
+              <div
+                key={pred.userId}
+                className={risingIds.has(pred.userId) ? 'animate-rise' : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 16px',
+                  borderBottom: '1px solid #f0ede8',
+                  background: isMe ? 'rgba(255,92,53,0.04)' : 'transparent',
+                  borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
+                }}
+              >
+                {/* Status dot */}
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
 
-                return (
-                  <div
-                    key={sectionStatus}
-                    style={{
-                      background: '#ffffff',
-                      borderLeft: colIdx > 0 ? '1px solid #e0dbd3' : undefined,
-                      borderRight: colIdx < cardOrder.length - 1 ? undefined : undefined,
-                    }}
-                  >
-                    {/* Card header */}
-                    <div
-                      style={{
-                        borderLeft: `3px solid ${accent}`,
-                        padding: '6px 12px',
-                        borderBottom: '1px solid #e0dbd3',
-                        background: '#faf9f6',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: sans,
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          color: accent,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.1em',
-                        }}
-                      >
-                        {statusLabel(sectionStatus, state)}
-                      </span>
-                    </div>
-
-                    {/* Card rows */}
-                    {shown.length === 0 ? (
-                      <div
-                        style={{
-                          padding: '10px 12px',
-                          fontFamily: sans,
-                          fontSize: '0.7rem',
-                          color: '#c0bab3',
-                        }}
-                      >
-                        — no one yet
-                      </div>
-                    ) : (
-                      shown.map(pred => {
-                        const totalPts = pred.matchPoints + pred.squadPoints + pred.teamPoints
-                        const isRising = risingIds.has(pred.userId)
-                        const isMe = currentUserId != null && pred.userId === currentUserId
-                        return (
-                          <div
-                            key={pred.userId}
-                            className={isRising ? 'animate-rise' : undefined}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '6px 12px',
-                              borderBottom: '1px solid #f0ece6',
-                              borderLeft: isMe ? '3px solid #ff5c35' : undefined,
-                              background: isMe ? 'rgba(255,92,53,0.04)' : undefined,
-                              paddingLeft: isMe ? 9 : 12,
-                              gap: 6,
-                            }}
-                          >
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <span
-                                style={{
-                                  fontFamily: sans,
-                                  fontSize: '0.78rem',
-                                  color: isMe ? '#ff5c35' : '#141414',
-                                  fontWeight: isMe ? 700 : 400,
-                                  display: 'block',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {pred.displayName}
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily: sans,
-                                  fontSize: '0.65rem',
-                                  color: '#9ca3af',
-                                  display: 'block',
-                                }}
-                              >
-                                predicted {pred.predictedHome}–{pred.predictedAway}
-                              </span>
-                            </div>
-                            <span
-                              style={{
-                                fontFamily: sans,
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                                color: totalPts > 0 ? '#ff5c35' : '#9ca3af',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {totalPts}
-                            </span>
-                          </div>
-                        )
-                      })
-                    )}
-
-                    {/* Overflow count */}
-                    {overflow > 0 && (
-                      <div
-                        style={{
-                          padding: '5px 12px',
-                          fontFamily: sans,
-                          fontSize: '0.65rem',
-                          color: '#9ca3af',
-                          borderBottom: '1px solid #f0ece6',
-                        }}
-                      >
-                        ... and {overflow} more
-                      </div>
-                    )}
-
-                    {/* Out preds appended to Remontada card */}
-                    {isRemontadaCard && state === 'finished' && outPreds.length > 0 && (
-                      <div>
-                        <div
-                          style={{
-                            borderLeft: `3px solid ${statusAccent('out')}`,
-                            padding: '6px 12px',
-                            borderBottom: '1px solid #e0dbd3',
-                            borderTop: '1px solid #e0dbd3',
-                            background: '#faf9f6',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontFamily: sans,
-                              fontSize: '0.65rem',
-                              fontWeight: 700,
-                              color: statusAccent('out'),
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.1em',
-                            }}
-                          >
-                            {statusLabel('out', state)}
-                          </span>
-                        </div>
-                        <div style={{ padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {outPreds.map(p => (
-                            <span
-                              key={p.userId}
-                              style={{
-                                fontFamily: sans,
-                                fontSize: '0.7rem',
-                                color: '#9ca3af',
-                              }}
-                            >
-                              {p.displayName} {p.predictedHome}–{p.predictedAway}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Out ticker for non-finished states (live/preview/upcoming) */}
-          {state !== 'finished' && outPreds.length > 0 && (
-            <div
-              style={{
-                padding: '8px 16px',
-                borderTop: '1px solid #e0dbd3',
-                background: '#faf9f6',
-                overflowX: 'auto',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: 8 }}>
-                Out of the match ·
-              </span>
-              {outPreds.map((p, i) => (
-                <span
-                  key={p.userId}
-                  style={{
-                    fontFamily: sans,
-                    fontSize: '0.7rem',
-                    color: '#9ca3af',
-                    marginRight: i < outPreds.length - 1 ? 12 : 0,
-                  }}
-                >
-                  {p.displayName} {p.predictedHome}–{p.predictedAway}
+                {/* Looper name + prediction */}
+                <span style={{ fontFamily: sans, fontSize: '0.85rem', fontWeight: isMe ? 700 : 400, color: isMe ? '#ff5c35' : '#141414', flex: 1 }}>
+                  {pred.displayName}
+                  <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: '0.75rem', marginLeft: 6 }}>
+                    {pred.predictedHome}–{pred.predictedAway}
+                  </span>
                 </span>
-              ))}
-            </div>
-          )}
+
+                {/* Player photo if they have a scorer pick in this match */}
+                {pred.scorerPickPhoto && (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '1px solid #e0dbd3' }}>
+                    <img src={pred.scorerPickPhoto} alt={pred.scorerPickName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                {pred.scorerPickName && !pred.scorerPickPhoto && (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>{pred.scorerPickName.charAt(0)}</span>
+                  </div>
+                )}
+
+                {/* Points */}
+                <span style={{ fontFamily: sans, fontSize: '0.85rem', fontWeight: 700, color: total > 0 ? '#ff5c35' : '#9ca3af', minWidth: 32, textAlign: 'right' }}>
+                  {total > 0 ? `+${total}` : '0'}
+                </span>
+              </div>
+            )
+          })}
+
+          {/* Legend */}
+          <div style={{ padding: '8px 16px', display: 'flex', gap: 16, borderTop: '1px solid #e0dbd3', background: '#faf9f6' }}>
+            {[
+              { color: '#ff5c35', label: 'On the ball' },
+              { color: '#22c55e', label: 'Happy fans' },
+              { color: '#9ca3af', label: 'Remontada?' },
+            ].map(({ color, label }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                <span style={{ fontFamily: sans, fontSize: '0.6rem', color: '#9ca3af' }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </>
