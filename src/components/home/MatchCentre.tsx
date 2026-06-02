@@ -12,6 +12,10 @@ export type { MatchCentreData }
 interface MatchCentreProps {
   data: MatchCentreData | null
   currentUserId?: string | null
+  currentMatchIndex?: number   // 0-based, default 0
+  totalMatches?: number        // total simultaneous matches, default 1
+  onPrev?: () => void
+  onNext?: () => void
 }
 
 const serif = "'Playfair Display', Georgia, serif"
@@ -118,17 +122,20 @@ function statusAccent(s: PredStatus): string {
   return '#9ca3af'
 }
 
-function statusBg(s: PredStatus): string {
-  if (s === 'on_ball') return 'rgba(255,92,53,0.05)'
-  if (s === 'happy') return 'rgba(34,197,94,0.05)'
-  return 'rgba(156,163,175,0.05)'
-}
-
 // ============================================================
 // Component
 // ============================================================
 
-export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
+const CARD_SHOW = 5
+
+export default function MatchCentre({
+  data,
+  currentUserId,
+  currentMatchIndex = 0,
+  totalMatches = 1,
+  onPrev,
+  onNext,
+}: MatchCentreProps) {
   const router = useRouter()
 
   // Auto-refresh every 2 minutes when live
@@ -205,10 +212,9 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
 
   const outPreds = predictions.filter(p => p.status === 'out')
 
-  // Sections: exclude 'out' (handled separately); hide 'out' section unless finished
-  const sections: PredStatus[] = ['on_ball', 'happy', 'still_in']
-
-  const blurStyle = revealed ? { filter: 'blur(0)' } : { filter: 'blur(6px)', userSelect: 'none' as const, pointerEvents: 'none' as const }
+  const blurStyle = revealed
+    ? { filter: 'blur(0)' }
+    : { filter: 'blur(6px)', userSelect: 'none' as const, pointerEvents: 'none' as const }
   const revealTransition = { transition: 'filter 0.8s ease-out' }
 
   const homeColors = getTeamColors(match.home_team.name)
@@ -222,6 +228,26 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
   const homePct  = total > 0 ? Math.round(homeWins / total * 100) : 0
   const drawPct  = total > 0 ? Math.round(draws    / total * 100) : 0
   const awayPct  = total > 0 ? Math.round(awayWins / total * 100) : 0
+
+  // Card sections: On the Ball | Happy Fans | Remontada?
+  const cardOrder: PredStatus[] = ['on_ball', 'happy', 'still_in']
+
+  // Nav button style
+  const navBtnStyle: React.CSSProperties = {
+    background: 'none',
+    border: '1px solid rgba(255,255,255,0.2)',
+    color: '#ffffff',
+    fontFamily: sans,
+    fontSize: '1rem',
+    lineHeight: 1,
+    width: 24,
+    height: 24,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    padding: 0,
+  }
 
   return (
     <>
@@ -241,7 +267,7 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
+        {/* ── Header bar ── */}
         <div
           style={{
             background: '#141414',
@@ -263,173 +289,457 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
             Loop Match Centre
           </span>
 
-          {/* State badge */}
-          {state === 'live' && (
-            <span
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontFamily: sans,
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: '#ffffff',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-              Live
-            </span>
-          )}
-          {state === 'upcoming' && (
-            <span
-              style={{
-                fontFamily: sans,
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                color: '#9ca3af',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Starts in {formatCountdown(minutesUntilKickoff)}
-            </span>
-          )}
-          {state === 'preview' && (
-            <span
-              style={{
-                fontFamily: sans,
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                color: '#facc15',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Just kicked off
-            </span>
-          )}
-          {state === 'finished' && (
-            <span
-              style={{
-                fontFamily: sans,
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: '#9ca3af',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Full Time
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Match navigation */}
+            {totalMatches > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={onPrev} style={navBtnStyle}>‹</button>
+                <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontFamily: sans }}>
+                  {currentMatchIndex + 1} of {totalMatches}
+                </span>
+                <button onClick={onNext} style={navBtnStyle}>›</button>
+              </div>
+            )}
+
+            {/* State badge */}
+            {state === 'live' && (
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontFamily: sans,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                Live
+              </span>
+            )}
+            {state === 'upcoming' && (
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Starts in {formatCountdown(minutesUntilKickoff)}
+              </span>
+            )}
+            {state === 'preview' && (
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: '#facc15',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Just kicked off
+              </span>
+            )}
+            {state === 'finished' && (
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Full Time
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Scoreboard — dark gradient broadcast-style header */}
+        {/* ── Scoreboard: diagonal split ── */}
         <div
           style={{
-            background: `linear-gradient(to right, ${homeColors.accent}55 0%, #141414 35%, #141414 65%, ${awayColors.accent}55 100%)`,
-            borderBottom: '1px solid #2a2a2a',
+            background: '#0d0d0d',
             position: 'relative',
             overflow: 'hidden',
+            minHeight: 180,
           }}
         >
-          {/* Main scoreboard row */}
-          <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', gap: 16 }}>
-
-            {/* Home team */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Left panel — home team */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '50%',
+              height: '100%',
+              background: homeColors.accent,
+              clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)',
+            }}
+          >
+            {/* Glow behind flag */}
+            <div
+              style={{
+                position: 'absolute',
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+                top: '50%',
+                left: 80,
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+              }}
+            />
+            {/* Content */}
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '20px 20px 20px 20px',
+                gap: 8,
+              }}
+            >
               {match.home_team.flag_url && (
-                <img src={match.home_team.flag_url} alt="" style={{ width: 72, height: 50, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }} />
+                <img
+                  src={match.home_team.flag_url}
+                  alt=""
+                  style={{
+                    height: 80,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
+                    maxWidth: 120,
+                  }}
+                />
               )}
-              <div>
-                <div style={{ fontFamily: sans, fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1.1 }}>
-                  {match.home_team.name}
+              <div
+                style={{
+                  fontFamily: sans,
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  lineHeight: 1.1,
+                }}
+              >
+                {match.home_team.name}
+              </div>
+              {homeFans.length > 0 && (
+                <div
+                  style={{
+                    fontFamily: sans,
+                    fontSize: '0.65rem',
+                    color: 'rgba(255,255,255,0.7)',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {homeFans.map(f => f.displayName).join(' · ')}
                 </div>
-                {homeFans.length > 0 && (
-                  <div style={{ marginTop: 4, fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.02em' }}>
-                    {homeFans.map(f => f.displayName).join(' · ')}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Score center */}
-            <div style={{ textAlign: 'center', flexShrink: 0, minWidth: 160 }}>
-              <div style={{ fontFamily: sans, fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 }}>
-                {match.group_letter ? `Group ${match.group_letter}` : ''}{match.venue ? ` · ${match.venue}` : ''}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                <span style={{ fontFamily: serif, fontSize: '3.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>
-                  {state === 'upcoming' ? '–' : currentHome}
-                </span>
-                <span style={{ fontFamily: sans, fontSize: '1.5rem', color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>–</span>
-                <span style={{ fontFamily: serif, fontSize: '3.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>
-                  {state === 'upcoming' ? '–' : currentAway}
-                </span>
-              </div>
-              {/* Goal scorers */}
-              {(state === 'live' || state === 'finished' || state === 'preview') && goalEvents.length > 0 && (
-                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 20 }}>
-                  <div style={{ textAlign: 'right' }}>
-                    {allHomeGoals.map(g => (
-                      <div key={g.id} style={{ fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>
-                        {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''}
-                      </div>
-                    ))}
-                  </div>
-                  {allHomeGoals.length > 0 && allAwayGoals.length > 0 && (
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
-                  )}
-                  <div style={{ textAlign: 'left' }}>
-                    {allAwayGoals.map(g => (
-                      <div key={g.id} style={{ fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>
-                        {g.player_name ?? '—'}{g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Away team */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: sans, fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1.1 }}>
-                  {match.away_team.name}
-                </div>
-                {awayFans.length > 0 && (
-                  <div style={{ marginTop: 4, fontFamily: sans, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.02em' }}>
-                    {awayFans.map(f => f.displayName).join(' · ')}
-                  </div>
-                )}
-              </div>
-              {match.away_team.flag_url && (
-                <img src={match.away_team.flag_url} alt="" style={{ width: 72, height: 50, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }} />
               )}
             </div>
           </div>
 
-          {/* Prediction distribution bar — inside the dark header */}
-          {predictions.length > 0 && (
-            <div style={{ padding: '0 24px 14px' }}>
-              <div style={{ height: 4, display: 'flex', overflow: 'hidden', borderRadius: 2, marginBottom: 5, background: 'rgba(255,255,255,0.1)' }}>
-                <div style={{ width: `${homePct}%`, background: homeColors.accent, transition: 'width 0.5s' }} />
-                <div style={{ width: `${drawPct}%`, background: 'rgba(255,255,255,0.25)', transition: 'width 0.5s' }} />
-                <div style={{ width: `${awayPct}%`, background: awayColors.accent, transition: 'width 0.5s' }} />
+          {/* Right panel — away team */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '50%',
+              height: '100%',
+              background: awayColors.accent,
+              clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 0 100%)',
+            }}
+          >
+            {/* Glow behind flag */}
+            <div
+              style={{
+                position: 'absolute',
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+                top: '50%',
+                right: 80,
+                transform: 'translate(50%, -50%)',
+                pointerEvents: 'none',
+              }}
+            />
+            {/* Content */}
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '20px 20px 20px 20px',
+                gap: 8,
+              }}
+            >
+              {match.away_team.flag_url && (
+                <img
+                  src={match.away_team.flag_url}
+                  alt=""
+                  style={{
+                    height: 80,
+                    width: 'auto',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
+                    maxWidth: 120,
+                  }}
+                />
+              )}
+              <div
+                style={{
+                  fontFamily: sans,
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  lineHeight: 1.1,
+                  textAlign: 'right',
+                }}
+              >
+                {match.away_team.name}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontFamily: sans, color: 'rgba(255,255,255,0.5)' }}>
-                <span><strong style={{ color: 'rgba(255,255,255,0.85)' }}>{homePct}%</strong> {match.home_team.name}</span>
-                <span><strong style={{ color: 'rgba(255,255,255,0.85)' }}>{drawPct}%</strong> Draw</span>
-                <span>{match.away_team.name} <strong style={{ color: 'rgba(255,255,255,0.85)' }}>{awayPct}%</strong></span>
-              </div>
+              {awayFans.length > 0 && (
+                <div
+                  style={{
+                    fontFamily: sans,
+                    fontSize: '0.65rem',
+                    color: 'rgba(255,255,255,0.7)',
+                    letterSpacing: '0.02em',
+                    textAlign: 'right',
+                  }}
+                >
+                  {awayFans.map(f => f.displayName).join(' · ')}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Center overlay — score */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2,
+              padding: '16px 0',
+              background: 'radial-gradient(ellipse 200px 100% at center, rgba(0,0,0,0.7) 0%, transparent 100%)',
+              minWidth: 160,
+            }}
+          >
+            {/* Group / venue */}
+            <div
+              style={{
+                fontFamily: sans,
+                fontSize: '0.6rem',
+                color: 'rgba(255,255,255,0.45)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: 6,
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {match.group_letter ? `Group ${match.group_letter}` : ''}
+              {match.venue ? ` · ${match.venue}` : ''}
+            </div>
+
+            {/* Score */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '5rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  lineHeight: 1,
+                }}
+              >
+                {state === 'upcoming' ? '–' : currentHome}
+              </span>
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '2rem',
+                  color: 'rgba(255,255,255,0.3)',
+                  fontWeight: 300,
+                }}
+              >
+                –
+              </span>
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontSize: '5rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  lineHeight: 1,
+                }}
+              >
+                {state === 'upcoming' ? '–' : currentAway}
+              </span>
+            </div>
+
+            {/* Goal scorers */}
+            {(state === 'live' || state === 'finished' || state === 'preview') && goalEvents.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 20 }}>
+                <div style={{ textAlign: 'right' }}>
+                  {allHomeGoals.map(g => (
+                    <div
+                      key={g.id}
+                      style={{
+                        fontFamily: sans,
+                        fontSize: '0.65rem',
+                        color: 'rgba(255,255,255,0.65)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {g.minute != null ? `'${g.minute}` : ''} {g.player_name ?? '—'}
+                      {g.is_own_goal ? ' (og)' : ''}
+                    </div>
+                  ))}
+                </div>
+                {allHomeGoals.length > 0 && allAwayGoals.length > 0 && (
+                  <div style={{ width: 1, background: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
+                )}
+                <div style={{ textAlign: 'left' }}>
+                  {allAwayGoals.map(g => (
+                    <div
+                      key={g.id}
+                      style={{
+                        fontFamily: sans,
+                        fontSize: '0.65rem',
+                        color: 'rgba(255,255,255,0.65)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {g.player_name ?? '—'}
+                      {g.is_own_goal ? ' (og)' : ''} {g.minute != null ? `'${g.minute}` : ''}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* ── Prediction distribution bar — three solid blocks ── */}
+        {predictions.length > 0 && (
+          <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #e0dbd3' }}>
+            <div
+              style={{
+                flex: homePct || 1,
+                background: homeColors.accent,
+                padding: '8px 12px',
+                minWidth: homePct > 0 ? 60 : 0,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
+                {homePct}%
+              </span>
+              <span
+                style={{
+                  fontSize: '0.6rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginLeft: 6,
+                  textTransform: 'uppercase',
+                  fontFamily: sans,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {match.home_team.name} WIN
+              </span>
+            </div>
+            {drawPct > 0 && (
+              <div
+                style={{
+                  flex: drawPct,
+                  background: 'rgba(80,80,80,0.85)',
+                  padding: '8px 12px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
+                  {drawPct}%
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.6rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    marginLeft: 6,
+                    textTransform: 'uppercase',
+                    fontFamily: sans,
+                  }}
+                >
+                  DRAW
+                </span>
+              </div>
+            )}
+            <div
+              style={{
+                flex: awayPct || 1,
+                background: awayColors.accent,
+                padding: '8px 12px',
+                textAlign: 'right',
+                minWidth: awayPct > 0 ? 60 : 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.6rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginRight: 6,
+                  textTransform: 'uppercase',
+                  fontFamily: sans,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {match.away_team.name} WIN
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', fontFamily: sans }}>
+                {awayPct}%
+              </span>
+            </div>
+          </div>
+        )}
 
-        {/* Blurred section: predictions */}
+        {/* ── Blurred section: predictions ── */}
         <div style={{ ...blurStyle, ...revealTransition }}>
 
           {/* Upcoming: prediction lock info */}
@@ -448,40 +758,41 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
             </div>
           )}
 
-          {/* Points table */}
+          {/* Three-card prediction layout */}
           {sortedPreds.length > 0 && (
-            <div>
-              {/* Table header */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 52px 52px 52px 52px',
-                  padding: '6px 16px',
-                  borderBottom: '1px solid #e0dbd3',
-                  background: '#f7f4ef',
-                }}
-              >
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Prediction</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Match</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Squad</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center' }}>Team</span>
-                <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#6b6b6b', textAlign: 'center', fontWeight: 700 }}>Pts</span>
-              </div>
-
-              {sections.map(sectionStatus => {
-                const sectionPreds = sortedPreds.filter(p => p.status === sectionStatus)
-                if (sectionPreds.length === 0) return null
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 0,
+                borderTop: '1px solid #e0dbd3',
+              }}
+            >
+              {cardOrder.map((sectionStatus, colIdx) => {
                 const accent = statusAccent(sectionStatus)
-                const bg = statusBg(sectionStatus)
+                const sectionPreds = sortedPreds.filter(p => p.status === sectionStatus)
+                const shown = sectionPreds.slice(0, CARD_SHOW)
+                const overflow = sectionPreds.length - CARD_SHOW
+
+                // For the Remontada card, append out preds at bottom when finished
+                const isRemontadaCard = sectionStatus === 'still_in'
+
                 return (
-                  <div key={sectionStatus}>
-                    {/* Section header */}
+                  <div
+                    key={sectionStatus}
+                    style={{
+                      background: '#ffffff',
+                      borderLeft: colIdx > 0 ? '1px solid #e0dbd3' : undefined,
+                      borderRight: colIdx < cardOrder.length - 1 ? undefined : undefined,
+                    }}
+                  >
+                    {/* Card header */}
                     <div
                       style={{
-                        padding: '4px 16px',
-                        background: bg,
-                        borderBottom: '1px solid #e0dbd3',
                         borderLeft: `3px solid ${accent}`,
+                        padding: '6px 12px',
+                        borderBottom: '1px solid #e0dbd3',
+                        background: '#faf9f6',
                       }}
                     >
                       <span
@@ -498,107 +809,144 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
                       </span>
                     </div>
 
-                    {/* Rows */}
-                    {sectionPreds.map(pred => {
-                      const totalPts = pred.matchPoints + pred.squadPoints + pred.teamPoints
-                      const isRising = risingIds.has(pred.userId)
-                      const isMe = currentUserId != null && pred.userId === currentUserId
-                      return (
+                    {/* Card rows */}
+                    {shown.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '10px 12px',
+                          fontFamily: sans,
+                          fontSize: '0.7rem',
+                          color: '#c0bab3',
+                        }}
+                      >
+                        — no one yet
+                      </div>
+                    ) : (
+                      shown.map(pred => {
+                        const totalPts = pred.matchPoints + pred.squadPoints + pred.teamPoints
+                        const isRising = risingIds.has(pred.userId)
+                        const isMe = currentUserId != null && pred.userId === currentUserId
+                        return (
+                          <div
+                            key={pred.userId}
+                            className={isRising ? 'animate-rise' : undefined}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 12px',
+                              borderBottom: '1px solid #f0ece6',
+                              borderLeft: isMe ? '3px solid #ff5c35' : undefined,
+                              background: isMe ? 'rgba(255,92,53,0.04)' : undefined,
+                              paddingLeft: isMe ? 9 : 12,
+                              gap: 6,
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <span
+                                style={{
+                                  fontFamily: sans,
+                                  fontSize: '0.78rem',
+                                  color: isMe ? '#ff5c35' : '#141414',
+                                  fontWeight: isMe ? 700 : 400,
+                                  display: 'block',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {pred.displayName}
+                              </span>
+                              <span
+                                style={{
+                                  fontFamily: sans,
+                                  fontSize: '0.65rem',
+                                  color: '#9ca3af',
+                                  display: 'block',
+                                }}
+                              >
+                                predicted {pred.predictedHome}–{pred.predictedAway}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                fontFamily: sans,
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                color: totalPts > 0 ? '#ff5c35' : '#9ca3af',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {totalPts}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+
+                    {/* Overflow count */}
+                    {overflow > 0 && (
+                      <div
+                        style={{
+                          padding: '5px 12px',
+                          fontFamily: sans,
+                          fontSize: '0.65rem',
+                          color: '#9ca3af',
+                          borderBottom: '1px solid #f0ece6',
+                        }}
+                      >
+                        ... and {overflow} more
+                      </div>
+                    )}
+
+                    {/* Out preds appended to Remontada card */}
+                    {isRemontadaCard && state === 'finished' && outPreds.length > 0 && (
+                      <div>
                         <div
-                          key={pred.userId}
-                          className={isRising ? 'animate-rise' : undefined}
                           style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 52px 52px 52px 52px',
-                            padding: '7px 16px',
-                            borderBottom: '1px solid #f0ece6',
-                            alignItems: 'center',
-                            ...(isMe
-                              ? {
-                                  borderLeft: '3px solid #ff5c35',
-                                  background: 'rgba(255, 92, 53, 0.04)',
-                                  paddingLeft: 13,
-                                }
-                              : {}),
+                            borderLeft: `3px solid ${statusAccent('out')}`,
+                            padding: '6px 12px',
+                            borderBottom: '1px solid #e0dbd3',
+                            borderTop: '1px solid #e0dbd3',
+                            background: '#faf9f6',
                           }}
                         >
                           <span
                             style={{
                               fontFamily: sans,
-                              fontSize: '0.8rem',
-                              color: isMe ? '#ff5c35' : '#141414',
-                              fontWeight: isMe ? 700 : 400,
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              color: statusAccent('out'),
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
                             }}
                           >
-                            {pred.displayName}
-                            <span style={{ color: '#9ca3af', marginLeft: 6, fontWeight: 400 }}>
-                              {pred.predictedHome}–{pred.predictedAway}
-                            </span>
-                          </span>
-                          <span style={{ fontFamily: sans, fontSize: '0.8rem', textAlign: 'center', color: pred.matchPoints > 0 ? '#ff5c35' : '#9ca3af' }}>
-                            {pred.matchPoints}
-                          </span>
-                          <span style={{ fontFamily: sans, fontSize: '0.8rem', textAlign: 'center', color: pred.squadPoints > 0 ? '#141414' : '#9ca3af' }}>
-                            {pred.squadPoints}
-                          </span>
-                          <span style={{ fontFamily: sans, fontSize: '0.8rem', textAlign: 'center', color: pred.teamPoints > 0 ? '#141414' : '#9ca3af' }}>
-                            {pred.teamPoints}
-                          </span>
-                          <span style={{ fontFamily: sans, fontSize: '0.8rem', textAlign: 'center', fontWeight: 700, color: '#ff5c35' }}>
-                            {totalPts}
+                            {statusLabel('out', state)}
                           </span>
                         </div>
-                      )
-                    })}
+                        <div style={{ padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {outPreds.map(p => (
+                            <span
+                              key={p.userId}
+                              style={{
+                                fontFamily: sans,
+                                fontSize: '0.7rem',
+                                color: '#9ca3af',
+                              }}
+                            >
+                              {p.displayName} {p.predictedHome}–{p.predictedAway}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
           )}
 
-          {/* Out section — only shown when finished */}
-          {state === 'finished' && outPreds.length > 0 && (
-            <div>
-              {/* Out section header */}
-              <div
-                style={{
-                  padding: '4px 16px',
-                  background: statusBg('out'),
-                  borderBottom: '1px solid #e0dbd3',
-                  borderLeft: `3px solid ${statusAccent('out')}`,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: sans,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    color: statusAccent('out'),
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  {statusLabel('out', state)}
-                </span>
-              </div>
-              {/* Out rows */}
-              <div
-                style={{
-                  padding: '8px 16px',
-                  overflowX: 'auto',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {outPreds.map((p, i) => (
-                  <span key={p.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: i < outPreds.length - 1 ? 12 : 0 }}>
-                    {p.displayName} {p.predictedHome}–{p.predictedAway}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Out ticker for non-finished states */}
+          {/* Out ticker for non-finished states (live/preview/upcoming) */}
           {state !== 'finished' && outPreds.length > 0 && (
             <div
               style={{
@@ -613,7 +961,15 @@ export default function MatchCentre({ data, currentUserId }: MatchCentreProps) {
                 Out of the match ·
               </span>
               {outPreds.map((p, i) => (
-                <span key={p.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: '#9ca3af', marginRight: i < outPreds.length - 1 ? 12 : 0 }}>
+                <span
+                  key={p.userId}
+                  style={{
+                    fontFamily: sans,
+                    fontSize: '0.7rem',
+                    color: '#9ca3af',
+                    marginRight: i < outPreds.length - 1 ? 12 : 0,
+                  }}
+                >
                   {p.displayName} {p.predictedHome}–{p.predictedAway}
                 </span>
               ))}
