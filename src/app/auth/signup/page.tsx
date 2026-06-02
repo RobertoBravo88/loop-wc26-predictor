@@ -483,6 +483,9 @@ function Step2({
       <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
         And Italians? Since Italy isn&apos;t here, we&apos;ll allow a temporary adoption.
       </p>
+      <p style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
+        You can change your player pick any time before June 11 — or skip it now and decide later.
+      </p>
 
       {/* Points callout */}
       <div style={{ background: '#fff8f0', border: '1px solid #ff5c35', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
@@ -622,7 +625,7 @@ function Step3({
         🔮 Crystal Ball
       </h2>
       <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
-        Who goes all the way? Lock in your picks before the tournament starts — you can&apos;t change them once it kicks off.
+        Who goes all the way? Lock in your picks before the tournament starts — or skip it now and decide later.
       </p>
 
       {/* Points callout */}
@@ -758,7 +761,7 @@ function Step4({
         👟 Golden Boots
       </h2>
       <p style={{ fontSize: '0.8rem', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', marginBottom: '1rem' }}>
-        Pick up to 5 players — one per country. Points stack up every time they score. All picks are optional and can be changed until the tournament starts.
+        Pick up to 5 players — one per country. Points stack up every time they score. No picks yet? That&apos;s fine — come back to this in the predictions tab any time before June 11.
       </p>
 
       {/* Points callout */}
