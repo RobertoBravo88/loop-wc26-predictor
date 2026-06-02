@@ -80,7 +80,6 @@ export default async function StatsPage() {
   }
   const topSupportedTeams = Array.from(teamSupportMap.values())
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
 
   // --- Highest rated teams (finalist picks: 1st=3, 2nd=2, 3rd=1) ---
   const teamRatingMap = new Map<string, { id: string | null; name: string; flag: string | null; score: number }>()
@@ -136,7 +135,6 @@ export default async function StatsPage() {
     .filter(f => f.count > 0)
     .map(f => ({ ...f, avgPoints: Math.round((f.totalPoints / f.count) * 10) / 10 }))
     .sort((a, b) => b.avgPoints - a.avgPoints)
-    .slice(0, 10)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
