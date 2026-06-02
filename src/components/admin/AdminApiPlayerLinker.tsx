@@ -40,6 +40,10 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
   // Auto-link state
   const [autoLinking, setAutoLinking] = useState(false)
   const [autoResult, setAutoResult] = useState<string | null>(null)
+  const [teamFilter, setTeamFilter] = useState('')
+
+  // Unique team names for the country dropdown
+  const teamNames = [...new Set(initialPlayers.map(p => p.team_name).filter(Boolean) as string[])].sort()
 
   const pickedSet = new Set(pickedPlayerIds)
   const scoredSet = new Set(scoredPlayerIds)
@@ -58,11 +62,14 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
 
   const sorted = [...players].sort((a, b) => priority(a) - priority(b) || a.name.localeCompare(b.name))
 
+  const filtered = sorted
+    .filter(p => !teamFilter || p.team_name === teamFilter)
+
   const visible = filter === 'unlinked'
-    ? sorted.filter(p => p.api_id === null)
+    ? filtered.filter(p => p.api_id === null)
     : filter === 'picked'
-    ? sorted.filter(p => p.api_id === null && pickedSet.has(p.id))
-    : sorted
+    ? filtered.filter(p => p.api_id === null && pickedSet.has(p.id))
+    : filtered
 
   function getApiOptions(player: PlayerRow): ApiPlayerRow[] {
     const q = (search[player.id] ?? '').toLowerCase().trim()
@@ -162,7 +169,21 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
           )}
         </span>
 
-        {/* Filter */}
+        {/* Country filter */}
+        <select
+          value={teamFilter}
+          onChange={e => setTeamFilter(e.target.value)}
+          style={{
+            border: '1px solid #e0dbd3', padding: '6px 10px',
+            fontSize: '0.75rem', fontFamily: sans, background: '#fff',
+            outline: 'none', cursor: 'pointer',
+          }}
+        >
+          <option value="">All countries</option>
+          {teamNames.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+
+        {/* Link status filter */}
         <select
           value={filter}
           onChange={e => setFilter(e.target.value as Filter)}
@@ -172,7 +193,7 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
             outline: 'none', cursor: 'pointer',
           }}
         >
-          <option value="all">Show all ({total})</option>
+          <option value="all">All ({total})</option>
           <option value="unlinked">Unlinked ({unlinked})</option>
           <option value="picked">🔴 Picked + unlinked ({sorted.filter(p => p.api_id === null && pickedSet.has(p.id)).length})</option>
         </select>
