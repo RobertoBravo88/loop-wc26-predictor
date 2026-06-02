@@ -6,6 +6,8 @@ import AdminUserTable from '@/components/admin/AdminUserTable'
 import AdminNewsSection from '@/components/admin/AdminNewsSection'
 import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
+import AdminMatchSimulator from '@/components/admin/AdminMatchSimulator'
+import { format } from 'date-fns'
 
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
@@ -56,6 +58,21 @@ export default async function AdminPage() {
   )
 
   const { data: matchStats } = await supabase.from('matches').select('status')
+
+  // Matches for the simulator — all matches with teams known
+  const { data: simMatches } = await supabase
+    .from('matches')
+    .select('id, kickoff_at, group_letter, stage, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)')
+    .not('home_team_id', 'is', null)
+    .not('away_team_id', 'is', null)
+    .order('kickoff_at')
+
+  const simMatchList = (simMatches ?? []).map((m: any) => ({
+    id: m.id,
+    label: `${m.group_letter ? `Group ${m.group_letter}` : m.stage?.replace(/_/g, ' ')} — ${m.home_team?.name} vs ${m.away_team?.name} (${format(new Date(m.kickoff_at), 'd MMM')})`,
+  }))
+
+  const simDate = process.env.NEXT_PUBLIC_SIMULATION_DATE
   const totalMatches     = matchStats?.length ?? 0
   const finishedMatches  = matchStats?.filter(m => m.status === 'finished').length ?? 0
   const scheduledMatches = matchStats?.filter(m => m.status === 'scheduled').length ?? 0
@@ -75,6 +92,19 @@ export default async function AdminPage() {
         </div>
       </div>
 
+      {/* ── Simulation mode banner ────────────────────────── */}
+      {simDate && (
+        <div
+          className="px-5 py-3 flex items-center gap-3 text-sm font-semibold"
+          style={{ background: '#fef9c3', border: '1px solid #eab308', color: '#92400e', fontFamily: sans }}
+        >
+          <span>⏰ Simulation mode active</span>
+          <span className="font-normal" style={{ color: '#a16207' }}>
+            "Now" is set to <strong>{format(new Date(simDate), 'd MMM yyyy · HH:mm')}</strong> via NEXT_PUBLIC_SIMULATION_DATE env var. Remove it to return to real time.
+          </span>
+        </div>
+      )}
+
       {/* ── 1. Overview cards ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
@@ -91,7 +121,22 @@ export default async function AdminPage() {
         ))}
       </div>
 
-      {/* ── 2. News posts ─────────────────────────────────── */}
+      {/* ── 2. Match simulator ───────────────────────────── */}
+      <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e0dbd3' }}>
+          <div>
+            <h2 className="font-bold text-sm uppercase tracking-wider" style={{ color: '#141414', fontFamily: sans }}>
+              ⏰ Match Simulator
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: '#6b6b6b', fontFamily: sans }}>
+              Dry run — pick any match, enter a hypothetical score, see who earns what. No data is written.
+            </p>
+          </div>
+        </div>
+        <AdminMatchSimulator matches={simMatchList} />
+      </section>
+
+      {/* ── 3. News posts ─────────────────────────────────── */}
       <section style={{ background: '#ffffff', border: '1px solid #e0dbd3' }} className="overflow-hidden">
         <div className="px-6 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid #e0dbd3' }}>
           <FileText className="w-4 h-4" style={{ color: '#6b6b6b' }} />

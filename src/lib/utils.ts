@@ -15,13 +15,28 @@ export function formatRelative(dateStr: string) {
   return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
 }
 
+/**
+ * Returns the current time — or a simulated time if NEXT_PUBLIC_SIMULATION_DATE
+ * is set in env vars. Set that variable to any ISO date string (e.g.
+ * "2026-06-20T18:00:00Z") to freeze "now" for testing lock states, flag
+ * reveals, leaderboard, etc. Remove it to return to real time.
+ */
+export function getNow(): Date {
+  const sim = process.env.NEXT_PUBLIC_SIMULATION_DATE
+  if (sim) {
+    const d = new Date(sim)
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date()
+}
+
 export function isMatchLocked(kickoffAt: string) {
-  return isPast(new Date(kickoffAt))
+  return new Date(kickoffAt) <= getNow()
 }
 
 export function isTournamentStarted() {
   const start = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z')
-  return isPast(start)
+  return getNow() >= start
 }
 
 export function stageName(stage: MatchStage): string {
