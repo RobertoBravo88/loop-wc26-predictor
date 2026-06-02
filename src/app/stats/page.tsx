@@ -292,45 +292,7 @@ export default async function StatsPage() {
         Loop Intelligence
       </h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-
-        {/* Top Supported Teams */}
-        <div style={{ border: '1px solid #e0dbd3' }}>
-          <div
-            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
-          >
-            🏴 Top Supported Teams
-          </div>
-          {topSupportedTeams.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-              No data yet
-            </p>
-          ) : topSupportedTeams.map((team, i) => {
-            const inner = (
-              <>
-                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  {i + 1}
-                </span>
-                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
-                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
-                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                  {team.count} {team.count === 1 ? 'fan' : 'fans'}
-                </span>
-              </>
-            )
-            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
-            return team.id ? (
-              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>
-                {inner}
-              </Link>
-            ) : (
-              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>
-                {inner}
-              </div>
-            )
-          })}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
         {/* Highest Rated Teams */}
         <div style={{ border: '1px solid #e0dbd3' }}>
@@ -431,7 +393,7 @@ export default async function StatsPage() {
 
       </div>
 
-      {/* Best Fan Bases */}
+      {/* Best Fan Bases + Top Supported Teams */}
       <h2
         className="text-2xl mt-10 mb-4 pb-3"
         style={{
@@ -443,7 +405,44 @@ export default async function StatsPage() {
       >
         Best Fan Bases
       </h2>
-      <p className="text-xs mb-4" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+        {/* Top Supported Teams */}
+        <div style={{ border: '1px solid #e0dbd3' }}>
+          <div
+            className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+            style={{ background: '#141414', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}
+          >
+            🏴 Top Supported Teams
+          </div>
+          {topSupportedTeams.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+              No data yet
+            </p>
+          ) : topSupportedTeams.map((team, i) => {
+            const inner = (
+              <>
+                <span className="w-4 text-xs font-bold text-center flex-shrink-0" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{i + 1}</span>
+                {team.flag && <img src={team.flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />}
+                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{team.name}</span>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                  {team.count} {team.count === 1 ? 'fan' : 'fans'}
+                </span>
+              </>
+            )
+            const rowStyle = { background: i % 2 === 0 ? '#ffffff' : '#faf9f6', borderBottom: i < topSupportedTeams.length - 1 ? '1px solid #e0dbd3' : 'none' as any }
+            return team.id ? (
+              <Link key={team.name} href={`/teams/${team.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity" style={rowStyle}>{inner}</Link>
+            ) : (
+              <div key={team.name} className="flex items-center gap-3 px-4 py-2.5" style={rowStyle}>{inner}</div>
+            )
+          })}
+        </div>
+
+        {/* Best Fan Bases table */}
+        <div>
+        <p className="text-xs mb-3" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
         Average prediction points per fan — which country has the most football knowledge?
       </p>
 
@@ -496,6 +495,8 @@ export default async function StatsPage() {
           )
         })}
       </div>
+        </div> {/* end Best Fan Bases table col */}
+      </div> {/* end 2-col grid */}
 
     </div>
   )
