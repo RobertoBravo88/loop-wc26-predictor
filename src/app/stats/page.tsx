@@ -67,8 +67,8 @@ export default async function StatsPage() {
 
   const processedPredictions = (allPredictions ?? []).filter(p => p.processed_at)
   const totalExact = processedPredictions.filter(p => p.is_exact).length
-  const totalPredictions = processedPredictions.length
-  const totalGoalsPredicted = processedPredictions.reduce((s, p) => s + (p.predicted_home ?? 0) + (p.predicted_away ?? 0), 0)
+  const totalPredictions = (allPredictions ?? []).length        // all submitted, not just graded
+  const totalGoalsPredicted = (allPredictions ?? []).reduce((s, p) => s + (p.predicted_home ?? 0) + (p.predicted_away ?? 0), 0)
 
   // --- Top supported teams (favourite team counts) ---
   const teamSupportMap = new Map<string, { id: string | null; name: string; flag: string | null; count: number }>()

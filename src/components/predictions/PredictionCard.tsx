@@ -69,7 +69,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
 
     const hNum = parseInt(h)
     const aNum = parseInt(a)
-    if (isNaN(hNum) || isNaN(aNum) || hNum < 0 || aNum < 0) return
+    if (isNaN(hNum) || isNaN(aNum) || hNum < 0 || aNum < 0 || hNum > 99 || aNum > 99) return
 
     debounceRef.current = setTimeout(async () => {
       setSaving(true)
@@ -198,7 +198,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
               <input
                 type="number"
                 min="0"
-                max="20"
+                max="99"
                 value={home}
                 onChange={e => { const v = e.target.value; setHome(v); setSaved(false); triggerAutoSave(v, away) }}
                 disabled={locked}
@@ -217,7 +217,7 @@ export default function PredictionCard({ match, prediction, userId, distribution
               <input
                 type="number"
                 min="0"
-                max="20"
+                max="99"
                 value={away}
                 onChange={e => { const v = e.target.value; setAway(v); setSaved(false); triggerAutoSave(home, v) }}
                 disabled={locked}
