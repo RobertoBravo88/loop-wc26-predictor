@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { isTournamentStarted } from '@/lib/utils'
 
 export const revalidate = 300
 
@@ -136,6 +137,8 @@ export default async function StatsPage() {
     .map(f => ({ ...f, avgPoints: Math.round((f.totalPoints / f.count) * 10) / 10 }))
     .sort((a, b) => b.avgPoints - a.avgPoints)
 
+  const tournamentStarted = isTournamentStarted()
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
 
@@ -225,7 +228,7 @@ export default async function StatsPage() {
                 href={`/profile/${award.player.id}`}
                 className="flex items-center gap-2 hover:opacity-70 transition-opacity"
               >
-                {award.player.flag && (
+                {tournamentStarted && award.player.flag && (
                   <img src={award.player.flag} alt="" className="w-6 h-4 object-contain" />
                 )}
                 <span className="font-semibold text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
@@ -264,7 +267,7 @@ export default async function StatsPage() {
             href={`/profile/${currentHottest.id}`}
             className="ml-auto flex items-center gap-2 hover:opacity-70 transition-opacity"
           >
-            {currentHottest.flag && (
+            {tournamentStarted && currentHottest.flag && (
               <img src={currentHottest.flag} alt="" className="w-7 h-5 object-contain" />
             )}
             <span className="font-bold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
