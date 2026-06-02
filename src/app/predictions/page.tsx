@@ -125,7 +125,7 @@ export default async function PredictionsPage({
   if (activeTab === 'tournament') {
     const [teamsRes, playersRes, finalistRes, scorerRes, profileRes] = await Promise.all([
       supabase.from('teams').select('*').order('name'),
-      supabase.from('players').select('*, team:teams(name)').order('name'),
+      supabase.from('players').select('*, team:teams(name)').order('name').limit(2000),
       supabase.from('finalist_picks').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('scorer_picks').select('*, player:players(name, position), team:teams(name, flag_url)').eq('user_id', user.id),
       supabase.from('profiles').select('favourite_team_id, favourite_player_id').eq('id', user.id).maybeSingle(),

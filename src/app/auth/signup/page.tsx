@@ -717,7 +717,7 @@ function Step4({
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('players').select('*').order('name').then(({ data }) => {
+    supabase.from('players').select('*').order('name').limit(2000).then(({ data }) => {
       const map: Record<string, Player[]> = {}
       for (const p of data ?? []) {
         if (!map[p.team_id]) map[p.team_id] = []

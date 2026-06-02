@@ -40,9 +40,10 @@ export default async function AdminPage() {
     .from('players')
     .select('*, team:teams(name, flag_url)')
     .order('name')
+    .limit(2000)
 
   const [unlinkedRes, scorerPicksRes, favPlayerRes, goalEventsRes] = await Promise.all([
-    supabase.from('players').select('id, name, position, team:teams(id, name, flag_url, api_id)').is('api_id', null).order('name'),
+    supabase.from('players').select('id, name, position, team:teams(id, name, flag_url, api_id)').is('api_id', null).order('name').limit(2000),
     supabase.from('scorer_picks').select('player_id'),
     supabase.from('profiles').select('favourite_player_id').not('favourite_player_id', 'is', null),
     supabase.from('goal_events').select('player_id').not('player_id', 'is', null),
