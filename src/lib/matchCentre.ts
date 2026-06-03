@@ -39,6 +39,8 @@ export interface MatchCentreData {
     status: 'on_ball' | 'happy' | 'still_in' | 'out'
     scorerPickName: string | null
     scorerPickPhoto: string | null
+    favPlayerIsInMatch: boolean
+    favPlayerPhoto: string | null
   }>
   homeFans: Array<{ userId: string; displayName: string }>
   awayFans: Array<{ userId: string; displayName: string }>
@@ -232,7 +234,7 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
   const minutesUntilKickoff = Math.max(0, Math.round((kickoffDate.getTime() - now.getTime()) / 60000))
 
   // 2. Fetch supporting data in parallel
-  const [goalEventsRes, predictionsRes, profilesRes, scorerPicksRes] = await Promise.all([
+  const [goalEventsRes, predictionsRes, profilesRes, scorerPicksRes, playersInMatchRes] = await Promise.all([
     supabase
       .from('goal_events')
       .select('id, minute, team_id, is_own_goal, player_id, player:players(name)')
@@ -246,18 +248,30 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
     supabase
       .from('profiles')
-      .select('id, display_name, favourite_team_id'),
+      .select('id, display_name, favourite_team_id, favourite_player_id'),
 
     supabase
       .from('scorer_picks')
       .select('user_id, player_id, team_id, player:players(name, photo_url)')
       .in('team_id', [homeTeamId, awayTeamId]),
+
+    supabase
+      .from('players')
+      .select('id, photo_url')
+      .in('team_id', [homeTeamId, awayTeamId])
+      .limit(200),
   ])
 
   const rawGoalEvents: any[] = goalEventsRes.data ?? []
   const rawPredictions: any[] = predictionsRes.data ?? []
   const rawProfiles: any[] = profilesRes.data ?? []
   const rawScorerPicks: any[] = scorerPicksRes.data ?? []
+
+  // Build player lookup: playerId -> photoUrl for players in this match
+  const playersInMatch = new Map<string, string | null>()
+  for (const p of (playersInMatchRes.data ?? [])) {
+    playersInMatch.set(p.id, (p as any).photo_url ?? null)
+  }
 
   // Build goal events — use preview override if set, otherwise from DB
   const goalEvents: MatchCentreData['goalEvents'] = previewGoalEvents ?? rawGoalEvents.map((ge: any) => {
@@ -331,6 +345,10 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
     const status = computeStatus(predictedHome, predictedAway, currentHome, currentAway)
 
+    const favPlayerId: string | null = profileMap.get(userId)?.favourite_player_id ?? null
+    const favPlayerIsInMatch = favPlayerId != null && playersInMatch.has(favPlayerId)
+    const favPlayerPhoto = favPlayerIsInMatch ? (playersInMatch.get(favPlayerId!) ?? null) : null
+
     return {
       userId,
       displayName,
@@ -342,6 +360,8 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
       status,
       scorerPickName: scorerPickInMatch.get(userId)?.playerName ?? null,
       scorerPickPhoto: scorerPickInMatch.get(userId)?.photoUrl ?? null,
+      favPlayerIsInMatch,
+      favPlayerPhoto,
     }
   })
 

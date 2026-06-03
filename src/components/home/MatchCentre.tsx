@@ -24,72 +24,60 @@ const sans = 'Inter, sans-serif'
 // Team colors
 // ============================================================
 
-const TEAM_COLORS: Record<string, { bg: string; accent: string }> = {
-  // Group A
-  'Mexico':             { bg: 'rgba(0,104,71,0.08)',    accent: '#006847' },
-  'South Africa':       { bg: 'rgba(0,122,77,0.08)',    accent: '#007A4D' },
-  'South Korea':        { bg: 'rgba(0,52,120,0.08)',    accent: '#003478' },
-  'Czech Republic':     { bg: 'rgba(215,20,26,0.08)',   accent: '#D7141A' },
-  // Group B
-  'Canada':             { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000' },
-  'Bosnia and Herzegovina': { bg: 'rgba(0,47,108,0.08)', accent: '#002F6C' },
-  'Qatar':              { bg: 'rgba(141,27,61,0.08)',   accent: '#8D1B3D' },
-  'Switzerland':        { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000' },
-  // Group C
-  'Brazil':             { bg: 'rgba(0,156,59,0.08)',    accent: '#009C3B' },
-  'Morocco':            { bg: 'rgba(193,39,45,0.08)',   accent: '#C1272D' },
-  'Haiti':              { bg: 'rgba(0,32,159,0.08)',    accent: '#00209F' },
-  'Scotland':           { bg: 'rgba(0,94,184,0.08)',    accent: '#005EB8' },
-  // Group D
-  'United States':      { bg: 'rgba(191,10,48,0.08)',   accent: '#BF0A30' },
-  'Australia':          { bg: 'rgba(0,0,139,0.08)',     accent: '#00008B' },
-  'Paraguay':           { bg: 'rgba(213,43,30,0.08)',   accent: '#D52B1E' },
-  'Turkey':             { bg: 'rgba(227,10,23,0.08)',   accent: '#E30A17' },
-  // Group E
-  'Germany':            { bg: 'rgba(30,30,30,0.07)',    accent: '#1a1a1a' },
-  'Curaçao':            { bg: 'rgba(0,61,165,0.08)',    accent: '#003DA5' },
-  "Côte d'Ivoire":      { bg: 'rgba(247,127,0,0.08)',   accent: '#F77F00' },
-  'Ecuador':            { bg: 'rgba(0,53,128,0.08)',    accent: '#003580' },
-  // Group F
-  'Netherlands':        { bg: 'rgba(255,99,0,0.08)',    accent: '#FF6300' },
-  'Japan':              { bg: 'rgba(188,0,45,0.08)',    accent: '#BC002D' },
-  'Sweden':             { bg: 'rgba(0,106,167,0.08)',   accent: '#006AA7' },
-  'Tunisia':            { bg: 'rgba(231,0,0,0.08)',     accent: '#E70000' },
-  // Group G
-  'Belgium':            { bg: 'rgba(239,51,64,0.08)',   accent: '#EF3340' },
-  'Egypt':              { bg: 'rgba(206,17,0,0.08)',    accent: '#CE1100' },
-  'Iran':               { bg: 'rgba(35,159,64,0.08)',   accent: '#239F40' },
-  'New Zealand':        { bg: 'rgba(0,36,125,0.08)',    accent: '#00247D' },
-  // Group H
-  'Spain':              { bg: 'rgba(170,21,27,0.08)',   accent: '#AA151B' },
-  'Cape Verde':         { bg: 'rgba(0,49,131,0.08)',    accent: '#003183' },
-  'Uruguay':            { bg: 'rgba(91,164,207,0.1)',   accent: '#1D6FA4' },
-  'Saudi Arabia':       { bg: 'rgba(0,98,51,0.08)',     accent: '#006233' },
-  // Group I
-  'France':             { bg: 'rgba(0,35,149,0.08)',    accent: '#002395' },
-  'Senegal':            { bg: 'rgba(0,133,63,0.08)',    accent: '#00853F' },
-  'Iraq':               { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D' },
-  'Norway':             { bg: 'rgba(239,43,45,0.08)',   accent: '#EF2B2D' },
-  // Group J
-  'Argentina':          { bg: 'rgba(116,172,223,0.1)',  accent: '#74ACDF' },
-  'Algeria':            { bg: 'rgba(0,98,51,0.08)',     accent: '#006233' },
-  'Austria':            { bg: 'rgba(237,40,0,0.08)',    accent: '#ED2800' },
-  'Jordan':             { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D' },
-  // Group K
-  'Portugal':           { bg: 'rgba(0,102,0,0.08)',     accent: '#006600' },
-  'Congo DR':           { bg: 'rgba(0,127,255,0.08)',   accent: '#007FFF' },
-  'Uzbekistan':         { bg: 'rgba(30,181,58,0.08)',   accent: '#1EB53A' },
-  'Colombia':           { bg: 'rgba(252,209,22,0.1)',   accent: '#003087' },
-  // Group L
-  'England':            { bg: 'rgba(207,8,31,0.08)',    accent: '#CF081F' },
-  'Croatia':            { bg: 'rgba(23,23,150,0.08)',   accent: '#171796' },
-  'Ghana':              { bg: 'rgba(252,209,22,0.08)',  accent: '#006B3F' },
-  'Panama':             { bg: 'rgba(213,20,26,0.08)',   accent: '#D5141A' },
+const TEAM_COLORS: Record<string, { bg: string; accent: string; dark: string }> = {
+  'Mexico':             { bg: 'rgba(0,104,71,0.08)',    accent: '#006847', dark: '#003D29' },
+  'South Africa':       { bg: 'rgba(0,122,77,0.08)',    accent: '#007A4D', dark: '#004D30' },
+  'South Korea':        { bg: 'rgba(206,17,38,0.08)',   accent: '#CE1126', dark: '#8A0B19' },
+  'Czech Republic':     { bg: 'rgba(215,20,26,0.08)',   accent: '#D7141A', dark: '#8B0D11' },
+  'Canada':             { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000', dark: '#990000' },
+  'Bosnia and Herzegovina': { bg: 'rgba(0,47,108,0.08)', accent: '#002F6C', dark: '#001840' },
+  'Qatar':              { bg: 'rgba(141,27,61,0.08)',   accent: '#8D1B3D', dark: '#5A1127' },
+  'Switzerland':        { bg: 'rgba(255,0,0,0.08)',     accent: '#FF0000', dark: '#990000' },
+  'Brazil':             { bg: 'rgba(252,223,0,0.1)',    accent: '#FCDF00', dark: '#8A7A00' },
+  'Morocco':            { bg: 'rgba(0,98,51,0.08)',     accent: '#006233', dark: '#003D20' },
+  'Haiti':              { bg: 'rgba(0,32,159,0.08)',    accent: '#00209F', dark: '#001266' },
+  'Scotland':           { bg: 'rgba(0,94,184,0.08)',    accent: '#005EB8', dark: '#003D7A' },
+  'United States':      { bg: 'rgba(0,40,104,0.08)',   accent: '#002868', dark: '#001540' },
+  'Australia':          { bg: 'rgba(255,205,0,0.1)',    accent: '#FFCD00', dark: '#8A7000' },
+  'Paraguay':           { bg: 'rgba(213,43,30,0.08)',   accent: '#D52B1E', dark: '#8A1C14' },
+  'Turkey':             { bg: 'rgba(227,10,23,0.08)',   accent: '#E30A17', dark: '#99070F' },
+  'Germany':            { bg: 'rgba(30,30,30,0.07)',    accent: '#1a1a1a', dark: '#000000' },
+  'Curaçao':            { bg: 'rgba(0,61,165,0.08)',    accent: '#003DA5', dark: '#00266B' },
+  "Côte d'Ivoire":      { bg: 'rgba(247,127,0,0.08)',   accent: '#F77F00', dark: '#A55500' },
+  'Ecuador':            { bg: 'rgba(255,209,0,0.1)',    accent: '#FFD100', dark: '#8A7000' },
+  'Netherlands':        { bg: 'rgba(255,99,0,0.08)',    accent: '#FF6300', dark: '#B34400' },
+  'Japan':              { bg: 'rgba(0,61,165,0.08)',    accent: '#003DA5', dark: '#00266B' },
+  'Sweden':             { bg: 'rgba(253,220,68,0.1)',   accent: '#FDDC44', dark: '#8A7820' },
+  'Tunisia':            { bg: 'rgba(231,0,0,0.08)',     accent: '#E70000', dark: '#990000' },
+  'Belgium':            { bg: 'rgba(239,51,64,0.08)',   accent: '#EF3340', dark: '#A01E28' },
+  'Egypt':              { bg: 'rgba(206,17,0,0.08)',    accent: '#CE1100', dark: '#880B00' },
+  'Iran':               { bg: 'rgba(35,159,64,0.08)',   accent: '#239F40', dark: '#16662A' },
+  'New Zealand':        { bg: 'rgba(0,36,125,0.08)',    accent: '#00247D', dark: '#001550' },
+  'Spain':              { bg: 'rgba(170,21,27,0.08)',   accent: '#AA151B', dark: '#6E0E12' },
+  'Cape Verde':         { bg: 'rgba(0,49,131,0.08)',    accent: '#003183', dark: '#001F54' },
+  'Uruguay':            { bg: 'rgba(91,164,207,0.1)',   accent: '#5BA4CF', dark: '#2E6E9E' },
+  'Saudi Arabia':       { bg: 'rgba(0,98,51,0.08)',     accent: '#006233', dark: '#003D20' },
+  'France':             { bg: 'rgba(0,35,149,0.08)',    accent: '#002395', dark: '#001466' },
+  'Senegal':            { bg: 'rgba(0,133,63,0.08)',    accent: '#00853F', dark: '#005529' },
+  'Iraq':               { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D', dark: '#004D26' },
+  'Norway':             { bg: 'rgba(239,43,45,0.08)',   accent: '#EF2B2D', dark: '#9F1D1E' },
+  'Argentina':          { bg: 'rgba(116,172,223,0.1)',  accent: '#74ACDF', dark: '#2E6E9E' },
+  'Algeria':            { bg: 'rgba(0,98,51,0.08)',     accent: '#006233', dark: '#003D20' },
+  'Austria':            { bg: 'rgba(237,40,0,0.08)',    accent: '#ED2800', dark: '#9E1B00' },
+  'Jordan':             { bg: 'rgba(0,122,61,0.08)',    accent: '#007A3D', dark: '#004D26' },
+  'Portugal':           { bg: 'rgba(206,17,38,0.08)',   accent: '#CE1126', dark: '#880B19' },
+  'Congo DR':           { bg: 'rgba(0,127,255,0.08)',   accent: '#007FFF', dark: '#0055AA' },
+  'Uzbekistan':         { bg: 'rgba(30,181,58,0.08)',   accent: '#1EB53A', dark: '#127826' },
+  'Colombia':           { bg: 'rgba(252,209,22,0.1)',   accent: '#FCD116', dark: '#8A7010' },
+  'England':            { bg: 'rgba(1,33,105,0.08)',    accent: '#012169', dark: '#000E40' },
+  'Croatia':            { bg: 'rgba(23,23,150,0.08)',   accent: '#171796', dark: '#0E0E62' },
+  'Ghana':              { bg: 'rgba(252,209,22,0.08)',  accent: '#FCD116', dark: '#8A7010' },
+  'Panama':             { bg: 'rgba(213,20,26,0.08)',   accent: '#D52B1E', dark: '#8D0D11' },
 }
 
-function getTeamColors(name: string | null | undefined): { bg: string; accent: string } {
-  if (!name) return { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b' }
-  return TEAM_COLORS[name] ?? { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b' }
+function getTeamColors(name: string | null | undefined): { bg: string; accent: string; dark: string } {
+  if (!name) return { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b', dark: '#3a3a3a' }
+  return TEAM_COLORS[name] ?? { bg: 'rgba(100,100,100,0.06)', accent: '#6b6b6b', dark: '#3a3a3a' }
 }
 
 // ============================================================
@@ -355,54 +343,48 @@ export default function MatchCentre({
 
           {/* Home badge — centered on left edge of section, overflows outside */}
           {match.home_team.flag_url && (
-            <div style={{ position: 'absolute', left: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={match.home_team.flag_url} alt="" style={{ width: 120, height: 120, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+            <div style={{ position: 'absolute', left: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={match.home_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
             </div>
           )}
 
           {/* Away badge — centered on right edge of section, overflows outside */}
           {match.away_team.flag_url && (
-            <div style={{ position: 'absolute', right: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={match.away_team.flag_url} alt="" style={{ width: 120, height: 120, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+            <div style={{ position: 'absolute', right: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={match.away_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
             </div>
           )}
 
           {/* Scoreboard — clip-path handles diagonal panels, no overflow:hidden needed */}
-          <div style={{ position: 'relative', minHeight: 180 }}>
+          <div style={{ position: 'relative', minHeight: 200 }}>
 
             {/* Left panel — home team color, diagonal clip */}
             <div style={{
               position: 'absolute', inset: 0,
               clipPath: 'polygon(0 0, 55% 0, 45% 100%, 0 100%)',
-              background: homeColors.accent,
-            }}>
-              {/* Stadium glow behind badge area */}
-              <div style={{ position: 'absolute', left: 30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            </div>
+              background: `linear-gradient(to right, ${homeColors.dark} 0%, ${homeColors.accent} 100%)`,
+            }} />
 
             {/* Right panel — away team color, diagonal clip */}
             <div style={{
               position: 'absolute', inset: 0,
               clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)',
-              background: awayColors.accent,
-            }}>
-              {/* Stadium glow */}
-              <div style={{ position: 'absolute', right: 30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            </div>
+              background: `linear-gradient(to left, ${awayColors.dark} 0%, ${awayColors.accent} 100%)`,
+            }} />
 
             {/* Content — badge / team name / score all on same horizontal line */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', minHeight: 180, padding: '24px 0' }}>
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', minHeight: 200, padding: '24px 0' }}>
 
               {/* Home side: name + fans left, score right — both centered vertically */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 24, paddingRight: 16 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 40, paddingRight: 16 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.home_team.name}
                   </div>
                   {homeFans.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
                       {homeFans.map(f => (
-                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
+                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
                           {f.displayName}
                         </div>
                       ))}
@@ -419,19 +401,19 @@ export default function MatchCentre({
               <div style={{ width: 4, alignSelf: 'stretch', background: 'rgba(0,0,0,0.35)', flexShrink: 0 }} />
 
               {/* Away side: score left, name + fans right */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 24, paddingLeft: 16 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 40, paddingLeft: 16 }}>
                 {/* Score — left-aligned in away panel */}
                 <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingLeft: 20, flexShrink: 0 }}>
                   {state === 'upcoming' ? '?' : currentAway}
                 </span>
                 <div style={{ flex: 1, textAlign: 'right' }}>
-                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.away_team.name}
                   </div>
                   {awayFans.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
                       {awayFans.map(f => (
-                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
+                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
                           {f.displayName}
                         </div>
                       ))}
@@ -527,15 +509,27 @@ export default function MatchCentre({
                   </span>
                 </span>
 
-                {/* Player photo if they have a scorer pick in this match */}
+                {/* Scorer pick photo */}
                 {pred.scorerPickPhoto && (
                   <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '1px solid #e0dbd3' }}>
-                    <img src={pred.scorerPickPhoto} alt={pred.scorerPickName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={pred.scorerPickPhoto} alt={pred.scorerPickName ?? ''} title={pred.scorerPickName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 )}
                 {pred.scorerPickName && !pred.scorerPickPhoto && (
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div title={pred.scorerPickName ?? ''} style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>{pred.scorerPickName.charAt(0)}</span>
+                  </div>
+                )}
+
+                {/* 12th man player photo (gold ring) — shown when fav player is playing in this match */}
+                {pred.favPlayerIsInMatch && pred.favPlayerPhoto && (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid #FFD700' }}>
+                    <img src={pred.favPlayerPhoto} alt="" title={''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                {pred.favPlayerIsInMatch && !pred.favPlayerPhoto && (
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #FFD700' }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>★</span>
                   </div>
                 )}
 
