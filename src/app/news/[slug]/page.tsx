@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import NewsReactions from '@/components/news/NewsReactions'
 import sanitizeHtml from 'sanitize-html'
+import Script from 'next/script'
 
 export const revalidate = 60
 
@@ -29,10 +30,11 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
-      'img': ['src', 'alt', 'class', 'style'],
-      'a':   ['href', 'target', 'rel'],
-      'iframe': ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
-      '*':   ['class', 'style'],
+      'img':       ['src', 'alt', 'class', 'style'],
+      'a':         ['href', 'target', 'rel'],
+      'iframe':    ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
+      'blockquote': ['class', 'data-media-max-width', 'data-lang', 'data-dnt', 'data-theme'],
+      '*':         ['class', 'style'],
     },
   })
 
@@ -104,6 +106,11 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
         style={{ fontFamily: sans }}
         dangerouslySetInnerHTML={{ __html: safeBody }}
       />
+
+      {/* Load Twitter widget script if the article contains a tweet embed */}
+      {post.body?.includes('twitter-tweet') && (
+        <Script src="https://platform.x.com/widgets.js" strategy="afterInteractive" />
+      )}
 
       {/* Reactions */}
       {user && (
