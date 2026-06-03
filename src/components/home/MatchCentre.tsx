@@ -139,6 +139,7 @@ export default function MatchCentre({
 
   const prevOrderRef = useRef<string[]>([])
   const [risingIds, setRisingIds] = useState<Set<string>>(new Set())
+  const [hoveredPhoto, setHoveredPhoto] = useState<string | null>(null)
 
   useEffect(() => {
     if (!data) return
@@ -344,14 +345,14 @@ export default function MatchCentre({
           {/* Home badge — centered on left edge of section, overflows outside */}
           {match.home_team.flag_url && (
             <div style={{ position: 'absolute', left: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={match.home_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+              <img src={match.home_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
 
           {/* Away badge — centered on right edge of section, overflows outside */}
           {match.away_team.flag_url && (
             <div style={{ position: 'absolute', right: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={match.away_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+              <img src={match.away_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
 
@@ -362,14 +363,14 @@ export default function MatchCentre({
             <div style={{
               position: 'absolute', inset: 0,
               clipPath: 'polygon(0 0, 55% 0, 45% 100%, 0 100%)',
-              background: `linear-gradient(to right, ${homeColors.dark} 0%, ${homeColors.accent} 100%)`,
+              background: `linear-gradient(to right, ${homeColors.dark} 0%, ${homeColors.accent} 55%)`,
             }} />
 
             {/* Right panel — away team color, diagonal clip */}
             <div style={{
               position: 'absolute', inset: 0,
               clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)',
-              background: `linear-gradient(to left, ${awayColors.dark} 0%, ${awayColors.accent} 100%)`,
+              background: `linear-gradient(to left, ${awayColors.dark} 0%, ${awayColors.accent} 55%)`,
             }} />
 
             {/* Content — badge / team name / score all on same horizontal line */}
@@ -512,29 +513,53 @@ export default function MatchCentre({
                   </span>
                 </span>
 
-                {/* Scorer pick photo */}
-                {pred.scorerPickPhoto && (
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '1px solid #e0dbd3' }}>
-                    <img src={pred.scorerPickPhoto} alt={pred.scorerPickName ?? ''} title={pred.scorerPickName ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )}
-                {pred.scorerPickName && !pred.scorerPickPhoto && (
-                  <div title={pred.scorerPickName ?? ''} style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>{pred.scorerPickName.charAt(0)}</span>
-                  </div>
-                )}
+                {/* Scorer pick photo with hover tooltip */}
+                {(pred.scorerPickPhoto || pred.scorerPickName) && (() => {
+                  const key = `${pred.userId}_scorer`
+                  return (
+                    <div
+                      style={{ position: 'relative', flexShrink: 0 }}
+                      onMouseEnter={() => setHoveredPhoto(key)}
+                      onMouseLeave={() => setHoveredPhoto(null)}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', border: '1px solid #e0dbd3', background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {pred.scorerPickPhoto
+                          ? <img src={pred.scorerPickPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>{pred.scorerPickName!.charAt(0)}</span>
+                        }
+                      </div>
+                      {hoveredPhoto === key && pred.scorerPickName && (
+                        <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)', background: '#141414', color: '#ffffff', padding: '2px 6px', fontSize: '0.6rem', fontFamily: sans, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 50 }}>
+                          {pred.scorerPickName}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
-                {/* 12th man player photo (gold ring) — shown when fav player is playing in this match */}
-                {pred.favPlayerIsInMatch && pred.favPlayerPhoto && (
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid #FFD700' }}>
-                    <img src={pred.favPlayerPhoto} alt="" title={''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )}
-                {pred.favPlayerIsInMatch && !pred.favPlayerPhoto && (
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #FFD700' }}>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>★</span>
-                  </div>
-                )}
+                {/* 12th man player photo (gold ring) with hover tooltip */}
+                {pred.favPlayerIsInMatch && (() => {
+                  const key = `${pred.userId}_fav`
+                  return (
+                    <div
+                      style={{ position: 'relative', flexShrink: 0 }}
+                      onMouseEnter={() => setHoveredPhoto(key)}
+                      onMouseLeave={() => setHoveredPhoto(null)}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', border: '2px solid #FFD700', background: '#e0dbd3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {pred.favPlayerPhoto
+                          ? <img src={pred.favPlayerPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#6b6b6b', fontFamily: sans }}>⭐</span>
+                        }
+                      </div>
+                      {hoveredPhoto === key && (
+                        <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)', background: '#FFD700', color: '#141414', padding: '2px 6px', fontSize: '0.6rem', fontFamily: sans, fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 50 }}>
+                          12th Man ⭐
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Points */}
                 <span style={{ fontFamily: sans, fontSize: '0.85rem', fontWeight: 700, color: total > 0 ? '#ff5c35' : '#9ca3af', minWidth: 32, textAlign: 'right' }}>
