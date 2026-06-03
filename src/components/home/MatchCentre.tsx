@@ -153,7 +153,7 @@ export default function MatchCentre({
       })
       if (movedUp.size > 0) {
         setRisingIds(movedUp)
-        setTimeout(() => setRisingIds(new Set()), 700)
+        setTimeout(() => setRisingIds(new Set()), 2100)
       }
     }
     prevOrderRef.current = newOrder
@@ -222,10 +222,22 @@ export default function MatchCentre({
       {/* Keyframe for rise animation */}
       <style>{`
         @keyframes rise {
-          0%   { transform: translateY(-8px); background: rgba(255,92,53,0.15); }
-          100% { transform: translateY(0);    background: transparent; }
+          /* Start: row appears at roughly its old (lower) position */
+          0%   { transform: translateY(48px)  scale(0.98);  box-shadow: none;                           z-index: 1;  }
+          /* Phase 1: shoot up past new position — visually hovers above the overtaken rows */
+          22%  { transform: translateY(-34px) scale(1.03);  box-shadow: 0 10px 32px rgba(0,0,0,0.16);  z-index: 10; }
+          /* Phase 2: hold the hover — floating above */
+          58%  { transform: translateY(-34px) scale(1.025); box-shadow: 0 8px 24px rgba(0,0,0,0.12);   z-index: 10; }
+          /* Phase 3: start drop, slight overshoot below */
+          82%  { transform: translateY(6px)   scale(1.005); box-shadow: 0 3px 10px rgba(0,0,0,0.06);   z-index: 10; }
+          /* Phase 4: settle into new position */
+          100% { transform: translateY(0)     scale(1);      box-shadow: none;                           z-index: 1;  }
         }
-        .animate-rise { animation: rise 0.6s ease-out; }
+        .animate-rise {
+          animation: rise 2s cubic-bezier(0.22, 0.61, 0.36, 1);
+          position: relative;
+          z-index: 10;
+        }
       `}</style>
 
       {/* Outer wrapper — narrows the widget so badges can overflow the edges */}
