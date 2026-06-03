@@ -26,7 +26,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
 
   if (!post) notFound()
 
-  const safeBody = sanitizeHtml(post.body, {
+  const sanitized = sanitizeHtml(post.body, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
@@ -34,9 +34,18 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       'a':         ['href', 'target', 'rel'],
       'iframe':    ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
       'blockquote': ['class', 'data-media-max-width', 'data-lang', 'data-dnt', 'data-theme'],
+      'div':       ['data-embed-html'],
       '*':         ['class', 'style'],
     },
   })
+
+  // Decode embed blocks — replace <div data-embed-html="..."> with the raw HTML
+  const safeBody = sanitized.replace(
+    /<div data-embed-html="([^"]*)"[^>]*>\s*<\/div>/g,
+    (_, encoded) => {
+      try { return decodeURIComponent(encoded) } catch { return '' }
+    }
+  )
 
   const { data: reactions } = await supabase
     .from('news_reactions')

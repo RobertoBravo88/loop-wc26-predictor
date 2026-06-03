@@ -6,7 +6,8 @@ import TiptapLink from '@tiptap/extension-link'
 import TiptapImage from '@tiptap/extension-image'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Link2, ImageIcon, Loader2, Unlink2 } from 'lucide-react'
+import { Link2, ImageIcon, Loader2, Unlink2, Code2 } from 'lucide-react'
+import { EmbedBlock } from './EmbedBlock'
 
 interface Props {
   content: string
@@ -27,6 +28,7 @@ export default function RichTextEditor({ content, onChange }: Props) {
       TiptapImage.configure({
         HTMLAttributes: { class: 'rte-image' },
       }),
+      EmbedBlock,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -58,6 +60,15 @@ export default function RichTextEditor({ content, onChange }: Props) {
     } else {
       editor.chain().focus().setLink({ href: url.trim() }).run()
     }
+  }
+
+  function handleEmbed() {
+    const raw = window.prompt('Paste embed HTML (blockquote only — no <script> line):')
+    if (!raw?.trim()) return
+    editor.chain().focus().insertContent({
+      type: 'embedBlock',
+      attrs: { html: raw.trim() },
+    }).run()
   }
 
   async function handleImageFile(file: File) {
@@ -173,6 +184,17 @@ export default function RichTextEditor({ content, onChange }: Props) {
             e.target.value = ''
           }}
         />
+
+        {/* Embed HTML (tweets, videos) */}
+        <button
+          type="button"
+          title="Insert HTML embed (tweet, video…)"
+          onClick={handleEmbed}
+          className="flex items-center justify-center w-7 h-7 rounded transition-colors"
+          style={{ color: '#6b6b6b' }}
+        >
+          <Code2 className="w-3.5 h-3.5" />
+        </button>
 
         <span
           className="ml-auto text-xs"
