@@ -377,19 +377,11 @@ export default function MatchCentre({
 
               {/* Home side: name + fans left, score right — both centered vertically */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 40, paddingRight: 16 }}>
-                <div style={{ flex: 1 }}>
+                {/* Team name — centered between badge edge and score */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
                   <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.home_team.name}
                   </div>
-                  {homeFans.length > 0 && (
-                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-                      {homeFans.map(f => (
-                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
-                          {f.displayName}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 {/* Score — right-aligned in home panel */}
                 <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingRight: 20, flexShrink: 0 }}>
@@ -400,25 +392,17 @@ export default function MatchCentre({
               {/* Divider */}
               <div style={{ width: 4, alignSelf: 'stretch', background: 'rgba(0,0,0,0.35)', flexShrink: 0 }} />
 
-              {/* Away side: score left, name + fans right */}
+              {/* Away side: score left, name centered */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 40, paddingLeft: 16 }}>
                 {/* Score — left-aligned in away panel */}
                 <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingLeft: 20, flexShrink: 0 }}>
                   {state === 'upcoming' ? '?' : currentAway}
                 </span>
-                <div style={{ flex: 1, textAlign: 'right' }}>
+                {/* Team name — centered between score and badge edge */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
                   <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.away_team.name}
                   </div>
-                  {awayFans.length > 0 && (
-                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-                      {awayFans.map(f => (
-                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7 }}>
-                          {f.displayName}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -444,6 +428,25 @@ export default function MatchCentre({
             )}
           </div>
         </div>
+
+        {/* ── Fan strip — between scoreboard and prediction bar ── */}
+        {(homeFans.length > 0 || awayFans.length > 0) && (
+          <div style={{
+            background: `linear-gradient(to right, ${homeColors.dark} 0%, ${homeColors.accent} 40%, ${awayColors.accent} 60%, ${awayColors.dark} 100%)`,
+            padding: '8px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}>
+            <div style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 500, letterSpacing: '0.01em' }}>
+              {homeFans.map(f => f.displayName).join(' / ')}
+            </div>
+            <div style={{ fontFamily: sans, fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 500, textAlign: 'right', letterSpacing: '0.01em' }}>
+              {awayFans.map(f => f.displayName).join(' / ')}
+            </div>
+          </div>
+        )}
 
         {/* ── Distribution bar — dynamic blocks, min-width, disappears when 0% ── */}
         {predictions.length > 0 && (
