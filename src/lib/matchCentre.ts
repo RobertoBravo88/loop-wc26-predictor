@@ -41,6 +41,7 @@ export interface MatchCentreData {
     scorerPickPhoto: string | null
     favPlayerIsInMatch: boolean
     favPlayerPhoto: string | null
+    favPlayerName: string | null
   }>
   homeFans: Array<{ userId: string; displayName: string }>
   awayFans: Array<{ userId: string; displayName: string }>
@@ -257,7 +258,7 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
     supabase
       .from('players')
-      .select('id, photo_url')
+      .select('id, name, photo_url')
       .in('team_id', [homeTeamId, awayTeamId])
       .limit(200),
   ])
@@ -267,10 +268,10 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
   const rawProfiles: any[] = profilesRes.data ?? []
   const rawScorerPicks: any[] = scorerPicksRes.data ?? []
 
-  // Build player lookup: playerId -> photoUrl for players in this match
-  const playersInMatch = new Map<string, string | null>()
+  // Build player lookup: playerId -> { photoUrl, name } for players in this match
+  const playersInMatch = new Map<string, { photoUrl: string | null; name: string | null }>()
   for (const p of (playersInMatchRes.data ?? [])) {
-    playersInMatch.set(p.id, (p as any).photo_url ?? null)
+    playersInMatch.set(p.id, { photoUrl: (p as any).photo_url ?? null, name: (p as any).name ?? null })
   }
 
   // Build goal events — use preview override if set, otherwise from DB
@@ -347,7 +348,7 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
     const favPlayerId: string | null = profileMap.get(userId)?.favourite_player_id ?? null
     const favPlayerIsInMatch = favPlayerId != null && playersInMatch.has(favPlayerId)
-    const favPlayerPhoto = favPlayerIsInMatch ? (playersInMatch.get(favPlayerId!) ?? null) : null
+    const favPlayerEntry = favPlayerIsInMatch ? (playersInMatch.get(favPlayerId!) ?? null) : null
 
     return {
       userId,
@@ -361,7 +362,8 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
       scorerPickName: scorerPickInMatch.get(userId)?.playerName ?? null,
       scorerPickPhoto: scorerPickInMatch.get(userId)?.photoUrl ?? null,
       favPlayerIsInMatch,
-      favPlayerPhoto,
+      favPlayerPhoto: favPlayerEntry?.photoUrl ?? null,
+      favPlayerName: favPlayerEntry?.name ?? null,
     }
   })
 

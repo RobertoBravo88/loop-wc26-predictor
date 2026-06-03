@@ -566,7 +566,7 @@ export default function MatchCentre({
                       </div>
                       {hoveredPhoto === key && (
                         <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)', background: '#FFD700', color: '#141414', padding: '2px 6px', fontSize: '0.6rem', fontFamily: sans, fontWeight: 700, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 50 }}>
-                          12th Man ⭐
+                          {pred.favPlayerName ?? '12th Man'} ⭐
                         </div>
                       )}
                     </div>
