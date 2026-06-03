@@ -239,18 +239,21 @@ export default function MatchCentre({
         .animate-rise { animation: rise 0.6s ease-out; }
       `}</style>
 
+      {/* Outer wrapper — narrows the widget so badges can overflow the edges */}
+      <div style={{ margin: '0 70px' }}>
       <section
         style={{
           background: '#ffffff',
           border: '1px solid #e0dbd3',
-          overflow: 'hidden',
+          overflow: 'visible',
+          position: 'relative',
         }}
       >
         {/* ── Header bar ── */}
         <div
           style={{
             background: '#141414',
-            padding: '10px 16px',
+            padding: '14px 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -347,33 +350,25 @@ export default function MatchCentre({
           </div>
         </div>
 
-        {/* ── Scoreboard: badge overflow + score in panels ── */}
-        <div style={{ position: 'relative', overflow: 'visible' }}>
+        {/* ── Scoreboard wrapper — badges centered on left/right edges of the section ── */}
+        <div style={{ position: 'relative' }}>
 
-          {/* Home badge — overflows left edge */}
-          <div style={{ position: 'absolute', left: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
-            {match.home_team.flag_url && (
-              <img
-                src={match.home_team.flag_url}
-                alt=""
-                style={{ width: 90, height: 90, objectFit: 'contain', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}
-              />
-            )}
-          </div>
+          {/* Home badge — centered on left edge of section, overflows outside */}
+          {match.home_team.flag_url && (
+            <div style={{ position: 'absolute', left: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={match.home_team.flag_url} alt="" style={{ width: 120, height: 120, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+            </div>
+          )}
 
-          {/* Away badge — overflows right edge */}
-          <div style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
-            {match.away_team.flag_url && (
-              <img
-                src={match.away_team.flag_url}
-                alt=""
-                style={{ width: 90, height: 90, objectFit: 'contain', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}
-              />
-            )}
-          </div>
+          {/* Away badge — centered on right edge of section, overflows outside */}
+          {match.away_team.flag_url && (
+            <div style={{ position: 'absolute', right: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={match.away_team.flag_url} alt="" style={{ width: 120, height: 120, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+            </div>
+          )}
 
-          {/* Main scoreboard — inset from edges to make room for badges */}
-          <div style={{ margin: '0 55px', position: 'relative', overflow: 'hidden', minHeight: 160 }}>
+          {/* Scoreboard — clip-path handles diagonal panels, no overflow:hidden needed */}
+          <div style={{ position: 'relative', minHeight: 180 }}>
 
             {/* Left panel — home team color, diagonal clip */}
             <div style={{
@@ -395,54 +390,50 @@ export default function MatchCentre({
               <div style={{ position: 'absolute', right: 30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
             </div>
 
-            {/* Content overlay */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', height: '100%', padding: '20px 0' }}>
+            {/* Content — badge / team name / score all on same horizontal line */}
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', minHeight: 180, padding: '24px 0' }}>
 
-              {/* Home: team name + fans + score */}
-              <div style={{ flex: 1, paddingLeft: 80, display: 'flex', alignItems: 'center', gap: 20 }}>
-                <div>
-                  <div style={{ fontFamily: sans, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+              {/* Home side: name + fans left, score right — both centered vertically */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 24, paddingRight: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
                     {match.home_team.name}
                   </div>
-                  {(state !== 'upcoming') && homeFans.length > 0 && (
-                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
+                  {homeFans.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
                       {homeFans.map(f => (
-                        <span key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
                           {f.displayName}
-                        </span>
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
-                {/* Home score — inside home panel, pushed to the right */}
-                <div style={{ marginLeft: 'auto', paddingRight: 24 }}>
-                  <span style={{ fontFamily: sans, fontSize: '5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-                    {state === 'upcoming' ? '?' : currentHome}
-                  </span>
-                </div>
+                {/* Score — right-aligned in home panel */}
+                <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingRight: 20, flexShrink: 0 }}>
+                  {state === 'upcoming' ? '?' : currentHome}
+                </span>
               </div>
 
-              {/* Center: thin divider line — NO score, NO dash */}
-              <div style={{ width: 3, height: 60, background: 'rgba(0,0,0,0.4)', flexShrink: 0 }} />
+              {/* Divider */}
+              <div style={{ width: 4, alignSelf: 'stretch', background: 'rgba(0,0,0,0.35)', flexShrink: 0 }} />
 
-              {/* Away: score + team name + fans */}
-              <div style={{ flex: 1, paddingRight: 80, display: 'flex', alignItems: 'center', gap: 20, justifyContent: 'flex-end' }}>
-                {/* Away score — inside away panel, pushed to the left */}
-                <div style={{ paddingLeft: 24, marginRight: 'auto' }}>
-                  <span style={{ fontFamily: sans, fontSize: '5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-                    {state === 'upcoming' ? '?' : currentAway}
-                  </span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: sans, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
+              {/* Away side: score left, name + fans right */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 24, paddingLeft: 16 }}>
+                {/* Score — left-aligned in away panel */}
+                <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingLeft: 20, flexShrink: 0 }}>
+                  {state === 'upcoming' ? '?' : currentAway}
+                </span>
+                <div style={{ flex: 1, textAlign: 'right' }}>
+                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
                     {match.away_team.name}
                   </div>
-                  {(state !== 'upcoming') && awayFans.length > 0 && (
-                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: '2px 8px', justifyContent: 'flex-end' }}>
+                  {awayFans.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
                       {awayFans.map(f => (
-                        <span key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                        <div key={f.userId} style={{ fontFamily: sans, fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
                           {f.displayName}
-                        </span>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -571,6 +562,7 @@ export default function MatchCentre({
           </div>
         </div>
       </section>
+      </div> {/* end outer margin wrapper */}
     </>
   )
 }
