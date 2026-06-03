@@ -241,7 +241,7 @@ export default function MatchCentre({
       `}</style>
 
       {/* Outer wrapper — narrows the widget so badges can overflow the edges */}
-      <div style={{ margin: '0 70px' }}>
+      <div style={{ margin: '0 84px' }}>
       <section
         style={{
           background: '#ffffff',
@@ -354,16 +354,16 @@ export default function MatchCentre({
         {/* ── Scoreboard wrapper — badges centered on left/right edges of the section ── */}
         <div style={{ position: 'relative' }}>
 
-          {/* Home badge — centered on left edge of section, overflows outside */}
+          {/* Home badge — centre sits exactly on the left edge of the section */}
           {match.home_team.flag_url && (
-            <div style={{ position: 'absolute', left: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', left: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={match.home_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
 
-          {/* Away badge — centered on right edge of section, overflows outside */}
+          {/* Away badge — centre sits exactly on the right edge of the section */}
           {match.away_team.flag_url && (
-            <div style={{ position: 'absolute', right: -65, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', right: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={match.away_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
