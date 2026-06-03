@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import NewsReactions from '@/components/news/NewsReactions'
 import sanitizeHtml from 'sanitize-html'
-import Script from 'next/script'
+import TweetLoader from '@/components/ui/TweetLoader'
 
 export const revalidate = 60
 
@@ -116,10 +116,8 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
         dangerouslySetInnerHTML={{ __html: safeBody }}
       />
 
-      {/* Load Twitter widget script if the article contains a tweet embed */}
-      {post.body?.includes('twitter-tweet') && (
-        <Script src="https://platform.x.com/widgets.js" strategy="afterInteractive" />
-      )}
+      {/* Load Twitter widget script and trigger transform if article has a tweet */}
+      {safeBody.includes('twitter-tweet') && <TweetLoader />}
 
       {/* Reactions */}
       {user && (
