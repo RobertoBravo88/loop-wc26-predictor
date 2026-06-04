@@ -41,7 +41,7 @@ const TEAM_NAME_CORRECTIONS: Record<string, string> = {
   'Curacao':            'Curaçao',
   'Ivory Coast':        "Côte d'Ivoire",
   'Congo DR':           'Congo DR',
-  'United States':      'United States',
+  'United States':      'USA',
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
