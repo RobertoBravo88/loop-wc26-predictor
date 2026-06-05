@@ -124,14 +124,25 @@ export default function PredictionCard({ match, prediction, userId, distribution
           {match.venue ? `${match.venue} · ` : ''}{formatKickoff(match.kickoff_at)}
           {showLockCountdown && !locked && !finished && (() => {
             const text = getLockCountdownText(match.kickoff_at)
-            return text ? (
+            if (!text) return null
+            const hasPrediction = prediction !== null
+            return hasPrediction ? (
+              // Lighter style — pick made, just a reminder
+              <span
+                className="text-xs font-semibold px-1.5 py-0.5"
+                style={{ background: 'transparent', color: '#ff5c35', border: '1px solid #ff5c35', fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', letterSpacing: '0.01em' }}
+              >
+                {text}
+              </span>
+            ) : (
+              // Solid style — no pick yet, urgent
               <span
                 className="text-xs font-semibold px-1.5 py-0.5"
                 style={{ background: '#ff5c35', color: '#ffffff', fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', letterSpacing: '0.01em' }}
               >
                 {text}
               </span>
-            ) : null
+            )
           })()}
         </span>
         <div className="flex items-center gap-2">

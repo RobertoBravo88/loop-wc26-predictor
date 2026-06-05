@@ -219,8 +219,15 @@ export default function MatchCentre({
 
   return (
     <>
-      {/* Keyframe for rise animation */}
+      {/* Keyframe for rise animation + mobile styles */}
       <style>{`
+        @media (max-width: 639px) {
+          .mc-outer   { margin: 0 !important; }
+          .mc-badge   { display: none !important; }
+          .mc-score   { font-size: 3.5rem !important; }
+          .mc-name    { font-size: 1rem !important; }
+          .mc-scoreboard { min-height: 140px !important; }
+        }
         @keyframes rise {
           /* Start: row appears at roughly its old (lower) position */
           0%   { transform: translateY(48px)  scale(0.98);  box-shadow: none;                           z-index: 1;  }
@@ -241,7 +248,7 @@ export default function MatchCentre({
       `}</style>
 
       {/* Outer wrapper — narrows the widget so badges can overflow the edges */}
-      <div style={{ margin: '0 84px' }}>
+      <div className="mc-outer" style={{ margin: '0 84px' }}>
       <section
         style={{
           background: '#ffffff',
@@ -356,20 +363,20 @@ export default function MatchCentre({
 
           {/* Home badge — centre sits exactly on the left edge of the section */}
           {match.home_team.flag_url && (
-            <div style={{ position: 'absolute', left: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="mc-badge" style={{ position: 'absolute', left: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={match.home_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
 
           {/* Away badge — centre sits exactly on the right edge of the section */}
           {match.away_team.flag_url && (
-            <div style={{ position: 'absolute', right: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="mc-badge" style={{ position: 'absolute', right: -80, top: '50%', transform: 'translateY(-50%)', zIndex: 20, width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={match.away_team.flag_url} alt="" style={{ width: 155, height: 155, objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.3))' }} />
             </div>
           )}
 
           {/* Scoreboard — clip-path handles diagonal panels, no overflow:hidden needed */}
-          <div style={{ position: 'relative', minHeight: 200 }}>
+          <div className="mc-scoreboard" style={{ position: 'relative', minHeight: 200 }}>
 
             {/* Left panel — home team color, diagonal clip */}
             <div style={{
@@ -386,18 +393,18 @@ export default function MatchCentre({
             }} />
 
             {/* Content — badge / team name / score all on same horizontal line */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', minHeight: 200, padding: '24px 0' }}>
+            <div className="mc-scoreboard" style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', minHeight: 200, padding: '24px 0' }}>
 
               {/* Home side: name + fans left, score right — both centered vertically */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 40, paddingRight: 16 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 8 }}>
                 {/* Team name — centered between badge edge and score */}
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+                  <div className="mc-name" style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.home_team.name}
                   </div>
                 </div>
                 {/* Score — right-aligned in home panel */}
-                <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingRight: 20, flexShrink: 0 }}>
+                <span className="mc-score" style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingRight: 12, flexShrink: 0 }}>
                   {state === 'upcoming' ? '?' : currentHome}
                 </span>
               </div>
@@ -406,14 +413,14 @@ export default function MatchCentre({
               <div style={{ width: 4, alignSelf: 'stretch', background: 'rgba(0,0,0,0.35)', flexShrink: 0 }} />
 
               {/* Away side: score left, name centered */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 40, paddingLeft: 16 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingRight: 16, paddingLeft: 8 }}>
                 {/* Score — left-aligned in away panel */}
-                <span style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingLeft: 20, flexShrink: 0 }}>
+                <span className="mc-score" style={{ fontFamily: sans, fontSize: '5.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.35)', paddingLeft: 12, flexShrink: 0 }}>
                   {state === 'upcoming' ? '?' : currentAway}
                 </span>
                 {/* Team name — centered between score and badge edge */}
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+                  <div className="mc-name" style={{ fontFamily: sans, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                     {match.away_team.name}
                   </div>
                 </div>

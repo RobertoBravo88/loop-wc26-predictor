@@ -18,7 +18,7 @@ interface Post {
 const serif = "'Playfair Display', Georgia, serif"
 const sans  = 'Inter, sans-serif'
 
-// Fixed height for the card — consistent regardless of content or image presence
+// Desktop card height — on mobile the card grows to fit image + text stacked
 const CARD_HEIGHT = 260
 
 export default function NewsCarousel({ posts }: { posts: Post[] }) {
@@ -49,12 +49,10 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
           background: '#ffffff',
           textDecoration: 'none',
           display: 'flex',
-          height: `${CARD_HEIGHT}px`,
-          overflow: 'hidden',
         }}
       >
-        {/* Image — always same height, covers the slot */}
-        <div className="sm:w-1/2 flex-shrink-0" style={{ height: '100%', overflow: 'hidden' }}>
+        {/* Image — fixed height on both views; on mobile full width, desktop half width */}
+        <div className="sm:w-1/2 flex-shrink-0" style={{ height: `${CARD_HEIGHT}px`, overflow: 'hidden' }}>
           {post.image_url ? (
             <img
               src={post.image_url}
@@ -66,7 +64,7 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
           )}
         </div>
 
-        {/* Text */}
+        {/* Text — flows below image on mobile, beside it on desktop */}
         <div className="flex flex-col justify-center p-6 sm:p-8 flex-1 min-w-0">
           <span
             className="text-xs uppercase tracking-widest mb-3"

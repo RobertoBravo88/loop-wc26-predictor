@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { isTournamentStarted, stageName } from '@/lib/utils'
+import { isTournamentStarted, stageName, getNow } from '@/lib/utils'
 import LocalTime from '@/components/ui/LocalTime'
 import CountdownTimer from '@/components/ui/CountdownTimer'
 import { ChevronRight } from 'lucide-react'
@@ -393,7 +393,29 @@ export default async function HomePage() {
                     <span className="text-xs uppercase tracking-wider" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
                       {match.group_letter ? `Group ${match.group_letter}` : stageName(match.stage)}
                     </span>
-                    <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    <span className="flex items-center gap-2 text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      {(() => {
+                        const now = getNow()
+                        const kickoff = new Date(match.kickoff_at)
+                        const diffMs = kickoff.getTime() - now.getTime()
+                        if (diffMs <= 0) return null
+                        const diffHours = diffMs / (1000 * 60 * 60)
+                        let lockText: string | null = null
+                        if (diffHours <= 48) {
+                          const h = Math.floor(diffHours)
+                          const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                          lockText = `Locks in ${h}h ${m}m`
+                        } else if (diffHours <= 168) {
+                          lockText = `Locks in ${Math.floor(diffHours / 24)} days`
+                        }
+                        if (!lockText) return null
+                        const pred = predictionMap.get(match.id)
+                        return pred ? (
+                          <span style={{ background: 'transparent', color: '#ff5c35', border: '1px solid #ff5c35', fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', fontWeight: 600, padding: '1px 6px' }}>{lockText}</span>
+                        ) : (
+                          <span style={{ background: '#ff5c35', color: '#ffffff', fontFamily: 'Inter, sans-serif', fontSize: '0.65rem', fontWeight: 600, padding: '1px 6px' }}>{lockText}</span>
+                        )
+                      })()}
                       <LocalTime date={match.kickoff_at} />
                     </span>
                   </div>

@@ -91,6 +91,7 @@ export default function GroupMatchesList({ matches, predictionMap, distMap, user
                 prediction={predictionMap[match.id] ?? null}
                 userId={userId}
                 distribution={distMap[match.id]}
+                showLockCountdown={lockCountdownIds?.has(match.id)}
               />
             ))}
           </div>
