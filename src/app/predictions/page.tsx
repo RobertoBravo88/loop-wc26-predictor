@@ -89,11 +89,11 @@ export default async function PredictionsPage({
   // Tab-specific data
   // ─────────────────────────────────────────────────────────────────────
 
-  // Compute lock-countdown set: next 12 upcoming matches the user hasn't predicted yet
+  // Compute lock-countdown set: all upcoming matches within 7 days (predicted or not)
+  // PredictionCard handles the two visual states: solid = no pick, ghost = pick made
   const allScheduledMatches = [...(groupMatchesRes.data ?? []), ...(knockoutMatchesRes.data ?? [])]
-    .filter(m => !isMatchLocked(m.kickoff_at) && !predSet.has(m.id))
+    .filter(m => !isMatchLocked(m.kickoff_at))
     .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
-    .slice(0, 12)
   const lockCountdownIds = new Set(allScheduledMatches.map(m => m.id))
 
   // Group tab
