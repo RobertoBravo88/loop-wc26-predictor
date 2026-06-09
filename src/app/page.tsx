@@ -10,6 +10,7 @@ import PlayerScoredBanner, { type ScoredGoal } from '@/components/home/PlayerSco
 import AchievementToast from '@/components/ui/AchievementToast'
 import MatchCentre from '@/components/home/MatchCentre'
 import { getMatchCentreData } from '@/lib/matchCentre'
+import TeamFanBadge from '@/components/ui/TeamFanBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,18 @@ export default async function HomePage() {
       .in('match_id', matchIds)
     for (const p of preds ?? []) {
       predictionMap.set(p.match_id, { predicted_home: p.predicted_home, predicted_away: p.predicted_away })
+    }
+  }
+
+  // Fan counts per team
+  const { data: fanData } = await supabase
+    .from('profiles')
+    .select('favourite_team_id')
+    .not('favourite_team_id', 'is', null)
+  const fanCountMap: Record<string, number> = {}
+  for (const row of fanData ?? []) {
+    if (row.favourite_team_id) {
+      fanCountMap[row.favourite_team_id] = (fanCountMap[row.favourite_team_id] ?? 0) + 1
     }
   }
 
@@ -421,6 +434,7 @@ export default async function HomePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 flex-1 justify-end">
+                      {match.home_team && <TeamFanBadge teamId={match.home_team.id} count={fanCountMap[match.home_team.id] ?? 0} />}
                       {match.home_team ? (
                         <Link href={`/teams/${match.home_team.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                           {match.home_team.name}
@@ -445,6 +459,7 @@ export default async function HomePage() {
                           {match.away_team.name}
                         </Link>
                       ) : <span className="text-sm font-semibold" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>—</span>}
+                      {match.away_team && <TeamFanBadge teamId={match.away_team.id} count={fanCountMap[match.away_team.id] ?? 0} />}
                     </div>
                   </div>
                   {user && (

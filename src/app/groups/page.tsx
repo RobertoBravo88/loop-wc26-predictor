@@ -79,6 +79,8 @@ export default async function GroupsPage() {
     { data: lastSyncRow },
     { data: goalEventsRaw },
     { data: allPlayersRaw },
+    { data: teamFanData },
+    { data: playerFanData },
   ] = await Promise.all([
     supabase.from('teams').select('*').order('name'),
     supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)').eq('stage', 'group').order('kickoff_at'),
@@ -86,7 +88,25 @@ export default async function GroupsPage() {
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('goal_events').select('player_id').eq('is_own_goal', false),
     supabase.from('players').select('id, name, team:teams(name, flag_url)').not('api_id', 'is', null).order('name'),
+    supabase.from('profiles').select('favourite_team_id').not('favourite_team_id', 'is', null),
+    supabase.from('profiles').select('favourite_player_id').not('favourite_player_id', 'is', null),
   ])
+
+  // Build team fan count map
+  const teamFanCountMap: Record<string, number> = {}
+  for (const row of teamFanData ?? []) {
+    if (row.favourite_team_id) {
+      teamFanCountMap[row.favourite_team_id] = (teamFanCountMap[row.favourite_team_id] ?? 0) + 1
+    }
+  }
+
+  // Build player fan count map
+  const playerFanCountMap = new Map<string, number>()
+  for (const row of playerFanData ?? []) {
+    if (row.favourite_player_id) {
+      playerFanCountMap.set(row.favourite_player_id, (playerFanCountMap.get(row.favourite_player_id) ?? 0) + 1)
+    }
+  }
 
   const lastSynced = lastSyncRow?.result_fetched_at ?? null
 
@@ -137,6 +157,7 @@ export default async function GroupsPage() {
     goals: goalCountMap.get(p.id) ?? 0,
     isMyPick: mySquadIds.has(p.id),
     isSecret: p.id === favPlayerId,
+    fanCount: playerFanCountMap.get(p.id) ?? 0,
   })).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
 
   // Convert Maps to plain objects for client component
@@ -220,6 +241,7 @@ export default async function GroupsPage() {
       topScorers={topScorers}
       mySquadIds={Array.from(mySquadIds)}
       lastSynced={lastSynced}
+      teamFanCountMap={teamFanCountMap}
     />
   )
 }

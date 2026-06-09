@@ -13,9 +13,10 @@ interface Props {
   distMap: Record<string, { home: number; draw: number; away: number; total: number }>
   userId: string
   lockCountdownIds?: Set<string>
+  fanCountMap?: Record<string, number>
 }
 
-export default function GroupMatchesList({ matches, predictionMap, distMap, userId, lockCountdownIds }: Props) {
+export default function GroupMatchesList({ matches, predictionMap, distMap, userId, lockCountdownIds, fanCountMap }: Props) {
   const [sort, setSort] = useState<'group' | 'date'>('group')
 
   const btnStyle = (active: boolean): React.CSSProperties => ({
@@ -50,6 +51,7 @@ export default function GroupMatchesList({ matches, predictionMap, distMap, user
               userId={userId}
               distribution={distMap[match.id]}
               showLockCountdown={lockCountdownIds?.has(match.id)}
+              fanCountMap={fanCountMap}
             />
           ))}
         </div>
@@ -92,6 +94,7 @@ export default function GroupMatchesList({ matches, predictionMap, distMap, user
                 userId={userId}
                 distribution={distMap[match.id]}
                 showLockCountdown={lockCountdownIds?.has(match.id)}
+                fanCountMap={fanCountMap}
               />
             ))}
           </div>

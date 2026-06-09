@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { stageName } from '@/lib/utils'
 import { format } from 'date-fns'
 import LocalTime from '@/components/ui/LocalTime'
+import TeamFanBadge from '@/components/ui/TeamFanBadge'
 import type { Match, GroupStanding, MatchStage } from '@/types'
 
 // ============================================================
@@ -30,6 +31,7 @@ export interface TopScorer {
   goals: number
   isMyPick: boolean  // true if current user picked this player for Golden Boots
   isSecret: boolean  // true if this is the user's 12th Man secret player
+  fanCount: number   // how many Loopers picked this player as their 12th Man
 }
 
 interface SlotInfo { label: string; team?: string; confirmed: boolean }
@@ -42,6 +44,7 @@ interface Props {
   topScorers: TopScorer[]
   mySquadIds: string[]
   lastSynced: string | null
+  teamFanCountMap: Record<string, number>
 }
 
 // ============================================================
@@ -93,9 +96,10 @@ function resolveSlot(slot: string, leaders: Record<string, { p1?: string; p2?: s
 // Sub-components
 // ============================================================
 
-function StandingsTable({ standings, predictedStandings }: {
+function StandingsTable({ standings, predictedStandings, fanCountMap }: {
   standings: GroupStanding[]
   predictedStandings?: GroupStanding[]
+  fanCountMap?: Record<string, number>
 }) {
   const hasPred = !!predictedStandings && predictedStandings.length > 0
 
@@ -158,6 +162,7 @@ function StandingsTable({ standings, predictedStandings }: {
                     >
                       {row.team.name}
                     </Link>
+                    <TeamFanBadge teamId={row.team.id} count={fanCountMap?.[row.team.id] ?? 0} />
                     {delta !== null && delta !== 0 && (
                       <span
                         className="flex-shrink-0 text-xs font-bold"
@@ -272,10 +277,12 @@ function AllMatchesTab({
   groupData,
   knockoutData,
   firstUpcomingRef,
+  fanCountMap,
 }: {
   groupData: GroupData[]
   knockoutData: KnockoutData[]
   firstUpcomingRef: React.MutableRefObject<HTMLDivElement | null>
+  fanCountMap: Record<string, number>
 }) {
   // Combine all matches from group + knockout data
   const allMatches: Array<Match & { displayLabel: string }> = []
@@ -339,6 +346,7 @@ function AllMatchesTab({
 
             {/* Home team */}
             <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+              {match.home_team && <TeamFanBadge teamId={match.home_team.id} count={fanCountMap[match.home_team.id] ?? 0} />}
               <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                 {match.home_team?.name ?? '—'}
               </span>
@@ -381,6 +389,7 @@ function AllMatchesTab({
               <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                 {match.away_team?.name ?? '—'}
               </span>
+              {match.away_team && <TeamFanBadge teamId={match.away_team.id} count={fanCountMap[match.away_team.id] ?? 0} />}
             </div>
           </div>
         )
@@ -401,6 +410,7 @@ export default function GroupsPageClient({
   topScorers,
   mySquadIds,
   lastSynced,
+  teamFanCountMap,
 }: Props) {
   const [tab, setTab] = useState<'groups' | 'finals' | 'scorers' | 'all'>('groups')
   const [standingsView, setStandingsView] = useState<'real' | 'predicted'>('real')
@@ -569,6 +579,7 @@ export default function GroupsPageClient({
                   <StandingsTable
                     standings={primary}
                     predictedStandings={secondary}
+                    fanCountMap={teamFanCountMap}
                   />
                 </div>
               )
@@ -649,6 +660,7 @@ export default function GroupsPageClient({
           groupData={groupData}
           knockoutData={knockoutData}
           firstUpcomingRef={firstUpcomingRef}
+          fanCountMap={teamFanCountMap}
         />
       )}
 
@@ -804,6 +816,23 @@ export default function GroupsPageClient({
                           )}
                           {scorer.isMyPick && !scorer.isSecret && (
                             <span className="flex-shrink-0" title="Your Golden Boots pick — 10pts per goal">👟</span>
+                          )}
+                          {scorer.fanCount > 0 && (
+                            <span
+                              className="flex-shrink-0 inline-flex items-center gap-0.5"
+                              title={`${scorer.fanCount} Looper${scorer.fanCount === 1 ? '' : 's'} picked as 12th Man`}
+                              style={{
+                                background: '#fef9c3',
+                                color: '#a16207',
+                                padding: '1px 5px',
+                                fontSize: '0.6rem',
+                                fontFamily: 'Inter, sans-serif',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ⭐ {scorer.fanCount}
+                            </span>
                           )}
                         </div>
                         <span className="text-xs mt-0.5" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>

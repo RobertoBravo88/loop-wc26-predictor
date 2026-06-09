@@ -40,6 +40,7 @@ export default async function PredictionsPage({
     scorerCountRes,
     lastSyncRes,
     secretsCountRes,
+    fanDataRes,
   ] = await Promise.all([
     supabase.from('matches').select('id, kickoff_at').eq('stage', 'group').order('kickoff_at'),
     supabase.from('matches').select('id, kickoff_at').in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
@@ -51,7 +52,16 @@ export default async function PredictionsPage({
     supabase.from('scorer_picks').select('id').eq('user_id', user.id),
     supabase.from('matches').select('result_fetched_at').not('result_fetched_at', 'is', null).order('result_fetched_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('profiles').select('favourite_team_id, favourite_player_id').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('favourite_team_id').not('favourite_team_id', 'is', null),
   ])
+
+  // Build fan count map (team → number of fans)
+  const fanCountMap: Record<string, number> = {}
+  for (const row of fanDataRes.data ?? []) {
+    if (row.favourite_team_id) {
+      fanCountMap[row.favourite_team_id] = (fanCountMap[row.favourite_team_id] ?? 0) + 1
+    }
+  }
 
   const lastSynced = lastSyncRes.data?.result_fetched_at ?? null
 
@@ -293,6 +303,7 @@ export default async function PredictionsPage({
               distMap={Object.fromEntries(distMap)}
               userId={user.id}
               lockCountdownIds={lockCountdownIds}
+              fanCountMap={fanCountMap}
             />
           ) : (
             <div className="text-center py-16 text-sm" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>

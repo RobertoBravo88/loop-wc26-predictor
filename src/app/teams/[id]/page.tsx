@@ -514,6 +514,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
       <div className="mt-6">
         <div className="flex items-center justify-between mb-3">
           <h2
+            id="fans"
             className="text-xs font-bold uppercase tracking-wider"
             style={{ color: '#141414', fontFamily: sans }}
           >
