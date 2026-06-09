@@ -55,7 +55,18 @@ export default async function HomePage() {
     .from('leaderboard')
     .select('*')
     .order('rank', { ascending: true })
-    .limit(5)
+    .limit(10)
+
+  // Fetch current user's own leaderboard entry so we can show it even if outside top 10
+  let myLeaderboardEntry: LeaderboardEntry | null = null
+  if (user) {
+    const { data: myEntry } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+    myLeaderboardEntry = myEntry
+  }
 
   const { data: posts } = await supabase
     .from('news_posts')
@@ -261,42 +272,101 @@ export default async function HomePage() {
               View all <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-          <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
-            {(leaders as LeaderboardEntry[] ?? []).map((entry, i) => (
-              <Link key={entry.id} href={`/profile/${entry.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:opacity-80"
-                style={{ borderBottom: '1px solid #e0dbd3' }}>
-                <span
-                  className="w-5 text-center text-sm font-bold"
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    color: i === 0 ? '#ca8a04' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#6b6b6b'
-                  }}
-                >
-                  {entry.rank}
-                </span>
-                {tournamentStarted && entry.favourite_team_flag ? (
-                  <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
-                ) : (
-                  <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
+          {(() => {
+            const leaderList = leaders as LeaderboardEntry[] ?? []
+            const userInTop = leaderList.some(e => e.id === user?.id)
+            return (
+              <div style={{ background: '#ffffff', border: '1px solid #e0dbd3' }}>
+                {leaderList.map((entry, i) => {
+                  const isMe = user?.id === entry.id
+                  return (
+                    <Link key={entry.id} href={`/profile/${entry.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:opacity-80"
+                      style={{
+                        borderBottom: '1px solid #e0dbd3',
+                        background: isMe ? '#fff8f0' : '#ffffff',
+                        borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
+                      }}>
+                      <span
+                        className="w-5 text-center text-sm font-bold"
+                        style={{
+                          fontFamily: 'Inter, sans-serif',
+                          color: i === 0 ? '#ca8a04' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#6b6b6b'
+                        }}
+                      >
+                        {entry.rank}
+                      </span>
+                      {tournamentStarted && entry.favourite_team_flag ? (
+                        <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+                      ) : (
+                        <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
+                      )}
+                      <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif', fontWeight: isMe ? 600 : 400 }}>
+                        {entry.display_name}
+                      </span>
+                      {entry.current_streak >= 3 && (
+                        <span className="streak-badge text-xs">🔥{entry.current_streak}</span>
+                      )}
+                      <span className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                        {entry.total_points}
+                      </span>
+                    </Link>
+                  )
+                })}
+
+                {/* If user is logged in but outside the top 10 — show separator + their row */}
+                {user && myLeaderboardEntry && !userInTop && (
+                  <>
+                    <div
+                      className="flex items-center gap-2 px-4 py-1"
+                      style={{ borderBottom: '1px solid #e0dbd3', background: '#faf9f7' }}
+                    >
+                      <div style={{ flex: 1, height: 1, background: '#e0dbd3' }} />
+                      <span className="text-xs" style={{ color: '#c4bfb8', fontFamily: 'Inter, sans-serif', letterSpacing: '0.1em' }}>
+                        #{myLeaderboardEntry.rank}
+                      </span>
+                      <div style={{ flex: 1, height: 1, background: '#e0dbd3' }} />
+                    </div>
+                    <Link
+                      href={`/profile/${myLeaderboardEntry.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:opacity-80"
+                      style={{
+                        background: '#fff8f0',
+                        borderLeft: '3px solid #ff5c35',
+                      }}
+                    >
+                      <span
+                        className="w-5 text-center text-sm font-bold"
+                        style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
+                      >
+                        {myLeaderboardEntry.rank}
+                      </span>
+                      {tournamentStarted && myLeaderboardEntry.favourite_team_flag ? (
+                        <img src={myLeaderboardEntry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+                      ) : (
+                        <div className="w-6 h-4 flex-shrink-0" style={{ background: '#f7f4ef' }} />
+                      )}
+                      <span className="flex-1 text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+                        {myLeaderboardEntry.display_name}
+                      </span>
+                      {myLeaderboardEntry.current_streak >= 3 && (
+                        <span className="streak-badge text-xs">🔥{myLeaderboardEntry.current_streak}</span>
+                      )}
+                      <span className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                        {myLeaderboardEntry.total_points}
+                      </span>
+                    </Link>
+                  </>
                 )}
-                <span className="flex-1 text-sm truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-                  {entry.display_name}
-                </span>
-                {entry.current_streak >= 3 && (
-                  <span className="streak-badge text-xs">🔥{entry.current_streak}</span>
+
+                {!leaderList.length && (
+                  <p className="px-4 py-6 text-sm text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    Still thinking? Make some noise.
+                  </p>
                 )}
-                <span className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                  {entry.total_points}
-                </span>
-              </Link>
-            ))}
-            {!leaders?.length && (
-              <p className="px-4 py-6 text-sm text-center" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                Still thinking? Make some noise.
-              </p>
-            )}
-          </div>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Recent Results + Upcoming Matches stacked */}
