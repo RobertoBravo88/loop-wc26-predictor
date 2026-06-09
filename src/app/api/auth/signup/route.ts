@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
         first_team_id:   first_team_id   || null,
         second_team_id:  second_team_id  || null,
         third_team_id:   third_team_id   || null,
-        // Bug 4 fix: set locked_at so the points engine can process these picks
-        locked_at:       new Date().toISOString(),
+        // locked_at is intentionally NOT set here — it is set by the points engine
+        // at tournament start. Setting it here would permanently block all future edits.
       },
       { onConflict: 'user_id' }
     )
