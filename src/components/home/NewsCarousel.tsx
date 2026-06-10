@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
+import NewsReactions from '@/components/news/NewsReactions'
 
 interface Post {
   id: string
@@ -21,7 +22,11 @@ const sans  = 'Inter, sans-serif'
 // Desktop card height — on mobile the card grows to fit image + text stacked
 const CARD_HEIGHT = 260
 
-export default function NewsCarousel({ posts }: { posts: Post[] }) {
+export default function NewsCarousel({ posts, reactionsByPost = {}, userId = null }: {
+  posts: Post[]
+  reactionsByPost?: Record<string, any[]>
+  userId?: string | null
+}) {
   const [idx, setIdx] = useState(0)
   const total = posts.length
 
@@ -88,6 +93,21 @@ export default function NewsCarousel({ posts }: { posts: Post[] }) {
           )}
         </div>
       </Link>
+
+      {/* Reactions strip — shown to logged-in users */}
+      {userId && (
+        <div
+          className="px-6 pt-3 pb-4"
+          style={{ borderTop: '1px solid #e0dbd3', background: '#ffffff' }}
+        >
+          <NewsReactions
+            postId={post.id}
+            userId={userId}
+            initialReactions={reactionsByPost[post.id] ?? []}
+            compact
+          />
+        </div>
+      )}
 
       {/* Navigation */}
       {total > 1 && (

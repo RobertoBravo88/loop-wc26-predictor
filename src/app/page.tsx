@@ -75,6 +75,20 @@ export default async function HomePage() {
     .order('published_at', { ascending: false })
     .limit(10)
 
+  // Fetch reactions for the carousel posts
+  const carouselPostIds = (posts ?? []).map((p: any) => p.id)
+  const { data: carouselReactions } = carouselPostIds.length
+    ? await supabase
+        .from('news_reactions')
+        .select('id, emoji, user_id, post_id, profiles(display_name)')
+        .in('post_id', carouselPostIds)
+    : { data: [] }
+  const reactionsByPost: Record<string, any[]> = {}
+  for (const r of carouselReactions ?? []) {
+    if (!reactionsByPost[r.post_id]) reactionsByPost[r.post_id] = []
+    reactionsByPost[r.post_id].push(r)
+  }
+
   const matchIds = [...(recentMatches ?? []), ...(upcomingMatches ?? [])].map(m => m.id)
   let predictionMap = new Map<string, { predicted_home: number; predicted_away: number }>()
   if (user && matchIds.length > 0) {
@@ -233,7 +247,7 @@ export default async function HomePage() {
         </div>
 
         {posts && posts.length > 0 ? (
-          <NewsCarousel posts={posts as any[]} />
+          <NewsCarousel posts={posts as any[]} reactionsByPost={reactionsByPost} userId={user?.id ?? null} />
         ) : (
           <div
             className="px-8 py-12 text-center"

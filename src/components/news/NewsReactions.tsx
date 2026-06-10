@@ -30,6 +30,7 @@ interface Props {
   postId: string
   userId: string
   initialReactions: Reaction[]
+  compact?: boolean
 }
 
 // ── Tooltip showing who reacted ──────────────────────────────────────────────
@@ -69,7 +70,7 @@ function ReactionTooltip({ names }: { names: string[] }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function NewsReactions({ postId, userId, initialReactions }: Props) {
+export default function NewsReactions({ postId, userId, initialReactions, compact = false }: Props) {
   const [reactions, setReactions]       = useState<Reaction[]>(initialReactions)
   const [showPicker, setShowPicker]     = useState(false)
   const [hoveredEmoji, setHoveredEmoji] = useState<string | null>(null)
@@ -127,8 +128,8 @@ export default function NewsReactions({ postId, userId, initialReactions }: Prop
 
   return (
     <div
-      className="mt-6 pt-5"
-      style={{ borderTop: '1px solid #e0dbd3' }}
+      className={compact ? '' : 'mt-6 pt-5'}
+      style={compact ? {} : { borderTop: '1px solid #e0dbd3' }}
       onClick={e => { e.preventDefault(); e.stopPropagation() }}
     >
       <div className="flex items-center flex-wrap gap-2">
