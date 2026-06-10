@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { PointEvent } from '@/types'
 import BadgeDisplay from '@/components/ui/BadgeDisplay'
 import { BADGE_DEFS, BADGE_MAP, RARITY_ORDER } from '@/lib/badges/definitions'
+import ChangePasswordForm from '@/components/profile/ChangePasswordForm'
 
 export const revalidate = 60
 
@@ -452,6 +453,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           )}
         </div>
       </div>
+
+      {/* Change password — only shown to the profile owner */}
+      {isMe && <ChangePasswordForm />}
+
     </div>
   )
 }
