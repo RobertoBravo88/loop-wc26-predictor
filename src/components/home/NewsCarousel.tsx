@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
-import NewsReactions from '@/components/news/NewsReactions'
 
 interface Post {
   id: string
@@ -44,6 +43,14 @@ export default function NewsCarousel({ posts, reactionsByPost = {}, userId = nul
 
   const post = posts[idx]
 
+  // Group reactions for the current post by emoji
+  const rawReactions = reactionsByPost[post.id] ?? []
+  const grouped: Record<string, number> = {}
+  for (const r of rawReactions) {
+    grouped[r.emoji] = (grouped[r.emoji] ?? 0) + 1
+  }
+  const emojiPills = Object.entries(grouped)
+
   return (
     <div style={{ border: '1px solid #e0dbd3', position: 'relative' }}>
       {/* Card — fixed height so switching posts never jumps */}
@@ -71,12 +78,38 @@ export default function NewsCarousel({ posts, reactionsByPost = {}, userId = nul
 
         {/* Text — flows below image on mobile, beside it on desktop */}
         <div className="flex flex-col justify-center p-6 sm:p-8 flex-1 min-w-0">
-          <span
-            className="text-xs uppercase tracking-widest mb-3"
-            style={{ color: '#ff5c35', fontFamily: sans }}
-          >
-            {post.published_at ? format(new Date(post.published_at), 'd MMM yyyy') : 'Latest'}
-          </span>
+
+          {/* Date + emoji reactions on the same line */}
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            <span
+              className="text-xs uppercase tracking-widest"
+              style={{ color: '#ff5c35', fontFamily: sans }}
+            >
+              {post.published_at ? format(new Date(post.published_at), 'd MMM yyyy') : 'Latest'}
+            </span>
+            {emojiPills.map(([emoji, count]) => (
+              <span
+                key={emoji}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: '#f7f4ef',
+                  border: '1px solid #e0dbd3',
+                  borderRadius: '999px',
+                  padding: '1px 7px',
+                  fontSize: '0.75rem',
+                  fontFamily: sans,
+                  color: '#6b6b6b',
+                  lineHeight: 1.6,
+                }}
+              >
+                {emoji}
+                <span style={{ fontWeight: 600, fontSize: '0.7rem' }}>{count}</span>
+              </span>
+            ))}
+          </div>
+
           <h3
             className="text-2xl sm:text-3xl leading-tight mb-3 line-clamp-3"
             style={{ fontFamily: serif, fontWeight: 700, color: '#141414' }}
@@ -93,21 +126,6 @@ export default function NewsCarousel({ posts, reactionsByPost = {}, userId = nul
           )}
         </div>
       </Link>
-
-      {/* Reactions strip — shown to logged-in users */}
-      {userId && (
-        <div
-          className="px-6 pt-3 pb-4"
-          style={{ borderTop: '1px solid #e0dbd3', background: '#ffffff' }}
-        >
-          <NewsReactions
-            postId={post.id}
-            userId={userId}
-            initialReactions={reactionsByPost[post.id] ?? []}
-            compact
-          />
-        </div>
-      )}
 
       {/* Navigation */}
       {total > 1 && (
