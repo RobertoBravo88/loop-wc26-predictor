@@ -141,27 +141,26 @@ export default function LoginPage() {
             {showCreatePrompt && (
               <div style={{ background: '#fff8f0', border: '1px solid #ff5c35', padding: '1rem', fontFamily: 'Inter, sans-serif' }}>
                 <p className="text-sm font-semibold mb-1" style={{ color: '#141414' }}>
-                  No account found for this email.
+                  Couldn&apos;t sign you in.
                 </p>
                 <p className="text-xs mb-3" style={{ color: '#6b6b6b' }}>
-                  Want to join the Loop WC26 Predictor? Create your account in 2 minutes.
+                  Wrong password? Reset it below. Never signed up? Create your account in 2 minutes.
                 </p>
                 <div className="flex gap-2">
                   <Link
-                    href={`/auth/signup?email=${encodeURIComponent(failedEmail)}`}
+                    href="/auth/reset"
                     className="flex-1 text-center text-xs font-semibold py-2 text-white transition-colors"
                     style={{ background: '#ff5c35', fontFamily: 'Inter, sans-serif' }}
                   >
+                    Reset password →
+                  </Link>
+                  <Link
+                    href={`/auth/signup?email=${encodeURIComponent(failedEmail)}`}
+                    className="flex-1 text-center text-xs font-semibold py-2 transition-colors"
+                    style={{ border: '1px solid #ff5c35', color: '#ff5c35', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}
+                  >
                     Create account →
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreatePrompt(false)}
-                    className="text-xs py-2 px-3"
-                    style={{ border: '1px solid #e0dbd3', color: '#6b6b6b', fontFamily: 'Inter, sans-serif', background: '#ffffff' }}
-                  >
-                    Try again
-                  </button>
                 </div>
               </div>
             )}
