@@ -142,15 +142,15 @@ export default async function LeaderboardPage() {
         >
           <div className={`${ROW_CLASS} flex-1 items-center`}>
             <span className="col-span-1 text-center">#</span>
-            <span className="col-span-5 sm:col-span-3 flex items-center gap-1.5">
+            <span className="col-span-8 sm:col-span-5 flex items-center gap-1.5">
               Looper
               <span className="font-normal normal-case tracking-normal" style={{ color: '#ff5c35' }}>🔥#</span>
             </span>
             <span className="hidden sm:block sm:col-span-1 text-center">Pred.</span>
-            <span className="col-span-2 text-center">Pred. pts</span>
-            <span className="hidden sm:block sm:col-span-2 text-center">🔥 Streak</span>
-            <span className="hidden sm:block sm:col-span-2 text-center">Bonus</span>
-            <span className="col-span-4 sm:col-span-1 text-center">Total</span>
+            <span className="col-span-1 text-center">Pred. pts</span>
+            <span className="hidden sm:block sm:col-span-1 text-center">🔥 Streak</span>
+            <span className="hidden sm:block sm:col-span-1 text-center">Bonus</span>
+            <span className="col-span-2 text-center">Total</span>
           </div>
           {/* H2H column header */}
           <div className="hidden sm:flex items-center justify-center flex-shrink-0" style={{ width: 52 }}>
@@ -185,7 +185,7 @@ export default async function LeaderboardPage() {
               </span>
 
               {/* Looper */}
-              <div className="col-span-5 sm:col-span-3 flex items-center gap-2.5 min-w-0">
+              <div className="col-span-8 sm:col-span-5 flex items-center gap-2.5 min-w-0">
                 {(tournamentStarted || isMe) && entry.favourite_team_flag ? (
                   <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
@@ -238,7 +238,7 @@ export default async function LeaderboardPage() {
 
               {/* Prediction points */}
               <span
-                className="col-span-2 text-center text-sm"
+                className="col-span-1 text-center text-sm"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#6b6b6b' }}
               >
                 {entry.prediction_points ?? 0}
@@ -246,7 +246,7 @@ export default async function LeaderboardPage() {
 
               {/* Streak points — desktop only, orange if non-zero */}
               <span
-                className="hidden sm:block sm:col-span-2 text-center text-sm"
+                className="hidden sm:block sm:col-span-1 text-center text-sm"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   color: (entry.streak_points ?? 0) > 0 ? '#ff5c35' : '#6b6b6b',
@@ -257,7 +257,7 @@ export default async function LeaderboardPage() {
 
               {/* Bonus points — desktop only, orange if non-zero */}
               <span
-                className="hidden sm:block sm:col-span-2 text-center text-sm"
+                className="hidden sm:block sm:col-span-1 text-center text-sm"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   color: (entry.bonus_points ?? 0) > 0 ? '#ff5c35' : '#6b6b6b',
@@ -268,7 +268,7 @@ export default async function LeaderboardPage() {
 
               {/* Total */}
               <span
-                className="col-span-4 sm:col-span-1 text-center text-sm font-bold"
+                className="col-span-2 text-center text-sm font-bold"
                 style={{ fontFamily: 'Inter, sans-serif', color: '#ff5c35' }}
               >
                 {entry.total_points}
