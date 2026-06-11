@@ -106,7 +106,7 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
 
   const nowIso = now.toISOString()
   const plus60 = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
-  const minus30 = new Date(now.getTime() - 30 * 60 * 1000).toISOString()
+  const minus30 = new Date(now.getTime() - 5 * 60 * 1000).toISOString()
   const minus45 = new Date(now.getTime() - 45 * 60 * 1000).toISOString()
 
   // 1. Find the current match — priority: in_play > starting within 60min > just kicked off > finished within 45min
