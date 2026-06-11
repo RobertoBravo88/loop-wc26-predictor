@@ -339,7 +339,9 @@ export default function MatchCentre({
                   letterSpacing: '0.08em',
                 }}
               >
-                Just kicked off
+                {(Date.now() - new Date(match.kickoff_at).getTime()) < 5 * 60 * 1000
+                  ? 'Just kicked off'
+                  : 'Live'}
               </span>
             )}
             {state === 'finished' && (
