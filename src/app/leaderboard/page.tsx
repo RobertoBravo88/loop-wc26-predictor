@@ -185,7 +185,7 @@ export default async function LeaderboardPage() {
               </span>
 
               {/* Looper */}
-              <div className="col-span-5 sm:col-span-3 flex items-center gap-1.5 min-w-0">
+              <div className="col-span-5 sm:col-span-3 flex items-center gap-2.5 min-w-0">
                 {(tournamentStarted || isMe) && entry.favourite_team_flag ? (
                   <img src={entry.favourite_team_flag} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
                 ) : (
