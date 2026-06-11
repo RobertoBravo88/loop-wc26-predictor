@@ -178,9 +178,15 @@ export default function MatchCentre({
 
   // Unified sorted prediction list
   const statusOrder: Record<string, number> = { on_ball: 0, happy: 1, still_in: 2, out: 3 }
+  const currentHome = match.home_score ?? 0
+  const currentAway = match.away_score ?? 0
   const allSortedPreds = [...predictions].sort((a, b) => {
     const so = statusOrder[a.status] - statusOrder[b.status]
     if (so !== 0) return so
+    // Within same status group: sort by how many goals still needed to reach prediction
+    const aRemaining = Math.max(a.predictedHome - currentHome, 0) + Math.max(a.predictedAway - currentAway, 0)
+    const bRemaining = Math.max(b.predictedHome - currentHome, 0) + Math.max(b.predictedAway - currentAway, 0)
+    if (aRemaining !== bRemaining) return aRemaining - bRemaining
     return (b.matchPoints + b.squadPoints + b.teamPoints) - (a.matchPoints + a.squadPoints + a.teamPoints)
   }).filter(p => state === 'finished' || p.status !== 'out')
 
