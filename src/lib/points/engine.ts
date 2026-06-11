@@ -223,19 +223,30 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
     // Resolve player_id — may be null if player wasn't linked when goal was recorded.
     // If api_player_api_id is set, try to find the link now (retroactive resolution).
     let resolvedPlayerId: string | null = goal.player_id ?? null
+    let playerName: string | null = null
 
     if (!resolvedPlayerId && goal.api_player_api_id) {
       const { data: linked } = await supabase
         .from('players')
-        .select('id')
+        .select('id, name')
         .eq('api_id', goal.api_player_api_id)
         .maybeSingle()
       if (linked) {
         resolvedPlayerId = linked.id
+        playerName = linked.name ?? null
         // Update the goal_event so future runs are faster
         await supabase.from('goal_events').update({ player_id: linked.id }).eq('id', goal.id)
       }
     }
+
+    if (resolvedPlayerId && !playerName) {
+      const { data: p } = await supabase.from('players').select('name').eq('id', resolvedPlayerId).maybeSingle()
+      playerName = p?.name ?? null
+    }
+
+    // Fetch team name for this goal
+    const { data: teamRow } = await supabase.from('teams').select('name').eq('id', goal.team_id).maybeSingle()
+    const teamName: string | null = teamRow?.name ?? null
 
     if (resolvedPlayerId) {
       // 1. Scorer picks — who picked this player?
@@ -251,7 +262,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
           'scorer_bonus',
           POINTS.SCORER_BONUS_PER_GOAL,
           goal.id,
-          'Scorer bonus: assigned player scored',
+          playerName ? `Scorer bonus: ${playerName} scored` : 'Scorer bonus: assigned player scored',
         )
       }
 
@@ -267,7 +278,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
           'favourite_player_goal',
           POINTS.FAVOURITE_PLAYER_PER_GOAL,
           goal.id,
-          'Secret bonus: favourite player scored',
+          playerName ? `Secret bonus: ${playerName} scored` : 'Secret bonus: favourite player scored',
         )
       }
     }
@@ -284,7 +295,7 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
         'favourite_team_goal',
         POINTS.FAVOURITE_TEAM_PER_GOAL,
         goal.id,
-        'Secret bonus: favourite team scored',
+        teamName ? `Secret bonus: ${teamName} scored` : 'Secret bonus: favourite team scored',
       )
     }
 
