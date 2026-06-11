@@ -107,12 +107,13 @@ export default function MatchCentre({
 }: MatchCentreProps) {
   const router = useRouter()
 
-  // Auto-refresh every 2 minutes when live
+  // Auto-refresh: every 30s when upcoming (keep countdown accurate), every 2min when live
   useEffect(() => {
-    if (!data || data.state !== 'live') return
+    if (!data || (data.state !== 'live' && data.state !== 'upcoming')) return
+    const ms = data.state === 'upcoming' ? 30_000 : 120_000
     const interval = setInterval(() => {
       router.refresh()
-    }, 120_000)
+    }, ms)
     return () => clearInterval(interval)
   }, [data, router])
 
