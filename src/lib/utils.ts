@@ -35,7 +35,7 @@ export function isMatchLocked(kickoffAt: string) {
 }
 
 export function isTournamentStarted() {
-  const start = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z')
+  const start = new Date(process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T19:00:00Z')
   return getNow() >= start
 }
 

@@ -181,7 +181,7 @@ export default async function HomePage() {
             Predict every match, earn points, climb the table. Let&apos;s bring the noise.
           </p>
           {!tournamentStarted && (
-            <CountdownTimer targetDate={process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T16:00:00Z'} />
+            <CountdownTimer targetDate={process.env.NEXT_PUBLIC_TOURNAMENT_START ?? '2026-06-11T19:00:00Z'} />
           )}
           <div className="mt-5" />
           {!user ? (
