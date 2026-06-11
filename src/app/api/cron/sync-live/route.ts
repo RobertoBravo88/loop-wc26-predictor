@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchMatchResult, mapStatus } from '@/lib/api-football/client'
 
-// Called by external cron (cron-job.org) every 2 minutes.
-// Fetches live scores and goal events for any match currently in progress.
-// Does NOT process points — that happens in sync-results at 9 AM UTC daily.
+// Called every 2 minutes by Vercel Cron during matches.
+// Updates live scores and status for in-progress matches.
+// Point awards are NOT made here — the post-match cron handles that.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -13,17 +13,14 @@ export async function GET(request: Request) {
   if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
   }
-
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
   return await runLiveSync()
 }
 
 export async function POST() {
-  // Admin manual trigger — no secret required (protected by admin middleware)
   return await runLiveSync()
 }
 
@@ -31,20 +28,18 @@ async function runLiveSync() {
   const supabase = createServiceClient()
   const now = new Date()
 
-  // Find matches that have kicked off in the last 3 hours and aren't finished yet.
-  // 3 hours covers the longest possible match (90 min + ET + penalties + stoppage).
-  const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString()
+  // Find matches that should currently be in progress:
+  // kicked off within the last 150 minutes and not yet finished
+  const minus150 = new Date(now.getTime() - 150 * 60 * 1000).toISOString()
 
   const { data: liveMatches } = await supabase
     .from('matches')
     .select('*')
-    .neq('status', 'finished')
-    .neq('status', 'cancelled')
-    .neq('status', 'postponed')
+    .in('status', ['scheduled', 'in_play'])
     .not('api_id', 'is', null)
     .not('home_team_id', 'is', null)
     .lte('kickoff_at', now.toISOString())
-    .gte('kickoff_at', threeHoursAgo)
+    .gte('kickoff_at', minus150)
     .order('kickoff_at', { ascending: true })
 
   if (!liveMatches?.length) {
@@ -61,25 +56,16 @@ async function runLiveSync() {
 
       const status = mapStatus(result.status)
 
-      // Always update score and status — even if still in play
-      if (result.homeScore !== null && result.awayScore !== null) {
-        await supabase.from('matches').update({
-          home_score: result.homeScore,
-          away_score: result.awayScore,
-          status,
-        }).eq('id', match.id)
-      } else {
-        // No score yet — just update status
-        await supabase.from('matches').update({ status }).eq('id', match.id)
-      }
+      // Update score and status
+      await supabase.from('matches').update({
+        status,
+        home_score: result.homeScore ?? match.home_score,
+        away_score: result.awayScore ?? match.away_score,
+      }).eq('id', match.id)
 
-      // Upsert goal events so Match Centre can show scorers in real time.
-      // result_fetched_at is intentionally NOT set here — sync-results sets
-      // that after processing points, so it stays the "points processed" marker.
+      // Upsert goal events so Match Centre can show scorers live
       for (const event of result.events ?? []) {
         if (event.type !== 'Goal') continue
-
-        // Skip penalty shootout goals (elapsed > 120)
         if ((event.time?.elapsed ?? 0) > 120) continue
 
         const { data: team } = await supabase
@@ -90,7 +76,6 @@ async function runLiveSync() {
 
         if (!team) continue
 
-        // Upsert scorer into api_players
         if (event.player?.id) {
           await supabase.from('api_players').upsert({
             api_id:  event.player.id,
@@ -99,7 +84,6 @@ async function runLiveSync() {
           }, { onConflict: 'api_id' })
         }
 
-        // Look up linked player
         let playerDbId: string | null = null
         if (event.player?.id) {
           const { data: linkedPlayer } = await supabase
@@ -129,7 +113,7 @@ async function runLiveSync() {
   }
 
   return NextResponse.json({
-    message: `Live sync: updated ${updated} of ${liveMatches.length} matches`,
+    message: `Updated ${updated} live matches`,
     updated,
     errors: errors.length ? errors : undefined,
   })
