@@ -148,7 +148,7 @@ export default async function GroupsPage() {
     ...(favPlayerId ? [favPlayerId] : []),
   ])
 
-  // Build topScorers from ALL players — everyone starts at 0
+  // Build topScorers: only players with goals, plus any player in the user's squad (even if 0 goals)
   const topScorers: TopScorer[] = (allPlayersRaw ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
@@ -158,7 +158,9 @@ export default async function GroupsPage() {
     isMyPick: mySquadIds.has(p.id),
     isSecret: p.id === favPlayerId,
     fanCount: playerFanCountMap.get(p.id) ?? 0,
-  })).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
+  }))
+  .filter(p => p.goals > 0 || p.isMyPick)
+  .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
 
   // Convert Maps to plain objects for client component
   const predictionObj: Record<string, { h: number; a: number }> = {}
