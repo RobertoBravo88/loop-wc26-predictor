@@ -94,16 +94,29 @@ async function runLiveSync() {
           playerDbId = linkedPlayer?.id ?? null
         }
 
-        await supabase.from('goal_events').upsert({
-          api_id:            event.id,
-          match_id:          match.id,
-          player_id:         playerDbId,
-          api_player_api_id: event.player?.id ?? null,
-          team_id:           team.id,
-          minute:            event.time?.elapsed ?? null,
-          is_own_goal:       event.detail === 'Own Goal',
-          is_penalty:        event.detail === 'Penalty',
-        }, { onConflict: 'api_id', ignoreDuplicates: true })
+        // API Football events have no unique ID, so check before inserting
+        const minute = event.time?.elapsed ?? null
+        const isOwnGoal = event.detail === 'Own Goal'
+        const { data: existingGoal } = await supabase
+          .from('goal_events')
+          .select('id')
+          .eq('match_id', match.id)
+          .eq('team_id', team.id)
+          .eq('minute', minute)
+          .eq('is_own_goal', isOwnGoal)
+          .maybeSingle()
+
+        if (!existingGoal) {
+          await supabase.from('goal_events').insert({
+            match_id:          match.id,
+            player_id:         playerDbId,
+            api_player_api_id: event.player?.id ?? null,
+            team_id:           team.id,
+            minute,
+            is_own_goal:       isOwnGoal,
+            is_penalty:        event.detail === 'Penalty',
+          })
+        }
       }
 
       updated++
