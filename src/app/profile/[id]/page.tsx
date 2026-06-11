@@ -435,7 +435,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                   {meta.label}
                 </span>
                 <span className="text-sm flex-1 truncate" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  {event.description ?? (event.match ? `${event.match.home_team?.name} vs ${event.match.away_team?.name}` : '—')}
+                  {event.match ? `${event.match.home_team?.name} vs ${event.match.away_team?.name}` : null}
+                  {event.match && event.description ? ' · ' : null}
+                  {event.description ?? (!event.match ? '—' : null)}
                 </span>
                 <span className="text-sm font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
                   +{event.points}
