@@ -274,8 +274,18 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
     playersInMatch.set(p.id, { photoUrl: (p as any).photo_url ?? null, name: (p as any).name ?? null })
   }
 
+  // Deduplicate goal events by (team_id, minute, player api_id) — guards against duplicate DB rows
+  const seenGoals = new Set<string>()
+  const dedupedGoalEvents = rawGoalEvents.filter((ge: any) => {
+    const player = Array.isArray(ge.player) ? ge.player[0] : ge.player
+    const key = `${ge.team_id}|${ge.minute}|${ge.api_player_api_id ?? player?.name ?? ''}`
+    if (seenGoals.has(key)) return false
+    seenGoals.add(key)
+    return true
+  })
+
   // Build goal events — use preview override if set, otherwise from DB
-  const goalEvents: MatchCentreData['goalEvents'] = previewGoalEvents ?? rawGoalEvents.map((ge: any) => {
+  const goalEvents: MatchCentreData['goalEvents'] = previewGoalEvents ?? dedupedGoalEvents.map((ge: any) => {
     const player = Array.isArray(ge.player) ? ge.player[0] : ge.player
     return {
       id: ge.id,
