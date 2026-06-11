@@ -9,26 +9,21 @@ export async function POST() {
   const supabase = createServiceClient()
 
   try {
-    // (C2) fetchFixtures now paginates automatically via getAll
-    // (M8) fetchFixtures throws a descriptive error if result is empty
     const fixtures = await fetchFixtures(2026)
     let upserted = 0
 
     for (const f of fixtures) {
-      // Fetch both teams including their group_letter (used as fallback when
-      // api-football uses "Group Stage - X" format instead of "Group D")
       const [{ data: homeTeam }, { data: awayTeam }] = await Promise.all([
         supabase.from('teams').select('id, group_letter').eq('api_id', f.teams.home.id).single(),
         supabase.from('teams').select('id, group_letter').eq('api_id', f.teams.away.id).single(),
       ])
 
       const groupLetter = parseGroup(f.league.round)
-        ?? homeTeam?.group_letter      // fall back to team's own group
+        ?? homeTeam?.group_letter
         ?? awayTeam?.group_letter
         ?? null
 
-      // (M3) Do NOT write home_score / away_score here — those are owned by the cron sync-results job
-      await supabase.from('matches').upsert({
+      const matchData = {
         api_id:       f.fixture.id,
         stage:        mapApiRound(f.league.round),
         group_letter: groupLetter,
@@ -37,7 +32,35 @@ export async function POST() {
         kickoff_at:   f.fixture.date,
         status:       mapStatus(f.fixture.status.short),
         venue:        f.fixture.venue?.name ?? null,
-      }, { onConflict: 'api_id' })
+      }
+
+      // First try to find an existing row by kickoff_at + one of the team IDs
+      // (handles the case where rows were imported without api_ids)
+      let updated = false
+      if (homeTeam?.id || awayTeam?.id) {
+        const teamId = homeTeam?.id ?? awayTeam?.id
+        const { data: existing } = await supabase
+          .from('matches')
+          .select('id')
+          .eq('kickoff_at', f.fixture.date)
+          .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+          .is('api_id', null)
+          .maybeSingle()
+
+        if (existing) {
+          await supabase.from('matches').update({
+            api_id: f.fixture.id,
+            status: mapStatus(f.fixture.status.short),
+            venue:  f.fixture.venue?.name ?? null,
+          }).eq('id', existing.id)
+          updated = true
+        }
+      }
+
+      // If no existing row found, upsert by api_id (normal path)
+      if (!updated) {
+        await supabase.from('matches').upsert(matchData, { onConflict: 'api_id' })
+      }
 
       upserted++
     }
@@ -60,8 +83,6 @@ function mapApiRound(round: string): string {
 }
 
 function parseGroup(round: string): string | null {
-  // Match "Group A", "Group B" etc. but NOT "Group Stage" (which would
-  // incorrectly return "S" — the first char of "Stage")
   const match = round.match(/^Group ([A-Z])$/i)
   return match ? match[1].toUpperCase() : null
 }
