@@ -178,8 +178,6 @@ export default function MatchCentre({
 
   // Unified sorted prediction list
   const statusOrder: Record<string, number> = { on_ball: 0, happy: 1, still_in: 2, out: 3 }
-  const currentHome = match.home_score ?? 0
-  const currentAway = match.away_score ?? 0
   const allSortedPreds = [...predictions].sort((a, b) => {
     const so = statusOrder[a.status] - statusOrder[b.status]
     if (so !== 0) return so
