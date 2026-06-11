@@ -34,7 +34,7 @@ export default function BadgeDisplay({ badges, userFlagUrl, max, size = 'md' }: 
   const pillSize  = size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-2 flex-nowrap flex-shrink-0">
       {visible.map(b => {
         const def = BADGE_MAP[b.badge_id]
         if (!def) return null
