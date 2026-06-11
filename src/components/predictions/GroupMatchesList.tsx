@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default function GroupMatchesList({ matches, predictionMap, distMap, userId, lockCountdownIds, fanCountMap }: Props) {
-  const [sort, setSort] = useState<'group' | 'date'>('group')
+  const [sort, setSort] = useState<'group' | 'date'>('date')
 
   const btnStyle = (active: boolean): React.CSSProperties => ({
     padding: '5px 14px',
