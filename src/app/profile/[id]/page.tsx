@@ -73,7 +73,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     .eq('user_id', id)
     .not('processed_at', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(20)
 
   const { data: userBadges } = await supabase
     .from('user_badges')
@@ -91,6 +90,29 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const scorerPicks  = (scorerPicksRes.data ?? []) as any[]
   const secretGoals  = secretGoalEventsRes.data?.length ?? 0
   const secretPoints = (secretGoalEventsRes.data ?? []).reduce((sum: number, e: any) => sum + (e.points ?? 0), 0)
+
+  // Build merged history: point events + 0-point processed predictions, sorted by match date
+  const matchIdsWithEvents = new Set(
+    (pointEvents ?? []).map((e: any) => e.match_id).filter(Boolean)
+  )
+  const zeroPointMatches = (predictions ?? []).filter(
+    (p: any) => p.match_id && !matchIdsWithEvents.has(p.match_id)
+  )
+  type HistoryRow =
+    | { kind: 'event'; data: any; date: string }
+    | { kind: 'zero'; data: any; date: string }
+  const historyRows: HistoryRow[] = [
+    ...(pointEvents ?? []).map((e: any) => ({
+      kind: 'event' as const,
+      data: e,
+      date: (e.match?.kickoff_at ?? e.created_at ?? '') as string,
+    })),
+    ...zeroPointMatches.map((p: any) => ({
+      kind: 'zero' as const,
+      data: p,
+      date: (p.match?.kickoff_at ?? '') as string,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const stats = {
     rank: leaderboardEntry?.rank ?? '—',
@@ -173,6 +195,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
             </div>
           ))}
         </div>
+
+        {!isMe && user && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid #e0dbd3' }}>
+            <Link
+              href={`/profile/${id}/h2h`}
+              className="flex items-center justify-center gap-2 py-2 text-sm font-semibold hover:opacity-70 transition-opacity"
+              style={{ border: '1px solid #141414', color: '#141414', fontFamily: 'Inter, sans-serif' }}
+            >
+              ⚔ Head to Head with {profile.display_name}
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Secret bonus picks */}
@@ -417,35 +451,60 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           </h2>
         </div>
         <div>
-          {(pointEvents as any[] ?? []).map((event, idx) => {
-            const meta = EVENT_LABELS[event.type] ?? { label: event.type, bg: '#faf9f6', color: '#6b6b6b' }
+          {historyRows.map((row, idx) => {
+            const bg = idx % 2 === 0 ? '#ffffff' : '#faf9f6'
+            if (row.kind === 'event') {
+              const event = row.data
+              const meta = EVENT_LABELS[event.type] ?? { label: event.type, bg: '#faf9f6', color: '#6b6b6b' }
+              return (
+                <div
+                  key={event.id}
+                  className="px-5 py-3 flex items-center gap-3"
+                  style={{ background: bg, borderBottom: '1px solid #e0dbd3' }}
+                >
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 flex-shrink-0 uppercase tracking-wider"
+                    style={{ background: meta.bg, color: meta.color, fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {meta.label}
+                  </span>
+                  <span className="text-sm flex-1 truncate" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    {event.match ? `${event.match.home_team?.name} vs ${event.match.away_team?.name}` : null}
+                    {event.match && event.description ? ' · ' : null}
+                    {event.description ?? (!event.match ? '—' : null)}
+                  </span>
+                  <span className="text-sm font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                    +{event.points}
+                  </span>
+                </div>
+              )
+            }
+            // 0-point prediction
+            const p = row.data
             return (
               <div
-                key={event.id}
+                key={`zero-${p.id}`}
                 className="px-5 py-3 flex items-center gap-3"
-                style={{
-                  background: idx % 2 === 0 ? '#ffffff' : '#faf9f6',
-                  borderBottom: '1px solid #e0dbd3'
-                }}
+                style={{ background: bg, borderBottom: '1px solid #e0dbd3' }}
               >
                 <span
                   className="text-xs font-semibold px-2 py-0.5 flex-shrink-0 uppercase tracking-wider"
-                  style={{ background: meta.bg, color: meta.color, fontFamily: 'Inter, sans-serif' }}
+                  style={{ background: '#f0ece6', color: '#9b9488', fontFamily: 'Inter, sans-serif' }}
                 >
-                  {meta.label}
+                  0 pts
                 </span>
-                <span className="text-sm flex-1 truncate" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-                  {event.match ? `${event.match.home_team?.name} vs ${event.match.away_team?.name}` : null}
-                  {event.match && event.description ? ' · ' : null}
-                  {event.description ?? (!event.match ? '—' : null)}
+                <span className="text-sm flex-1 truncate" style={{ color: '#9b9488', fontFamily: 'Inter, sans-serif' }}>
+                  {p.match
+                    ? `${p.match.home_team?.name} vs ${p.match.away_team?.name} · Predicted ${p.predicted_home ?? '?'}-${p.predicted_away ?? '?'}${p.match.home_score != null ? ` · Final ${p.match.home_score}-${p.match.away_score}` : ''}`
+                    : '—'}
                 </span>
-                <span className="text-sm font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
-                  +{event.points}
+                <span className="text-sm font-bold flex-shrink-0" style={{ color: '#9b9488', fontFamily: 'Inter, sans-serif' }}>
+                  0
                 </span>
               </div>
             )
           })}
-          {!pointEvents?.length && (
+          {historyRows.length === 0 && (
             <p
               className="px-5 py-8 text-center text-sm"
               style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}
