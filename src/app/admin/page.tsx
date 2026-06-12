@@ -48,7 +48,7 @@ export default async function AdminPage() {
     supabase.from('scorer_picks').select('player_id'),
     supabase.from('profiles').select('favourite_player_id').not('favourite_player_id', 'is', null),
     supabase.from('goal_events').select('player_id').not('player_id', 'is', null),
-    supabase.from('players').select('id, name, position, api_id, team:teams(name, flag_url)').order('name').limit(2000),
+    supabase.from('players').select('id, name, position, api_id, team:teams(id, name, flag_url)').order('name').limit(2000),
     supabase.from('api_players').select('api_id, name, team_id, shirt_number').order('name').limit(2000),
   ])
   const unlinkedPlayers = unlinkedRes.data
