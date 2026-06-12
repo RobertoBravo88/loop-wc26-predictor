@@ -5,6 +5,7 @@ export interface PlayerRow {
   id: string
   name: string
   position: string | null
+  team_id: string | null
   team_name: string | null
   team_flag: string | null
   api_id: number | null
@@ -75,18 +76,12 @@ export default function AdminApiPlayerLinker({ players: initialPlayers, apiPlaye
 
   function getApiOptions(player: PlayerRow): ApiPlayerRow[] {
     const q = (search[player.id] ?? '').toLowerCase().trim()
-    // Filter api_players to same team or all if no team match
-    const teamFiltered = apiPlayers.filter(ap => ap.team_id === getTeamIdForPlayer(player))
+    const teamFiltered = player.team_id
+      ? apiPlayers.filter(ap => ap.team_id === player.team_id)
+      : apiPlayers
     const pool = teamFiltered.length > 0 ? teamFiltered : apiPlayers
-    if (!q) return pool.slice(0, 30)
-    return pool.filter(ap => ap.name.toLowerCase().includes(q)).slice(0, 30)
-  }
-
-  // We don't have team_id on PlayerRow directly; derive from api_players not available,
-  // but we can skip team-scoping and let the admin search freely across all api_players.
-  function getTeamIdForPlayer(_player: PlayerRow): string {
-    // PlayerRow doesn't carry team_id — show all api_players and let admin filter by name
-    return ''
+    if (!q) return pool
+    return pool.filter(ap => ap.name.toLowerCase().includes(q))
   }
 
   async function handleLink(playerId: string, apiPlayerApiId: number) {

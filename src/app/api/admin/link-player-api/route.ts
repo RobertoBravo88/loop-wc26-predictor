@@ -31,6 +31,11 @@ export async function PATCH(req: NextRequest) {
 
     const supabase = createServiceClient()
 
+    // If another player already has this api_id, unlink them first
+    await supabase.from('players').update({
+      api_id: null, shirt_number: null, photo_url: null,
+    }).eq('api_id', Number(apiPlayerApiId)).neq('id', playerId)
+
     // Get the api_player data to copy over
     const { data: apiPlayer } = await supabase
       .from('api_players')

@@ -72,6 +72,7 @@ export default async function AdminPage() {
     id:               p.id,
     name:             p.name,
     position:         p.position ?? null,
+    team_id:          (p.team as any)?.id ?? null,
     team_name:        (p.team as any)?.name ?? null,
     team_flag:        (p.team as any)?.flag_url ?? null,
     api_id:           p.api_id ?? null,
