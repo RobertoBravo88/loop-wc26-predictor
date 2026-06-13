@@ -57,13 +57,16 @@ async function runSync() {
 
       const status = mapStatus(result.status)
 
-      // Sync goal events for both live and finished matches
-      await syncGoalEvents(supabase, match, result.events ?? [])
-
       if (status === 'finished') {
         if (result.homeScore === null || result.awayScore === null) continue
 
-        // Write final score and mark finished
+        // On FT: delete all live goal_events and re-insert from authoritative final data.
+        // During live play the API returns time.elapsed as the running clock (e.g. 50 for
+        // a 45+5' goal). After FT it resets to the canonical base minute (45). Deleting
+        // first means processMatchResult always runs on clean, deduplicated data.
+        await supabase.from('goal_events').delete().eq('match_id', match.id)
+        await syncGoalEvents(supabase, match, result.events ?? [])
+
         await supabase.from('matches').update({
           status: 'finished',
           home_score: result.homeScore,
@@ -71,11 +74,13 @@ async function runSync() {
           result_fetched_at: now.toISOString(),
         }).eq('id', match.id)
 
-        // Award points — this is the only time this runs per match
         await processMatchResult(match.id)
         finished++
       } else {
-        // Still live — update score and status only
+        // Live — best-effort goal sync for Match Centre display.
+        // Minor minute inaccuracies are corrected at FT by the delete+re-insert above.
+        await syncGoalEvents(supabase, match, result.events ?? [])
+
         await supabase.from('matches').update({
           status,
           home_score: result.homeScore ?? match.home_score,
