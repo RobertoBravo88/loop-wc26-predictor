@@ -27,6 +27,7 @@ export default async function StatsPage() {
     name: string
     totalGoalsPredicted: number
     totalPredictions: number
+    processedPredictions: number
     exactScores: number
     flag?: string | null
     teamName?: string | null
@@ -40,6 +41,7 @@ export default async function StatsPage() {
       name: p.display_name,
       totalGoalsPredicted: 0,
       totalPredictions: 0,
+      processedPredictions: 0,
       exactScores: 0,
       flag: (p.favourite_team as any)?.flag_url,
       teamName: (p.favourite_team as any)?.name,
@@ -53,15 +55,17 @@ export default async function StatsPage() {
     if (!u) continue
     u.totalGoalsPredicted += (pred.predicted_home ?? 0) + (pred.predicted_away ?? 0)
     u.totalPredictions++
-    // Only count exact scores once a result has been processed
-    if (pred.processed_at && pred.is_exact) u.exactScores++
+    if (pred.processed_at) {
+      u.processedPredictions++
+      if (pred.is_exact) u.exactScores++
+    }
   }
 
   const users = Array.from(userStats.values()).filter(u => u.totalPredictions > 0)
 
   const mostOptimistic = [...users].sort((a, b) => (b.totalGoalsPredicted / b.totalPredictions) - (a.totalGoalsPredicted / a.totalPredictions))[0]
   const mostPessimistic = [...users].sort((a, b) => (a.totalGoalsPredicted / a.totalPredictions) - (b.totalGoalsPredicted / b.totalPredictions))[0]
-  const mostAccurate = [...users].sort((a, b) => (b.exactScores / b.totalPredictions) - (a.exactScores / a.totalPredictions))[0]
+  const mostAccurate = [...users].filter(u => u.processedPredictions > 0).sort((a, b) => (b.exactScores / b.processedPredictions) - (a.exactScores / a.processedPredictions))[0]
   const longestStreak = [...users].sort((a, b) => b.maxStreak - a.maxStreak)[0]
   const currentHottest = [...users].filter(u => u.currentStreak >= 3).sort((a, b) => b.currentStreak - a.currentStreak)[0]
 
@@ -201,7 +205,7 @@ export default async function StatsPage() {
         {[
           { emoji: '🕺', title: 'Total Football Disciple', desc: 'Highest avg goals predicted per match', player: mostOptimistic, value: mostOptimistic ? `${(mostOptimistic.totalGoalsPredicted / mostOptimistic.totalPredictions).toFixed(1)} goals/match` : null },
           { emoji: '🛡️', title: 'Catenaccio Expert', desc: 'Lowest avg goals predicted per match', player: mostPessimistic, value: mostPessimistic ? `${(mostPessimistic.totalGoalsPredicted / mostPessimistic.totalPredictions).toFixed(1)} goals/match` : null },
-          { emoji: '🔮', title: 'The Oracle', desc: 'Best exact score hit rate', player: mostAccurate, value: mostAccurate ? `${Math.round((mostAccurate.exactScores / mostAccurate.totalPredictions) * 100)}% exact` : null },
+          { emoji: '🔮', title: 'The Oracle', desc: 'Best exact score hit rate', player: mostAccurate, value: mostAccurate ? `${Math.round((mostAccurate.exactScores / mostAccurate.processedPredictions) * 100)}% exact` : null },
           { emoji: '🏆', title: 'Weltmeister Form', desc: 'Most exact scores in a row (all time)', player: longestStreak, value: longestStreak ? `${longestStreak.maxStreak} in a row` : null },
         ].map((award, idx) => (
           <div

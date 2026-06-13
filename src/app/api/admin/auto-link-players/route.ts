@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-const API_BASE = 'https://v3.football.api-sports.io'
-const API_KEY  = process.env.API_FOOTBALL_KEY ?? ''
+const API_BASE    = 'https://v3.football.api-sports.io'
+const API_KEY     = process.env.API_FOOTBALL_KEY ?? ''
+const WC_2026_ID  = parseInt(process.env.WC_2026_LEAGUE_ID ?? '1', 10)
 
 export const dynamic   = 'force-dynamic'
 export const maxDuration = 300
@@ -103,14 +104,32 @@ export async function POST() {
 
     if (!unlinked?.length) continue
 
-    // Fetch squad from api-football
-    const res = await fetch(`${API_BASE}/players/squads?team=${team.api_id}`, {
-      headers: { 'x-apisports-key': API_KEY },
-      next: { revalidate: 0 },
-    })
-    const data = await res.json()
-    const apiPlayers: Array<{ id: number; name: string }> =
-      (data.response?.[0]?.players ?? []).map((p: any) => ({ id: p.id, name: p.name }))
+    // Fetch WC players from api-football — uses the WC stats endpoint which returns
+    // full names (e.g. "Adam Bareiro") rather than abbreviated squad names ("A. Bareiro").
+    // Only includes players who appeared in WC matches, which is exactly who matters for scoring.
+    // Falls back to squads endpoint if WC stats returns nothing (team hasn't played yet).
+    let apiPlayers: Array<{ id: number; name: string }> = []
+    for (let page = 1; page <= 5; page++) {
+      const res = await fetch(
+        `${API_BASE}/players?team=${team.api_id}&league=${WC_2026_ID}&season=2026&page=${page}`,
+        { headers: { 'x-apisports-key': API_KEY }, next: { revalidate: 0 } }
+      )
+      const data = await res.json()
+      const entries: Array<{ id: number; name: string }> =
+        (data.response ?? []).map((e: any) => ({ id: e.player.id, name: e.player.name }))
+      apiPlayers.push(...entries)
+      if ((data.paging?.current ?? 1) >= (data.paging?.total ?? 1)) break
+    }
+
+    // Fallback: if team hasn't played yet, use squad endpoint (abbreviated names, still useful)
+    if (!apiPlayers.length) {
+      const res = await fetch(`${API_BASE}/players/squads?team=${team.api_id}`, {
+        headers: { 'x-apisports-key': API_KEY },
+        next: { revalidate: 0 },
+      })
+      const data = await res.json()
+      apiPlayers = (data.response?.[0]?.players ?? []).map((p: any) => ({ id: p.id, name: p.name }))
+    }
 
     if (!apiPlayers.length) continue
 

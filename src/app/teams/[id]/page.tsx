@@ -540,14 +540,18 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
               const isMe = fan.id === user?.id
               const revealed = tournamentLive || isMe
 
+              const FanRow: any = revealed ? Link : 'div'
               return (
-                <div
+                <FanRow
                   key={fan.id}
+                  {...(revealed ? { href: `/profile/${fan.id}` } : {})}
                   className="flex items-center gap-3 px-4 py-2.5"
                   style={{
                     borderBottom: '1px solid #f0ede8',
                     background: isMe ? '#fff8f0' : '#ffffff',
                     borderLeft: isMe ? '3px solid #ff5c35' : '3px solid transparent',
+                    textDecoration: 'none',
+                    cursor: revealed ? 'pointer' : 'default',
                   }}
                 >
                   {/* Rank */}
@@ -602,7 +606,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
                       you
                     </span>
                   )}
-                </div>
+                </FanRow>
               )
             })}
           </div>
