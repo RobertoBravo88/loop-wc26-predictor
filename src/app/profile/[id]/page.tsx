@@ -83,13 +83,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const [finalistPickRes, scorerPicksRes, secretGoalEventsRes] = await Promise.all([
     supabase.from('finalist_picks').select('*, first_team:teams!first_team_id(*), second_team:teams!second_team_id(*), third_team:teams!third_team_id(*)').eq('user_id', id).single(),
     supabase.from('scorer_picks').select('*, player:players(name, position, shirt_number, photo_url), team:teams(name, flag_url)').eq('user_id', id).order('created_at'),
-    supabase.from('point_events').select('points').eq('user_id', id).in('type', ['favourite_player_goal', 'favourite_team_goal']),
+    supabase.from('point_events').select('type, points').eq('user_id', id).in('type', ['favourite_player_goal', 'favourite_team_goal']),
   ])
 
   const finalistPick = finalistPickRes.data
   const scorerPicks  = (scorerPicksRes.data ?? []) as any[]
-  const secretGoals  = secretGoalEventsRes.data?.length ?? 0
-  const secretPoints = (secretGoalEventsRes.data ?? []).reduce((sum: number, e: any) => sum + (e.points ?? 0), 0)
+
+  const playerGoalEvents = (secretGoalEventsRes.data ?? []).filter((e: any) => e.type === 'favourite_player_goal')
+  const teamGoalEvents   = (secretGoalEventsRes.data ?? []).filter((e: any) => e.type === 'favourite_team_goal')
+
+  const playerGoals  = playerGoalEvents.length
+  const playerSecretPoints = playerGoalEvents.reduce((sum: number, e: any) => sum + (e.points ?? 0), 0)
+  const teamGoals    = teamGoalEvents.length
+  const teamSecretPoints   = teamGoalEvents.reduce((sum: number, e: any) => sum + (e.points ?? 0), 0)
 
   // Build merged history: point events + 0-point processed predictions, sorted by match date
   const matchIdsWithEvents = new Set(
@@ -241,6 +247,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                   {profile.favourite_team?.name ?? '—'}
                 </span>
               </div>
+              {teamGoals > 0 && (
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{teamSecretPoints} pts</span>
+                  <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{teamGoals} goal{teamGoals !== 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
@@ -249,6 +261,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <span className="font-medium" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
                 {profile.favourite_player?.name ?? '—'}
               </span>
+              {playerGoals > 0 && (
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{playerSecretPoints} pts</span>
+                  <span className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{playerGoals} goal{playerGoals !== 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -291,10 +309,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                     12th Man · 20 pts/goal
                   </span>
                 </div>
-                {secretGoals > 0 && (
+                {playerGoals > 0 && (
                   <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{secretPoints} pts</div>
-                    <div className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{secretGoals} goal{secretGoals !== 1 ? 's' : ''}</div>
+                    <div className="text-sm font-bold" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>+{playerSecretPoints} pts</div>
+                    <div className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{playerGoals} goal{playerGoals !== 1 ? 's' : ''}</div>
                   </div>
                 )}
               </div>
