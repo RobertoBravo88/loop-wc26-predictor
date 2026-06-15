@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { formatKickoff, isMatchLocked, getNow } from '@/lib/utils'
 import { Lock, Check, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -287,6 +288,19 @@ export default function PredictionCard({ match, prediction, userId, distribution
           {prediction.points_streak_bonus > 0 && (
             <span className="ml-2 font-semibold" style={{ color: '#ff5c35' }}>+{prediction.points_streak_bonus} streak 🔥</span>
           )}
+        </div>
+      )}
+
+      {/* See match details */}
+      {finished && match.home_score !== null && (
+        <div className="mt-2 text-center">
+          <Link
+            href={`/match-centre/${match.id}`}
+            className="text-xs hover:opacity-70 transition-opacity"
+            style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          >
+            See match details →
+          </Link>
         </div>
       )}
     </div>

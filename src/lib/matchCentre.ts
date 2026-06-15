@@ -100,7 +100,7 @@ function computeMatchPoints(
 // Main data fetcher
 // ============================================================
 
-export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreData | null> {
+export async function getMatchCentreData(isAdmin = false, specificMatchId?: string): Promise<MatchCentreData | null> {
   const supabase = await createClient()
   const now = getNow()
 
@@ -113,78 +113,95 @@ export async function getMatchCentreData(isAdmin = false): Promise<MatchCentreDa
   let currentMatch: any = null
   let state: MatchCentreData['state'] = 'live'
 
-  // in_play
-  const { data: inPlay } = await supabase
-    .from('matches')
-    .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-    .eq('status', 'in_play')
-    .not('home_team_id', 'is', null)
-    .not('away_team_id', 'is', null)
-    .order('kickoff_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (inPlay) {
-    currentMatch = inPlay
-    state = 'live'
-  }
-
-  if (!currentMatch) {
-    // starting within 60 min (upcoming)
-    const { data: upcoming } = await supabase
+  // If a specific match was requested (e.g. from "See match details" button), load it directly
+  if (specificMatchId) {
+    const { data: specific } = await supabase
       .from('matches')
       .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-      .eq('status', 'scheduled')
+      .eq('id', specificMatchId)
+      .maybeSingle()
+    if (specific) {
+      currentMatch = specific
+      state = specific.status === 'finished' ? 'finished'
+        : specific.status === 'in_play' ? 'live'
+        : 'upcoming'
+    }
+  }
+
+  if (!specificMatchId) {
+    // in_play
+    const { data: inPlay } = await supabase
+      .from('matches')
+      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+      .eq('status', 'in_play')
       .not('home_team_id', 'is', null)
       .not('away_team_id', 'is', null)
-      .gt('kickoff_at', nowIso)
-      .lte('kickoff_at', plus60)
       .order('kickoff_at', { ascending: true })
       .limit(1)
       .maybeSingle()
 
-    if (upcoming) {
-      currentMatch = upcoming
-      state = 'upcoming'
+    if (inPlay) {
+      currentMatch = inPlay
+      state = 'live'
     }
-  }
 
-  if (!currentMatch) {
-    // just kicked off but cron hasn't updated status yet (preview)
-    const { data: preview } = await supabase
-      .from('matches')
-      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-      .eq('status', 'scheduled')
-      .not('home_team_id', 'is', null)
-      .not('away_team_id', 'is', null)
-      .lte('kickoff_at', nowIso)
-      .gte('kickoff_at', minus30)
-      .order('kickoff_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    if (!currentMatch) {
+      // starting within 60 min (upcoming)
+      const { data: upcoming } = await supabase
+        .from('matches')
+        .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .eq('status', 'scheduled')
+        .not('home_team_id', 'is', null)
+        .not('away_team_id', 'is', null)
+        .gt('kickoff_at', nowIso)
+        .lte('kickoff_at', plus60)
+        .order('kickoff_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
 
-    if (preview) {
-      currentMatch = preview
-      state = 'preview'
+      if (upcoming) {
+        currentMatch = upcoming
+        state = 'upcoming'
+      }
     }
-  }
 
-  if (!currentMatch) {
-    // finished within 45 min
-    const { data: finished } = await supabase
-      .from('matches')
-      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-      .eq('status', 'finished')
-      .not('home_team_id', 'is', null)
-      .not('away_team_id', 'is', null)
-      .gte('result_fetched_at', minus45)
-      .order('result_fetched_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    if (!currentMatch) {
+      // just kicked off but cron hasn't updated status yet (preview)
+      const { data: preview } = await supabase
+        .from('matches')
+        .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .eq('status', 'scheduled')
+        .not('home_team_id', 'is', null)
+        .not('away_team_id', 'is', null)
+        .lte('kickoff_at', nowIso)
+        .gte('kickoff_at', minus30)
+        .order('kickoff_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-    if (finished) {
-      currentMatch = finished
-      state = 'finished'
+      if (preview) {
+        currentMatch = preview
+        state = 'preview'
+      }
+    }
+
+    if (!currentMatch) {
+      // finished within 45 min
+      const { data: finished } = await supabase
+        .from('matches')
+        .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .eq('status', 'finished')
+        .not('home_team_id', 'is', null)
+        .not('away_team_id', 'is', null)
+        .gte('result_fetched_at', minus45)
+        .order('result_fetched_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (finished) {
+        currentMatch = finished
+        state = 'finished'
+      }
     }
   }
 

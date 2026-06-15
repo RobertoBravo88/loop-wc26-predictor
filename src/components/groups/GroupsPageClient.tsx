@@ -368,6 +368,13 @@ function AllMatchesTab({
                   <span className="text-xs block mt-0.5" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
                     <LocalTime date={match.kickoff_at} fmt="d MMM" />
                   </span>
+                  <Link
+                    href={`/match-centre/${match.id}`}
+                    className="text-xs block mt-1 hover:opacity-70 transition-opacity whitespace-nowrap"
+                    style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                  >
+                    See match details →
+                  </Link>
                 </>
               ) : (
                 <>

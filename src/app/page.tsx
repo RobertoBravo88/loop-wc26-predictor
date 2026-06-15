@@ -29,9 +29,9 @@ export default async function HomePage() {
     profile = profileData
   }
 
-  // Match Centre data — admin only
+  // Match Centre data — visible to all logged-in users; admins also get preview override
   const isAdmin = profile?.role === 'admin'
-  const matchCentreData = isAdmin ? await getMatchCentreData(true) : null
+  const matchCentreData = user ? await getMatchCentreData(isAdmin) : null
 
   const { data: upcomingMatches } = await supabase
     .from('matches')
@@ -224,7 +224,7 @@ export default async function HomePage() {
       </section>
 
       {/* Match Centre — admin only, above news */}
-      {profile?.role === 'admin' && matchCentreData && (
+      {user && matchCentreData && (
         <MatchCentre data={matchCentreData} currentUserId={user?.id ?? null} />
       )}
 
@@ -450,6 +450,17 @@ export default async function HomePage() {
                           <span className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
                             Your call: {pred.predicted_home} – {pred.predicted_away}
                           </span>
+                        </div>
+                      )}
+                      {user && (
+                        <div className="mt-2">
+                          <Link
+                            href={`/match-centre/${match.id}`}
+                            className="text-xs hover:opacity-70 transition-opacity"
+                            style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                          >
+                            See match details →
+                          </Link>
                         </div>
                       )}
                     </div>
