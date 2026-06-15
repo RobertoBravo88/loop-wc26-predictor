@@ -46,7 +46,7 @@ export default async function MatchCentrePage({ params }: Props) {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main className="max-w-5xl mx-auto px-4 py-8">
       <Link
         href="/"
         className="text-sm hover:opacity-70 transition-opacity mb-6 inline-block"
