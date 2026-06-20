@@ -33,7 +33,8 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       'img':       ['src', 'alt', 'class', 'style'],
       'a':         ['href', 'target', 'rel'],
       'iframe':    ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
-      'blockquote': ['class', 'data-media-max-width', 'data-lang', 'data-dnt', 'data-theme'],
+      'blockquote': ['class', 'data-media-max-width', 'data-lang', 'data-dnt', 'data-theme',
+                     'data-instgrm-permalink', 'data-instgrm-version', 'data-instgrm-captioned'],
       'div':       ['data-embed-html'],
       '*':         ['class', 'style'],
     },
@@ -118,6 +119,11 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
 
       {/* Load Twitter widget script and trigger transform if article has a tweet */}
       {safeBody.includes('twitter-tweet') && <TweetLoader />}
+
+      {/* Load Instagram embed script if article contains an Instagram embed */}
+      {safeBody.includes('instagram-media') && (
+        <script async src="https://www.instagram.com/embed.js" />
+      )}
 
       {/* Reactions */}
       {user && (
