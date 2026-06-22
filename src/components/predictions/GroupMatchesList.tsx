@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import PredictionCard from './PredictionCard'
 import type { Match, Prediction } from '@/types'
 
@@ -18,6 +18,11 @@ interface Props {
 
 export default function GroupMatchesList({ matches, predictionMap, distMap, userId, lockCountdownIds, fanCountMap }: Props) {
   const [sort, setSort] = useState<'group' | 'date'>('date')
+  const scrollTargetRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    scrollTargetRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+  }, [])
 
   const btnStyle = (active: boolean): React.CSSProperties => ({
     padding: '5px 14px',
@@ -39,20 +44,25 @@ export default function GroupMatchesList({ matches, predictionMap, distMap, user
       (a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime()
     )
 
+    const lastFinishedIdx = sorted.reduce(
+      (acc, m, i) => (m.status === 'finished' ? i : acc), -1
+    )
+
     return (
       <>
         <SortBar sort={sort} setSort={setSort} btnStyle={btnStyle} />
         <div style={{ border: '1px solid #e0dbd3' }}>
-          {sorted.map(match => (
-            <PredictionCard
-              key={match.id}
-              match={match}
-              prediction={predictionMap[match.id] ?? null}
-              userId={userId}
-              distribution={distMap[match.id]}
-              showLockCountdown={lockCountdownIds?.has(match.id)}
-              fanCountMap={fanCountMap}
-            />
+          {sorted.map((match, idx) => (
+            <div key={match.id} ref={idx === lastFinishedIdx ? scrollTargetRef : undefined}>
+              <PredictionCard
+                match={match}
+                prediction={predictionMap[match.id] ?? null}
+                userId={userId}
+                distribution={distMap[match.id]}
+                showLockCountdown={lockCountdownIds?.has(match.id)}
+                fanCountMap={fanCountMap}
+              />
+            </div>
           ))}
         </div>
       </>
