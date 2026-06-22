@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { isTournamentStarted } from '@/lib/utils'
+import { BADGE_DEFS, RARITY_ORDER } from '@/lib/badges/definitions'
 
 export const revalidate = 300
 
@@ -13,12 +14,14 @@ export default async function StatsPage() {
     { data: profiles },
     { data: finalistPicks },
     { data: scorerPicks },
+    { data: allUserBadges },
   ] = await Promise.all([
     supabase.from('leaderboard').select('*').order('rank', { ascending: true }),
     supabase.from('predictions').select('user_id, predicted_home, predicted_away, is_exact, processed_at'),
     supabase.from('profiles').select('id, display_name, total_points, current_streak, max_streak, favourite_team:teams(id, name, flag_url)'),
     supabase.from('finalist_picks').select('first_team_id, second_team_id, third_team_id, first_team:teams!first_team_id(id, name, flag_url), second_team:teams!second_team_id(id, name, flag_url), third_team:teams!third_team_id(id, name, flag_url)'),
     supabase.from('scorer_picks').select('player_id, player:players(name, photo_url, team:teams(name, flag_url))'),
+    supabase.from('user_badges').select('badge_id, user_id, profile:profiles(id, display_name)').order('earned_at', { ascending: true }),
   ])
 
   // Compute fun stats
@@ -140,6 +143,19 @@ export default async function StatsPage() {
     .filter(f => f.count > 0)
     .map(f => ({ ...f, avgPoints: Math.round((f.totalPoints / f.count) * 10) / 10 }))
     .sort((a, b) => b.avgPoints - a.avgPoints)
+
+  // --- Badge earners grouped by badge_id ---
+  const badgeEarners = new Map<string, Array<{ id: string; name: string }>>()
+  for (const ub of (allUserBadges ?? []) as any[]) {
+    const profile = ub.profile
+    if (!profile) continue
+    const list = badgeEarners.get(ub.badge_id) ?? []
+    list.push({ id: profile.id, name: profile.display_name })
+    badgeEarners.set(ub.badge_id, list)
+  }
+
+  const RARITY_COLOR: Record<string, string> = { common: '#6b6b6b', uncommon: '#16a34a', rare: '#2563eb', very_rare: '#9333ea' }
+  const RARITY_BG:    Record<string, string> = { common: '#f3f4f6', uncommon: '#dcfce7', rare: '#dbeafe', very_rare: '#f3e8ff' }
 
   const tournamentStarted = isTournamentStarted()
 
@@ -450,6 +466,65 @@ export default async function StatsPage() {
         </div>
 
       </div> {/* end 2-col grid */}
+
+      {/* Achievements */}
+      <h2
+        className="text-2xl mt-10 mb-4 pb-3"
+        style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, color: '#141414', borderBottom: '1px solid #e0dbd3' }}
+      >
+        Achievements
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+        {BADGE_DEFS
+          .slice()
+          .sort((a, b) => RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity])
+          .map(badge => {
+            const earners = badgeEarners.get(badge.id) ?? []
+            const shown   = earners.slice(0, 5)
+            const extra   = earners.length - 5
+            return (
+              <Link
+                key={badge.id}
+                href={`/badges/${badge.id}`}
+                style={{ border: '1px solid #e0dbd3', background: '#ffffff', display: 'block', textDecoration: 'none' }}
+                className="hover:border-gray-400 transition-colors"
+              >
+                <div className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-3xl flex-shrink-0">{badge.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className="font-bold text-sm" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>{badge.name}</span>
+                        <span
+                          className="text-xs px-2 py-0.5 font-semibold"
+                          style={{ background: RARITY_BG[badge.rarity], color: RARITY_COLOR[badge.rarity], fontFamily: 'Inter, sans-serif' }}
+                        >
+                          {badge.rarity.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>{badge.desc}</p>
+                    </div>
+                    <span className="text-sm font-bold flex-shrink-0" style={{ color: '#ff5c35', fontFamily: 'Inter, sans-serif' }}>
+                      {earners.length}
+                    </span>
+                  </div>
+
+                  {shown.length > 0 ? (
+                    <p className="text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                      {shown.map(e => e.name).join(', ')}
+                      {extra > 0 && (
+                        <span className="font-semibold" style={{ color: '#ff5c35' }}> +{extra} more →</span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-xs" style={{ color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>Not yet earned</p>
+                  )}
+                </div>
+              </Link>
+            )
+          })
+        }
+      </div>
 
     </div>
   )

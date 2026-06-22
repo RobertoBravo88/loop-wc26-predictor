@@ -194,11 +194,13 @@ export default async function AdminPage() {
           <AdminSyncButton endpoint="/api/sync/results"      label="Sync results now"              variant="primary" />
           <AdminSyncButton endpoint="/api/sync/players-wc"   label="Sync WC players (from Jun 11)" batched />
           <AdminSyncButton endpoint="/api/admin/reprocess-goal-bonuses" label="Reprocess goal bonuses" variant="primary" />
+          <AdminSyncButton endpoint="/api/admin/sync-goals" label="Sync goals (full reconcile)" variant="primary" />
         </div>
         <p className="text-xs mb-5" style={{ color: '#6b6b6b', fontFamily: sans }}>
           <strong>Sync results now</strong> — manually trigger the result cron. Runs automatically every 10 min.<br />
           <strong>Sync WC players</strong> — once matches start, syncs players from actual WC stats. Run daily from June 11.<br />
-          <strong>Reprocess goal bonuses</strong> — re-awards any missed scorer / 12th Man bonuses. Safe to run anytime, especially after linking players.
+          <strong>Reprocess goal bonuses</strong> — re-awards any missed scorer / 12th Man bonuses. Safe to run anytime, especially after linking players.<br />
+          <strong>Sync goals (full reconcile)</strong> — compares all finished match goals against the API. Removes phantom goals + reverts points, adds missing goals + awards bonuses. Run if a goal count looks wrong.
         </p>
 
         {/* Pre-tournament setup */}

@@ -326,6 +326,38 @@ export async function reprocessGoalBonuses(matchId: string): Promise<{ bonusesAw
 }
 
 // ============================================================
+// Revert all bonus points tied to a specific goal event,
+// then delete the point_events. Called when a phantom goal
+// is detected during goal reconciliation.
+// ============================================================
+
+export async function removeGoalBonus(goalEventId: string): Promise<{ pointsReverted: number }> {
+  const supabase = createServiceClient()
+
+  const { data: affected } = await supabase
+    .from('point_events')
+    .select('user_id, points')
+    .eq('goal_event_id', goalEventId)
+
+  if (!affected?.length) return { pointsReverted: 0 }
+
+  // Group by user so we make one call per user
+  const byUser = new Map<string, number>()
+  for (const pe of affected) {
+    byUser.set(pe.user_id, (byUser.get(pe.user_id) ?? 0) + pe.points)
+  }
+
+  for (const [userId, pts] of byUser) {
+    await supabase.rpc('increment_user_points', { p_user_id: userId, p_points: -pts })
+  }
+
+  await supabase.from('point_events').delete().eq('goal_event_id', goalEventId)
+
+  const pointsReverted = [...byUser.values()].reduce((a, b) => a + b, 0)
+  return { pointsReverted }
+}
+
+// ============================================================
 // Process finalist picks at end of tournament
 // (N5) Idempotent: each point_event type is only inserted once per user
 // ============================================================
