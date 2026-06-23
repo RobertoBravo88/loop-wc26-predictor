@@ -80,6 +80,15 @@ export async function POST() {
         dbGoals.map((g: any) => `${g.team_id}:${g.minute}:${g.is_own_goal}`)
       )
 
+      // Fetch blocked goal keys for this match (known API phantoms)
+      const { data: blockedRows } = await supabase
+        .from('blocked_goal_keys')
+        .select('team_id, minute, is_own_goal')
+        .eq('match_id', match.id)
+      const blockedKeys = new Set(
+        (blockedRows ?? []).map((b: any) => `${b.team_id}:${b.minute}:${b.is_own_goal}`)
+      )
+
       // 1. Goals in DB but not in API → phantom, revert points and delete
       for (const dbGoal of dbGoals) {
         const key = `${dbGoal.team_id}:${dbGoal.minute}:${dbGoal.is_own_goal}`
@@ -92,10 +101,11 @@ export async function POST() {
       }
 
       // 2. Goals in API but not in DB → missing, insert and award bonuses
+      //    Skip blocked keys (known API phantoms we've manually removed)
       let addedThisMatch = 0
       for (const { teamDbId, minute, isOwnGoal, isPenalty, playerApiId, playerName } of apiGoalDetails) {
         const key = `${teamDbId}:${minute}:${isOwnGoal}`
-        if (!dbGoalKeys.has(key)) {
+        if (!dbGoalKeys.has(key) && !blockedKeys.has(key)) {
           // Upsert into api_players so retroactive linking works
           if (playerApiId) {
             await supabase.from('api_players').upsert({
