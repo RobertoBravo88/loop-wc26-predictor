@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { stageName } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -54,6 +54,15 @@ interface Props {
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 const KNOCKOUT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final']
 const PAGE_SIZE = 150
+
+// ── Bracket layout constants ───────────────────────────────────
+const BCARD_H = 72    // match card height (px)
+const BCARD_W = 180   // match card width (px)
+const BCONN_W = 28    // SVG connector column width (px)
+const BUNIT   = BCARD_H + 12   // 84 — row unit height (card + gap)
+const BRKT_H  = 16 * BUNIT     // 1344 — total bracket height
+const BRKT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'final']
+const BRKT_COUNTS = [16, 8, 4, 2, 1]
 
 const R32_SLOT_MAP: Record<number, [string, string]> = {
   73: ['A2', 'B2'],
@@ -265,6 +274,208 @@ function MatchNode({ match, userPick, homeSlot, awaySlot }: {
           Your call: {userPick.h}–{userPick.a}
         </div>
       )}
+    </div>
+  )
+}
+
+// ============================================================
+// Bracket sub-components
+// ============================================================
+
+function bracketTeamRow(
+  match: Match,
+  side: 'home' | 'away',
+  slot: SlotInfo | undefined,
+  finished: boolean,
+  homeWon: boolean,
+  awayWon: boolean,
+) {
+  const team  = side === 'home' ? match.home_team : match.away_team
+  const score = side === 'home' ? match.home_score : match.away_score
+  const won   = side === 'home' ? homeWon : awayWon
+  const displayName = team?.name ?? slot?.team ?? slot?.label ?? 'TBD'
+  const isResolved  = !!(team || slot?.team)
+
+  return (
+    <div style={{
+      flex: 1, display: 'flex', alignItems: 'center',
+      padding: '0 8px', gap: 5, minWidth: 0,
+      borderBottom: side === 'home' ? '1px solid #e0dbd3' : 'none',
+      background: won ? '#fff8f0' : undefined,
+    }}>
+      {team?.flag_url
+        ? <img src={team.flag_url} alt="" style={{ width: 14, height: 10, objectFit: 'contain', flexShrink: 0 }} />
+        : <span style={{ width: 14, flexShrink: 0 }} />
+      }
+      <span style={{
+        flex: 1, fontSize: 11, fontFamily: 'Inter, sans-serif',
+        color: isResolved ? '#141414' : '#b0a99f',
+        fontWeight: won ? 700 : 400,
+        fontStyle: isResolved ? 'normal' : 'italic',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {displayName}
+      </span>
+      {finished && score !== null && (
+        <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'Inter, sans-serif', color: won ? '#ff5c35' : '#6b6b6b', flexShrink: 0 }}>
+          {score}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function BracketConnector({ fromCount, toCount }: { fromCount: number; toCount: number }) {
+  const fromSlotH = BRKT_H / fromCount
+  const toSlotH   = BRKT_H / toCount
+  const midX = BCONN_W / 2
+  return (
+    <svg width={BCONN_W} height={BRKT_H} style={{ flexShrink: 0, display: 'block' }}>
+      {Array.from({ length: toCount }, (_, i) => {
+        const yA = (2 * i)     * fromSlotH + fromSlotH / 2
+        const yB = (2 * i + 1) * fromSlotH + fromSlotH / 2
+        const yC = i           * toSlotH   + toSlotH   / 2
+        return (
+          <g key={i}>
+            <line x1={0}    y1={yA} x2={midX}   y2={yA} stroke="#d1cbc3" strokeWidth={1} />
+            <line x1={0}    y1={yB} x2={midX}   y2={yB} stroke="#d1cbc3" strokeWidth={1} />
+            <line x1={midX} y1={yA} x2={midX}   y2={yB} stroke="#d1cbc3" strokeWidth={1} />
+            <line x1={midX} y1={yC} x2={BCONN_W} y2={yC} stroke="#d1cbc3" strokeWidth={1} />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+function BracketCard({ match, homeSlot, awaySlot }: {
+  match: Match | null
+  homeSlot?: SlotInfo
+  awaySlot?: SlotInfo
+}) {
+  if (!match) {
+    return (
+      <div style={{
+        width: BCARD_W, height: BCARD_H,
+        border: '1px dashed #e0dbd3', background: '#faf9f6',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 10, color: '#c4bfb8', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}>TBD</span>
+      </div>
+    )
+  }
+
+  const finished = match.status === 'finished'
+  const hs  = match.home_score
+  const as_ = match.away_score
+  const homeWon = finished && hs !== null && as_ !== null && hs > as_
+  const awayWon = finished && hs !== null && as_ !== null && as_ > hs
+
+  const inner = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {bracketTeamRow(match, 'home', homeSlot, finished, homeWon, awayWon)}
+      {bracketTeamRow(match, 'away', awaySlot, finished, homeWon, awayWon)}
+    </div>
+  )
+
+  const cardStyle: React.CSSProperties = {
+    width: BCARD_W, height: BCARD_H,
+    border: '1px solid #e0dbd3', background: '#ffffff',
+    overflow: 'hidden', display: 'block', textDecoration: 'none',
+  }
+
+  if (finished) {
+    return (
+      <Link href={`/match-centre/${match.id}`} style={cardStyle} className="hover:border-gray-400 transition-colors">
+        {inner}
+      </Link>
+    )
+  }
+  return <div style={cardStyle}>{inner}</div>
+}
+
+function BracketTab({
+  knockoutByStage,
+  groupLeaders,
+}: {
+  knockoutByStage: Map<MatchStage, Match[]>
+  groupLeaders: Record<string, { p1?: string; p2?: string; complete: boolean }>
+}) {
+  const thirdPlace = (knockoutByStage.get('third_place') ?? [])[0] ?? null
+
+  return (
+    <div className="overflow-x-auto pb-6 -mx-4 sm:mx-0 px-4 sm:px-0">
+      <div style={{ minWidth: 'max-content' }}>
+
+        {/* Stage headers */}
+        <div style={{ display: 'flex', marginBottom: 8 }}>
+          {BRKT_STAGES.map((stage, si) => (
+            <React.Fragment key={stage}>
+              {si > 0 && <div style={{ width: BCONN_W, flexShrink: 0 }} />}
+              <div style={{
+                width: BCARD_W, flexShrink: 0, padding: '5px 0', textAlign: 'center',
+                fontSize: 10, fontWeight: 700, fontFamily: 'Inter, sans-serif',
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                background: '#141414', color: '#ffffff',
+              }}>
+                {stageName(stage)}
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Columns + SVG connectors */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', height: BRKT_H }}>
+          {BRKT_STAGES.map((stage, si) => {
+            const sorted = [...(knockoutByStage.get(stage) ?? [])].sort(
+              (a, b) => (a.match_number ?? 0) - (b.match_number ?? 0)
+            )
+            const count  = BRKT_COUNTS[si]
+            const slotH  = BRKT_H / count
+
+            return (
+              <React.Fragment key={stage}>
+                {si > 0 && <BracketConnector fromCount={BRKT_COUNTS[si - 1]} toCount={count} />}
+                <div style={{ width: BCARD_W, height: BRKT_H, position: 'relative', flexShrink: 0 }}>
+                  {Array.from({ length: count }, (_, mi) => {
+                    const match   = sorted[mi] ?? null
+                    const cardTop = mi * slotH + (slotH - BCARD_H) / 2
+
+                    let homeSlot: SlotInfo | undefined
+                    let awaySlot: SlotInfo | undefined
+                    if (match && stage === 'round_of_32' && match.match_number != null) {
+                      const slots = R32_SLOT_MAP[match.match_number]
+                      if (slots) {
+                        homeSlot = resolveSlot(slots[0], groupLeaders)
+                        awaySlot = resolveSlot(slots[1], groupLeaders)
+                      }
+                    }
+
+                    return (
+                      <div key={mi} style={{ position: 'absolute', top: cardTop, left: 0 }}>
+                        <BracketCard match={match} homeSlot={homeSlot} awaySlot={awaySlot} />
+                      </div>
+                    )
+                  })}
+                </div>
+              </React.Fragment>
+            )
+          })}
+        </div>
+
+        {/* 3rd place — separate below */}
+        <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            padding: '5px 10px', fontSize: 10, fontWeight: 700, fontFamily: 'Inter, sans-serif',
+            textTransform: 'uppercase', letterSpacing: '0.07em', background: '#6b6b6b', color: '#ffffff',
+            flexShrink: 0, whiteSpace: 'nowrap',
+          }}>
+            3rd Place
+          </div>
+          <BracketCard match={thirdPlace} />
+        </div>
+
+      </div>
     </div>
   )
 }
@@ -597,68 +808,7 @@ export default function GroupsPageClient({
 
       {/* ── Finals tab ── */}
       {tab === 'finals' && (
-        <div className="overflow-x-auto pb-6">
-          <div className="flex items-start gap-4" style={{ minWidth: 'max-content' }}>
-            {KNOCKOUT_STAGES.map(stage => {
-              const stageMatches = knockoutByStage.get(stage) ?? []
-              const colWidth = stage === 'round_of_32' || stage === 'round_of_16' ? 200 : 180
-
-              return (
-                <div key={stage} style={{ width: `${colWidth}px`, flexShrink: 0 }}>
-                  {/* Stage header */}
-                  <div
-                    className="px-3 py-1.5 mb-3 text-center text-xs font-bold uppercase tracking-wider"
-                    style={{
-                      background: '#141414',
-                      color: '#ffffff',
-                      fontFamily: 'Inter, sans-serif',
-                    }}
-                  >
-                    {stageName(stage)}
-                  </div>
-
-                  {/* Matches */}
-                  {stageMatches.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {stageMatches.map((match) => {
-                        let homeSlot: SlotInfo | undefined
-                        let awaySlot: SlotInfo | undefined
-                        if (stage === 'round_of_32' && match.match_number != null) {
-                          const slots = R32_SLOT_MAP[match.match_number]
-                          if (slots) {
-                            homeSlot = resolveSlot(slots[0], groupLeaders)
-                            awaySlot = resolveSlot(slots[1], groupLeaders)
-                          }
-                        }
-                        return (
-                          <MatchNode
-                            key={match.id}
-                            match={match}
-                            userPick={predictionMap[match.id]}
-                            homeSlot={homeSlot}
-                            awaySlot={awaySlot}
-                          />
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div
-                      className="flex items-center justify-center text-xs uppercase tracking-wider py-6"
-                      style={{
-                        border: '1px dashed #e0dbd3',
-                        color: '#c4bfb8',
-                        fontFamily: 'Inter, sans-serif',
-                        minHeight: '60px',
-                      }}
-                    >
-                      TBD
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <BracketTab knockoutByStage={knockoutByStage} groupLeaders={groupLeaders} />
       )}
 
       {/* ── All Matches tab ── */}
