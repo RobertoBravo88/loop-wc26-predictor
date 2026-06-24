@@ -67,6 +67,15 @@ const BRKT_COUNTS = [16, 8, 4, 2, 1]
 
 // R32_SLOT_MAP and resolveSlot are imported from @/lib/bracket/slots
 
+// Bracket display order — pairs that share an R16 slot must be adjacent.
+// Derived from the official 2026 WC bracket (Wikipedia knockout stage article).
+//   R16 89 = M73+M75, R16 90 = M74+M77, R16 93 = M83+M84, R16 94 = M81+M82
+//   R16 91 = M76+M78, R16 92 = M79+M80, R16 95 = M86+M88, R16 96 = M85+M87
+//   QF 97 = R16 89+90 → SF101, QF 98 = R16 93+94 → SF101
+//   QF 99 = R16 91+92 → SF102, QF 100 = R16 95+96 → SF102
+const R32_DISPLAY_ORDER = [73,75, 74,77, 83,84, 81,82, 76,78, 79,80, 86,88, 85,87]
+const R16_DISPLAY_ORDER = [89,90, 93,94, 91,92, 95,96]
+
 // ============================================================
 // Sub-components
 // ============================================================
@@ -396,9 +405,14 @@ function BracketTab({
         {/* Columns + SVG connectors */}
         <div style={{ display: 'flex', alignItems: 'flex-start', height: BRKT_H }}>
           {BRKT_STAGES.map((stage, si) => {
-            const sorted = [...(knockoutByStage.get(stage) ?? [])].sort(
-              (a, b) => (a.match_number ?? 0) - (b.match_number ?? 0)
-            )
+            const stageMatches = knockoutByStage.get(stage) ?? []
+            const displayOrder =
+              stage === 'round_of_32' ? R32_DISPLAY_ORDER :
+              stage === 'round_of_16' ? R16_DISPLAY_ORDER :
+              null
+            const sorted: (Match | null)[] = displayOrder
+              ? displayOrder.map(n => stageMatches.find(m => m.match_number === n) ?? null)
+              : [...stageMatches].sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0))
             const count  = BRKT_COUNTS[si]
             const slotH  = BRKT_H / count
 
@@ -407,7 +421,7 @@ function BracketTab({
                 {si > 0 && <BracketConnector fromCount={BRKT_COUNTS[si - 1]} toCount={count} />}
                 <div style={{ width: BCARD_W, height: BRKT_H, position: 'relative', flexShrink: 0 }}>
                   {Array.from({ length: count }, (_, mi) => {
-                    const match   = sorted[mi] ?? null
+                    const match   = sorted[mi] !== undefined ? sorted[mi] : null
                     const cardTop = mi * slotH + (slotH - BCARD_H) / 2
 
                     let homeSlot: SlotInfo | undefined
