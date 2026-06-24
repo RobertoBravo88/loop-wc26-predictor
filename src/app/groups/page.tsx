@@ -185,17 +185,21 @@ export default async function GroupsPage() {
   }
 
   // Build group leaders map for bracket slot labels
-  const groupLeadersMap = new Map<string, { p1?: string; p2?: string; complete: boolean }>()
+  const groupLeadersMap = new Map<string, { p1?: string; p2?: string; p1Flag?: string | null; p2Flag?: string | null; complete: boolean }>()
   for (const g of GROUPS) {
     const groupTeams = teamsByGroup.get(g) ?? []
     const groupMatches = matchesByGroup.get(g) ?? []
     const standings = computeStandings(groupMatches, groupTeams)
     const complete = groupMatches.length > 0 && groupMatches.every(m => m.status === 'finished')
-    groupLeadersMap.set(g, { p1: standings[0]?.team.name, p2: standings[1]?.team.name, complete })
+    groupLeadersMap.set(g, {
+      p1: standings[0]?.team.name, p2: standings[1]?.team.name,
+      p1Flag: standings[0]?.team.flag_url ?? null, p2Flag: standings[1]?.team.flag_url ?? null,
+      complete,
+    })
   }
 
   // Convert groupLeaders map to plain object
-  const groupLeadersObj: Record<string, { p1?: string; p2?: string; complete: boolean }> = {}
+  const groupLeadersObj: Record<string, { p1?: string; p2?: string; p1Flag?: string | null; p2Flag?: string | null; complete: boolean }> = {}
   for (const [k, v] of groupLeadersMap) groupLeadersObj[k] = v
 
   // Build groupData array

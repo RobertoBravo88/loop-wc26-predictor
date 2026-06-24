@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import LocalTime from '@/components/ui/LocalTime'
 import TeamFanBadge from '@/components/ui/TeamFanBadge'
 import type { Match, GroupStanding, MatchStage } from '@/types'
+import { R32_SLOT_MAP, resolveSlot, type SlotInfo, type GroupLeaders } from '@/lib/bracket/slots'
 
 // ============================================================
 // Exported types (imported by groups/page.tsx)
@@ -34,13 +35,13 @@ export interface TopScorer {
   fanCount: number   // how many Loopers picked this player as their 12th Man
 }
 
-interface SlotInfo { label: string; team?: string; confirmed: boolean }
+// SlotInfo and GroupLeaders are imported from @/lib/bracket/slots
 
 interface Props {
   groupData: GroupData[]
   knockoutData: KnockoutData[]
   predictionMap: Record<string, { h: number; a: number }>
-  groupLeaders: Record<string, { p1?: string; p2?: string; complete: boolean }>
+  groupLeaders: GroupLeaders
   topScorers: TopScorer[]
   mySquadIds: string[]
   lastSynced: string | null
@@ -64,42 +65,7 @@ const BRKT_H  = 16 * BUNIT     // 1344 — total bracket height
 const BRKT_STAGES: MatchStage[] = ['round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'final']
 const BRKT_COUNTS = [16, 8, 4, 2, 1]
 
-const R32_SLOT_MAP: Record<number, [string, string]> = {
-  73: ['A2', 'B2'],
-  74: ['E1', '3rd'],
-  75: ['F1', 'C2'],
-  76: ['C1', 'F2'],
-  77: ['I1', '3rd'],
-  78: ['E2', 'I2'],
-  79: ['A1', '3rd'],
-  80: ['L1', '3rd'],
-  81: ['D1', '3rd'],
-  82: ['G1', '3rd'],
-  83: ['K2', 'L2'],
-  84: ['H1', 'J2'],
-  85: ['B1', '3rd'],
-  86: ['J1', 'H2'],
-  87: ['K1', '3rd'],
-  88: ['D2', 'G2'],
-}
-
-// ============================================================
-// Helper functions
-// ============================================================
-
-function resolveSlot(slot: string, leaders: Record<string, { p1?: string; p2?: string; complete: boolean }>): SlotInfo {
-  if (!slot || slot === '3rd') return { label: 'Best 3rd place', confirmed: false }
-  const m = slot.match(/^([A-L])([12])$/)
-  if (!m) return { label: slot, confirmed: false }
-  const group = m[1], pos = m[2]
-  const g = leaders[group]
-  const team = pos === '1' ? g?.p1 : g?.p2
-  return {
-    label: `Group ${group} ${pos === '1' ? 'winner' : 'runner-up'}`,
-    team,
-    confirmed: (g?.complete ?? false),
-  }
-}
+// R32_SLOT_MAP and resolveSlot are imported from @/lib/bracket/slots
 
 // ============================================================
 // Sub-components
@@ -303,8 +269,8 @@ function bracketTeamRow(
       borderBottom: side === 'home' ? '1px solid #e0dbd3' : 'none',
       background: won ? '#fff8f0' : undefined,
     }}>
-      {team?.flag_url
-        ? <img src={team.flag_url} alt="" style={{ width: 14, height: 10, objectFit: 'contain', flexShrink: 0 }} />
+      {team?.flag_url || slot?.flagUrl
+        ? <img src={team?.flag_url ?? slot!.flagUrl!} alt="" style={{ width: 14, height: 10, objectFit: 'contain', flexShrink: 0 }} />
         : <span style={{ width: 14, flexShrink: 0 }} />
       }
       <span style={{
@@ -378,9 +344,12 @@ function BracketCard({ match, homeSlot, awaySlot }: {
     </div>
   )
 
+  const hasConfirmedSlot = (!match.home_team && homeSlot?.confirmed) || (!match.away_team && awaySlot?.confirmed)
   const cardStyle: React.CSSProperties = {
     width: BCARD_W, height: BCARD_H,
-    border: '1px solid #e0dbd3', background: '#ffffff',
+    border: '1px solid #e0dbd3',
+    borderLeft: hasConfirmedSlot ? '3px solid #ff5c35' : '1px solid #e0dbd3',
+    background: '#ffffff',
     overflow: 'hidden', display: 'block', textDecoration: 'none',
   }
 
@@ -399,7 +368,7 @@ function BracketTab({
   groupLeaders,
 }: {
   knockoutByStage: Map<MatchStage, Match[]>
-  groupLeaders: Record<string, { p1?: string; p2?: string; complete: boolean }>
+  groupLeaders: GroupLeaders
 }) {
   const thirdPlace = (knockoutByStage.get('third_place') ?? [])[0] ?? null
 

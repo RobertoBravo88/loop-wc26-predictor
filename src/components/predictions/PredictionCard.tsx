@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import TeamFanBadge from '@/components/ui/TeamFanBadge'
 import type { Match, Prediction } from '@/types'
+import type { SlotInfo } from '@/lib/bracket/slots'
 
 interface Props {
   match: Match
@@ -17,6 +18,8 @@ interface Props {
   distribution?: { home: number; draw: number; away: number; total: number }
   showLockCountdown?: boolean
   fanCountMap?: Record<string, number>
+  homeSlotInfo?: SlotInfo
+  awaySlotInfo?: SlotInfo
 }
 
 function getLockCountdownText(kickoffAt: string): string | null {
@@ -37,7 +40,7 @@ function getLockCountdownText(kickoffAt: string): string | null {
   return null
 }
 
-export default function PredictionCard({ match, prediction, userId, distribution, showLockCountdown, fanCountMap }: Props) {
+export default function PredictionCard({ match, prediction, userId, distribution, showLockCountdown, fanCountMap, homeSlotInfo, awaySlotInfo }: Props) {
   const router = useRouter()
   const locked = isMatchLocked(match.kickoff_at) || match.status !== 'scheduled'
   const finished = match.status === 'finished'
@@ -190,10 +193,10 @@ export default function PredictionCard({ match, prediction, userId, distribution
         <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
           {match.home_team && <TeamFanBadge teamId={match.home_team.id} count={fanCountMap?.[match.home_team.id] ?? 0} />}
           <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-            {match.home_team?.name ?? '?'}
+            {match.home_team?.name ?? homeSlotInfo?.team ?? '?'}
           </span>
-          {match.home_team?.flag_url && (
-            <img src={match.home_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+          {(match.home_team?.flag_url || (homeSlotInfo?.confirmed && homeSlotInfo.flagUrl)) && (
+            <img src={match.home_team?.flag_url ?? homeSlotInfo!.flagUrl!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
           )}
         </div>
 
@@ -253,11 +256,11 @@ export default function PredictionCard({ match, prediction, userId, distribution
 
         {/* Away team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {match.away_team?.flag_url && (
-            <img src={match.away_team.flag_url} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+          {(match.away_team?.flag_url || (awaySlotInfo?.confirmed && awaySlotInfo.flagUrl)) && (
+            <img src={match.away_team?.flag_url ?? awaySlotInfo!.flagUrl!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
           )}
           <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
-            {match.away_team?.name ?? '?'}
+            {match.away_team?.name ?? awaySlotInfo?.team ?? '?'}
           </span>
           {match.away_team && <TeamFanBadge teamId={match.away_team.id} count={fanCountMap?.[match.away_team.id] ?? 0} />}
         </div>

@@ -6,7 +6,58 @@ import PredictionCard from '@/components/predictions/PredictionCard'
 import GroupMatchesList from '@/components/predictions/GroupMatchesList'
 import TournamentPicksClient from '@/components/predictions/TournamentPicksClient'
 import Link from 'next/link'
-import type { Match, Prediction, MatchStage } from '@/types'
+import type { Match, Prediction, MatchStage, Team } from '@/types'
+import { R32_SLOT_MAP, resolveSlot, type SlotInfo, type GroupLeaders } from '@/lib/bracket/slots'
+
+const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+
+function computeGroupLeaders(
+  matches: Match[],
+  teams: Team[],
+): GroupLeaders {
+  type Row = { name: string; flagUrl: string | null; pts: number; gd: number; gf: number }
+  const table = new Map<string, Row>()
+  for (const t of teams) {
+    if (!t.group_letter) continue
+    table.set(t.id, { name: t.name, flagUrl: t.flag_url, pts: 0, gd: 0, gf: 0 })
+  }
+  for (const m of matches) {
+    if (m.home_score === null || m.away_score === null) continue
+    const home = table.get(m.home_team_id!), away = table.get(m.away_team_id!)
+    if (!home || !away) continue
+    home.gf += m.home_score; home.gd += m.home_score - m.away_score
+    away.gf += m.away_score; away.gd += m.away_score - m.home_score
+    if (m.home_score > m.away_score) { home.pts += 3 }
+    else if (m.home_score < m.away_score) { away.pts += 3 }
+    else { home.pts++; away.pts++ }
+  }
+  const byGroup = new Map<string, { rows: Row[]; matchCount: number; finishedCount: number }>()
+  for (const t of teams) {
+    if (!t.group_letter) continue
+    if (!byGroup.has(t.group_letter)) byGroup.set(t.group_letter, { rows: [], matchCount: 0, finishedCount: 0 })
+    const row = table.get(t.id)
+    if (row) byGroup.get(t.group_letter)!.rows.push(row)
+  }
+  for (const m of matches) {
+    if (!m.group_letter) continue
+    const g = byGroup.get(m.group_letter)
+    if (!g) continue
+    g.matchCount++
+    if (m.status === 'finished') g.finishedCount++
+  }
+  const result: GroupLeaders = {}
+  for (const letter of GROUPS) {
+    const g = byGroup.get(letter)
+    if (!g) { result[letter] = { complete: false }; continue }
+    const sorted = [...g.rows].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+    result[letter] = {
+      p1: sorted[0]?.name, p2: sorted[1]?.name,
+      p1Flag: sorted[0]?.flagUrl ?? null, p2Flag: sorted[1]?.flagUrl ?? null,
+      complete: g.matchCount > 0 && g.matchCount === g.finishedCount,
+    }
+  }
+  return result
+}
 
 export const revalidate = 30
 
@@ -157,13 +208,20 @@ export default async function PredictionsPage({
   let knockoutMatches: Match[] = []
   let knockoutPredMap = new Map<string, Prediction>()
   let knockoutDistMap = new Map<string, { home: number; draw: number; away: number; total: number }>()
+  let groupLeaders: GroupLeaders = {}
 
   if (activeTab === 'finals') {
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
-      .in('stage', KNOCKOUT_STAGES)
-      .order('kickoff_at')
+    const [
+      { data: matchData },
+      { data: groupMatchData },
+      { data: groupTeamData },
+    ] = await Promise.all([
+      supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .in('stage', KNOCKOUT_STAGES).order('kickoff_at'),
+      supabase.from('matches').select('*, home_team:teams!home_team_id(*), away_team:teams!away_team_id(*)')
+        .eq('stage', 'group').not('home_team_id', 'is', null).not('away_team_id', 'is', null),
+      supabase.from('teams').select('*').not('group_letter', 'is', null),
+    ])
 
     const matchIds = (matchData ?? []).map(m => m.id)
     const { data: predData }        = await supabase.from('predictions').select('*').eq('user_id', user.id).in('match_id', matchIds)
@@ -179,6 +237,11 @@ export default async function PredictionsPage({
       else d.draw++
       knockoutDistMap.set(p.match_id, d)
     }
+
+    groupLeaders = computeGroupLeaders(
+      (groupMatchData ?? []) as Match[],
+      (groupTeamData ?? []) as Team[],
+    )
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -362,16 +425,29 @@ export default async function PredictionsPage({
                   {stageName(stage)}
                 </h2>
                 <div style={{ border: '1px solid #e0dbd3' }}>
-                  {stageMatches.map(match => (
-                    <PredictionCard
-                      key={match.id}
-                      match={match}
-                      prediction={knockoutPredMap.get(match.id) ?? null}
-                      userId={user.id}
-                      distribution={knockoutDistMap.get(match.id)}
-                      showLockCountdown={lockCountdownIds.has(match.id)}
-                    />
-                  ))}
+                  {stageMatches.map(match => {
+                    let homeSlotInfo: SlotInfo | undefined
+                    let awaySlotInfo: SlotInfo | undefined
+                    if (stage === 'round_of_32' && match.match_number != null) {
+                      const slots = R32_SLOT_MAP[match.match_number]
+                      if (slots) {
+                        homeSlotInfo = resolveSlot(slots[0], groupLeaders)
+                        awaySlotInfo = resolveSlot(slots[1], groupLeaders)
+                      }
+                    }
+                    return (
+                      <PredictionCard
+                        key={match.id}
+                        match={match}
+                        prediction={knockoutPredMap.get(match.id) ?? null}
+                        userId={user.id}
+                        distribution={knockoutDistMap.get(match.id)}
+                        showLockCountdown={lockCountdownIds.has(match.id)}
+                        homeSlotInfo={homeSlotInfo}
+                        awaySlotInfo={awaySlotInfo}
+                      />
+                    )
+                  })}
                 </div>
               </section>
             )
