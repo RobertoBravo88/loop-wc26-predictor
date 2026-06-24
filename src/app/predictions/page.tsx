@@ -424,6 +424,14 @@ export default async function PredictionsPage({
                 >
                   {stageName(stage)}
                 </h2>
+                {stage === 'round_of_32' && (
+                  <p className="mb-3 text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
+                    <span style={{ color: '#141414', fontWeight: 600 }}>Bold name</span>
+                    {' = confirmed qualifier · '}
+                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Italic name</span>
+                    {' = current leader (group still in play)'}
+                  </p>
+                )}
                 <div style={{ border: '1px solid #e0dbd3' }}>
                   {stageMatches.map(match => {
                     let homeSlotInfo: SlotInfo | undefined

@@ -188,15 +188,26 @@ export default function PredictionCard({ match, prediction, userId, distribution
       </div>
 
       {/* Teams + score inputs */}
+      {(() => {
+        const homeLikely = !match.home_team && !!homeSlotInfo?.team && !homeSlotInfo.confirmed
+        const awayLikely = !match.away_team && !!awaySlotInfo?.team && !awaySlotInfo.confirmed
+        const homeFlagUrl = match.home_team?.flag_url ?? homeSlotInfo?.flagUrl
+        const awayFlagUrl = match.away_team?.flag_url ?? awaySlotInfo?.flagUrl
+        return (
       <div className="flex items-center gap-2">
         {/* Home team */}
         <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
           {match.home_team && <TeamFanBadge teamId={match.home_team.id} count={fanCountMap?.[match.home_team.id] ?? 0} />}
-          <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-sm truncate" style={{
+            color: homeLikely ? '#9ca3af' : '#141414',
+            fontWeight: homeLikely ? 400 : 600,
+            fontStyle: homeLikely ? 'italic' : 'normal',
+            fontFamily: 'Inter, sans-serif',
+          }}>
             {match.home_team?.name ?? homeSlotInfo?.team ?? '?'}
           </span>
-          {(match.home_team?.flag_url || (homeSlotInfo?.confirmed && homeSlotInfo.flagUrl)) && (
-            <img src={match.home_team?.flag_url ?? homeSlotInfo!.flagUrl!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+          {homeFlagUrl && (
+            <img src={homeFlagUrl} alt="" className="w-6 h-4 object-contain flex-shrink-0" style={{ opacity: homeLikely ? 0.35 : 1 }} />
           )}
         </div>
 
@@ -256,15 +267,22 @@ export default function PredictionCard({ match, prediction, userId, distribution
 
         {/* Away team */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {(match.away_team?.flag_url || (awaySlotInfo?.confirmed && awaySlotInfo.flagUrl)) && (
-            <img src={match.away_team?.flag_url ?? awaySlotInfo!.flagUrl!} alt="" className="w-6 h-4 object-contain flex-shrink-0" />
+          {awayFlagUrl && (
+            <img src={awayFlagUrl} alt="" className="w-6 h-4 object-contain flex-shrink-0" style={{ opacity: awayLikely ? 0.35 : 1 }} />
           )}
-          <span className="text-sm font-semibold truncate" style={{ color: '#141414', fontFamily: 'Inter, sans-serif' }}>
+          <span className="text-sm truncate" style={{
+            color: awayLikely ? '#9ca3af' : '#141414',
+            fontWeight: awayLikely ? 400 : 600,
+            fontStyle: awayLikely ? 'italic' : 'normal',
+            fontFamily: 'Inter, sans-serif',
+          }}>
             {match.away_team?.name ?? awaySlotInfo?.team ?? '?'}
           </span>
           {match.away_team && <TeamFanBadge teamId={match.away_team.id} count={fanCountMap?.[match.away_team.id] ?? 0} />}
         </div>
       </div>
+        )
+      })()}
 
       {/* Prediction distribution — shown once user has submitted their own pick */}
       {distribution && distribution.total > 0 && prediction && (
@@ -277,9 +295,9 @@ export default function PredictionCard({ match, prediction, userId, distribution
           </div>
           {/* Labels */}
           <div className="flex justify-between text-xs" style={{ color: '#6b6b6b', fontFamily: 'Inter, sans-serif' }}>
-            <span><span className="font-semibold" style={{ color: '#141414' }}>{Math.round(distribution.home / distribution.total * 100)}%</span> {match.home_team?.name}</span>
+            <span><span className="font-semibold" style={{ color: '#141414' }}>{Math.round(distribution.home / distribution.total * 100)}%</span> {match.home_team?.name ?? homeSlotInfo?.team}</span>
             <span><span className="font-semibold" style={{ color: '#6b6b6b' }}>{Math.round(distribution.draw / distribution.total * 100)}%</span> Draw</span>
-            <span>{match.away_team?.name} <span className="font-semibold" style={{ color: '#ff5c35' }}>{Math.round(distribution.away / distribution.total * 100)}%</span></span>
+            <span>{match.away_team?.name ?? awaySlotInfo?.team} <span className="font-semibold" style={{ color: '#ff5c35' }}>{Math.round(distribution.away / distribution.total * 100)}%</span></span>
           </div>
         </div>
       )}
