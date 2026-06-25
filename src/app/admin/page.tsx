@@ -8,6 +8,7 @@ import AdminPlayersSection from '@/components/admin/AdminPlayersSection'
 import AdminPlayerLinker from '@/components/admin/AdminPlayerLinker'
 import AdminApiPlayerLinker from '@/components/admin/AdminApiPlayerLinker'
 import AdminMatchCentreSimulator from '@/components/admin/AdminMatchCentreSimulator'
+import AdminReprocessMatchPanel from '@/components/admin/AdminReprocessMatchPanel'
 import { format } from 'date-fns'
 
 const serif = "'Playfair Display', Georgia, serif"
@@ -201,6 +202,17 @@ export default async function AdminPage() {
           <strong>Sync WC players</strong> — once matches start, syncs players from actual WC stats. Run daily from June 11.<br />
           <strong>Reprocess goal bonuses</strong> — re-awards any missed scorer / 12th Man bonuses. Safe to run anytime, especially after linking players.<br />
           <strong>Sync goals (full reconcile)</strong> — compares all finished match goals against the API. Removes phantom goals + reverts points, adds missing goals + awards bonuses. Run if a goal count looks wrong.
+        </p>
+
+        {/* Reprocess specific match predictions */}
+        <p className="text-xs font-semibold uppercase tracking-wider mb-2 pt-4" style={{ color: '#141414', fontFamily: sans, borderTop: '1px solid #e0dbd3', paddingTop: '1rem' }}>
+          Fix missing prediction points
+        </p>
+        <div className="mb-3">
+          <AdminReprocessMatchPanel />
+        </div>
+        <p className="text-xs mb-5" style={{ color: '#6b6b6b', fontFamily: sans }}>
+          Select a finished match and click <strong>Reprocess predictions</strong> to award points to anyone whose prediction wasn&apos;t processed (e.g. due to a timeout). Safe to run — only processes predictions with no points yet. Also re-awards any goal scorer bonuses for that match.
         </p>
 
         {/* Pre-tournament setup */}
