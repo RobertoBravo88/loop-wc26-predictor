@@ -73,8 +73,8 @@ export default async function PredictionsPage({
   const { tab } = await searchParams
   const activeTab =
     tab === 'tournament' ? 'tournament' :
-    tab === 'finals'     ? 'finals'     :
-                           'matches'
+    tab === 'matches'    ? 'matches'    :
+                           'finals'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
