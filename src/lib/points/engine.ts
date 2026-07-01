@@ -55,7 +55,10 @@ export async function processMatchResult(matchId: string) {
     .eq('match_id', matchId)
     .is('processed_at', null)
 
-  if (!predictions?.length) return { processed: 0 }
+  if (!predictions?.length) {
+    await reprocessGoalBonuses(matchId)
+    return { processed: 0 }
+  }
 
   let processedCount = 0
 
